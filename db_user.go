@@ -42,7 +42,7 @@ func SelectSession(r *http.Request) (session Session) {
 	fmt.Println(Gray(8-1, "Starting SelectSession..."))
 
 	auth := r.Header["Authorization"][0]
-	session.Uuid = strings.Split(auth, "token=")[1]
+	session.Uuid = strings.Split(auth, "sessionId=")[1]
 
 	err := DbWebApp.QueryRow(`
       SELECT

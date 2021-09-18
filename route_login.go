@@ -27,7 +27,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	if user.Id != 0 && user.Password == Encrypt(user.LoginPassword) {
 		fmt.Println(Blue("Log in valid..."))
 		session := user.CreateSession()
-		json.NewEncoder(w).Encode(session.Uuid)
+		user_data := struct {
+			SessionId string
+			UserName  string
+		}{
+			session.Uuid,
+			user.UserName,
+		}
+		json.NewEncoder(w).Encode(user_data)
 	} else {
 		fmt.Println(Yellow("Log in not valid..."))
 	}
