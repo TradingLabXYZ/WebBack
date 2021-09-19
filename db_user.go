@@ -31,10 +31,25 @@ func UserByEmail(email string) (user User) {
 					SELECT
 						id,
 						email,
-						password
+						password,
+						username
 					FROM users
 					WHERE email = $1;`, email).Scan(
-		&user.Id, &user.Email, &user.Password)
+		&user.Id,
+		&user.Email,
+		&user.Password,
+		&user.UserName)
+	return
+}
+
+func UserByUsername(username string) (user User) {
+	fmt.Println(Gray(8-1, "Starting UserByUsername..."))
+	_ = DbWebApp.QueryRow(`
+					SELECT
+						id
+					FROM users
+					WHERE username = $1;`, username).Scan(
+		&user.Id)
 	return
 }
 
