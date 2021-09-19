@@ -267,7 +267,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 			ORDER BY 1;`
 
 		subtrades := []Subtrade{}
-		subtrades_rows, err := DbWebApp.Query(subtrades_sql, trade.Usertrade)
+		subtrades_rows, err := DbWebApp.Query(subtrades_sql, trade.Id)
 		if err != nil {
 			panic(err.Error())
 		}
