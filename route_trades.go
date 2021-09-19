@@ -95,9 +95,11 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting SelectTrades..."))
 
 	isopen := mux.Vars(r)["isopen"]
+	username := mux.Vars(r)["username"]
 
-	session := SelectSession(r)
-	user := UserByEmail(session.Email)
+	_ = SelectSession(r)
+
+	user := UserByUsername(username)
 
 	type Subtrade struct {
 		SubtradeId int

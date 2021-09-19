@@ -18,7 +18,7 @@ func main() {
 	router.HandleFunc("/login", Login).Methods("POST")
 	router.HandleFunc("/register", Register).Methods("POST")
 
-	router.HandleFunc("/select_trades/{isopen}", SelectTrades).Methods("GET")
+	router.HandleFunc("/select_trades/{username}/{isopen}", SelectTrades).Methods("GET")
 	router.HandleFunc("/insert_trade", InsertTrade).Methods("POST")
 	router.HandleFunc("/close_trade/{tradeid}", CloseTrade).Methods("GET")
 	router.HandleFunc("/open_trade/{tradeid}", OpenTrade).Methods("GET")
