@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 	. "github.com/logrusorgru/aurora"
 )
@@ -42,4 +43,24 @@ func SelectPrice(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(price)
+}
+
+func SelectPairs(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(Gray(8-1, "Starting SelectPairs..."))
+
+	_ = SelectSession(r)
+
+	pairs_sql := `
+		SELECT
+			ARRAY_AGG(DISTINCT symbol || ' - ' || name) AS pair
+		FROM coinmarketcap
+		ORDER BY 1;
+		`
+	var pairs []string
+	err := DbWebApp.QueryRow(pairs_sql).Scan(pq.Array(&pairs))
+	if err != nil {
+		panic(err.Error())
+	}
+
+	json.NewEncoder(w).Encode(pairs)
 }
