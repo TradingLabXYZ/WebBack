@@ -17,6 +17,21 @@ create table sessions (
   deletedat     timestamp
 );
 
+CREATE TABLE coins (
+  id serial primary key,
+  coinid numeric UNIQUE,
+  name text,
+  symbol text,
+  slug text
+);
+
+CREATE TABLE prices (
+  id serial primary key,
+  createdat timestamp,
+  coinid numeric references coins(coinid),
+  price numeric
+);
+
 create table trades (
   id              serial primary key,
   userid          integer references users(id),
@@ -25,8 +40,8 @@ create table trades (
   updatedat       timestamp not null,
   deletedat       timestamp,
   exchange        varchar(64),
-  firstpair       varchar(20),
-  secondpair      varchar(20),
+  firstpair       numeric references coins(coinid),
+  secondpair      numeric references coins(coinid),
   isopen          boolean
 );
 
@@ -42,12 +57,4 @@ create table subtrades (
   quantity        numeric,
   avgprice        numeric,
   total           numeric
-);
-
-CREATE TABLE coinmarketcap (
-  id serial primary key,
-  createdat timestamp,
-  name text,
-  symbol text,
-  price numeric
 );

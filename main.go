@@ -25,7 +25,7 @@ func main() {
 	router.HandleFunc("/delete_trade/{tradeid}", DeleteTrade).Methods("GET")
 	router.HandleFunc("/update_trade", UpdateTrade).Methods("POST")
 
-	router.HandleFunc("/get_price/{firstpair}/{secondpair}", SelectPrice).Methods("GET")
+	router.HandleFunc("/get_price/{firstpairid}/{secondpairid}", SelectPrice).Methods("GET")
 	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
 
 	c := cors.New(cors.Options{
