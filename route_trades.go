@@ -17,10 +17,10 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 	user := UserByEmail(session.Email)
 
 	trade := struct {
-		Exchange   string `json:"Exchange"`
-		FirstPair  string `json:"FirstPair"`
-		SecondPair string `json:"SecondPair"`
-		Subtrades  []struct {
+		Exchange     string `json:"Exchange"`
+		FirstPairId  int    `json:"FirstPair"`
+		SecondPairId int    `json:"SecondPair"`
+		Subtrades    []struct {
 			Timestamp string      `json:"Timestamp"`
 			Type      string      `json:"Type"`
 			Reason    string      `json:"Reason"`
@@ -61,8 +61,8 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 		user.Id,
 		next_user_trade,
 		trade.Exchange,
-		trade.FirstPair,
-		trade.SecondPair,
+		trade.FirstPairId,
+		trade.SecondPairId,
 	).Scan(&trade_id)
 	if err != nil {
 		panic(err.Error())
@@ -97,8 +97,6 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 	isopen := mux.Vars(r)["isopen"]
 	username := mux.Vars(r)["username"]
 
-	_ = SelectSession(r)
-
 	user := UserByUsername(username)
 
 	type Subtrade struct {
@@ -112,27 +110,31 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type Trade struct {
-		Id              int
-		Usertrade       int
-		Exchange        string
-		FirstPair       string
-		SecondPair      string
-		FirstPairPrice  float64
-		SecondPairPrice float64
-		QtyBuys         float64
-		QtySells        float64
-		TotalBuys       float64
-		TotalSells      float64
-		QtyAvailable    float64
-		CurrentPrice    float64
-		ActualReturn    float64
-		FutureReturn    float64
-		TotalReturn     float64
-		ReturnBtc       float64
-		ReturnUsd       float64
-		Roi             float64
-		Subtrades       []Subtrade
-		BtcPrice        float64
+		Id               int
+		Usertrade        int
+		Exchange         string
+		FirstPairId      int
+		SecondPairId     int
+		FirstPairName    string
+		SecondPairName   string
+		FirstPairSymbol  string
+		SecondPairSymbol string
+		FirstPairPrice   float64
+		SecondPairPrice  float64
+		QtyBuys          float64
+		QtySells         float64
+		TotalBuys        float64
+		TotalSells       float64
+		QtyAvailable     float64
+		CurrentPrice     float64
+		ActualReturn     float64
+		FutureReturn     float64
+		TotalReturn      float64
+		ReturnBtc        float64
+		ReturnUsd        float64
+		Roi              float64
+		Subtrades        []Subtrade
+		BtcPrice         float64
 	}
 
 	trades := []Trade{}
@@ -141,10 +143,13 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 		WITH
 			CURRENT_PRICE AS (
 				SELECT
-					symbol,
-					price
-				FROM coinmarketcap
-				WHERE createdat = (SELECT MAX(createdat) FROM coinmarketcap)),
+					p.coinid,
+					c.name,
+					c.symbol,
+					p.price
+				FROM prices p
+				LEFT JOIN coins c ON(p.coinid = c.coinid)
+				WHERE createdat = (SELECT MAX(createdat) FROM prices)),
 			TRADES_MACRO AS (
 				SELECT
 					t.id,
@@ -178,9 +183,13 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 					t.id,
 					t.usertrade,
 					t.exchange,
-					t.firstpair,
+					t.firstpair AS firstpairid,
+					c1.name AS firstpairname,
+					c1.symbol AS firstpairsymbol,
 					c1.price AS firstpairprice,
-					t.secondpair,
+					t.secondpair AS secondpairid,
+					c2.name AS secondpairname,
+					c2.symbol AS secondpairsymbol,
 					c2.price AS secondpairprice,
 					t.qtybuys,
 					t.qtysells,
@@ -196,15 +205,19 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 						ELSE (((t.qtybuys - t.qtysells) * (c2.price / c1.price) + t.totalsells) / t.totalbuys - 1) * 100
 					END AS roi
 				FROM TRADES_MACRO t
-				LEFT JOIN CURRENT_PRICE c1 ON(t.firstpair = c1.symbol)
-				LEFT JOIN CURRENT_PRICE c2 ON(t.secondpair = c2.symbol))
+				LEFT JOIN CURRENT_PRICE c1 ON(t.firstpair = c1.coinid)
+				LEFT JOIN CURRENT_PRICE c2 ON(t.secondpair = c2.coinid))
 		SELECT
 			t.id,
 			t.usertrade,
 			t.exchange,
-			t.firstpair,
+			t.firstpairid,
+			t.firstpairname,
+			t.firstpairsymbol,
 			t.firstpairprice,
-			t.secondpair,
+			t.secondpairid,
+			t.secondpairname,
+			t.secondpairsymbol,
 			t.secondpairprice,
 			t.qtybuys,
 			t.qtysells,
@@ -220,7 +233,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 			t.roi,
 			c3.price AS btcprice
 		FROM TRADES_MICRO t
-		LEFT JOIN CURRENT_PRICE c3 ON(c3.symbol = 'BTC');`
+		LEFT JOIN CURRENT_PRICE c3 ON(c3.coinid = 1);`
 
 	trades_rows, err := DbWebApp.Query(trades_sql, user.Id, isopen)
 	if err != nil {
@@ -232,9 +245,13 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 			&trade.Id,
 			&trade.Usertrade,
 			&trade.Exchange,
-			&trade.FirstPair,
+			&trade.FirstPairId,
+			&trade.FirstPairName,
+			&trade.FirstPairSymbol,
 			&trade.FirstPairPrice,
-			&trade.SecondPair,
+			&trade.SecondPairId,
+			&trade.SecondPairName,
+			&trade.SecondPairSymbol,
 			&trade.SecondPairPrice,
 			&trade.QtyBuys,
 			&trade.QtySells,
