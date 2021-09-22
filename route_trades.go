@@ -10,87 +10,6 @@ import (
 	. "github.com/logrusorgru/aurora"
 )
 
-func InsertTrade(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting InsertTrade..."))
-
-	session := SelectSession(r)
-	user := UserByEmail(session.Email)
-
-	trade := struct {
-		Exchange     string `json:"Exchange"`
-		FirstPairId  int    `json:"FirstPair"`
-		SecondPairId int    `json:"SecondPair"`
-		Subtrades    []struct {
-			Timestamp string      `json:"Timestamp"`
-			Type      string      `json:"Type"`
-			Reason    string      `json:"Reason"`
-			Quantity  json.Number `json:"Quantity"`
-			AvgPrice  json.Number `json:"AvgPrice"`
-			Total     json.Number `json:"Total"`
-		} `json:"subtrades"`
-	}{}
-
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&trade)
-	if err != nil {
-		panic(err)
-	}
-
-	var next_user_trade int
-	next_trade_sql := `
-		SELECT
-			CASE
-				WHEN MAX(usertrade) + 1 IS NULL THEN 1
-				ELSE MAX(usertrade) + 1
-			END
-		FROM trades
-		WHERE userid = $1;`
-
-	err = DbWebApp.QueryRow(next_trade_sql, user.Id).Scan(&next_user_trade)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	var trade_id int
-	trade_sql := `
-		INSERT INTO trades (userid, usertrade, exchange, firstpair, secondpair, createdat, updatedat, isopen)
-		VALUES ($1, $2, $3, $4, $5, current_timestamp, current_timestamp, true)
-		RETURNING id;`
-	err = DbWebApp.QueryRow(
-		trade_sql,
-		user.Id,
-		next_user_trade,
-		trade.Exchange,
-		trade.FirstPairId,
-		trade.SecondPairId,
-	).Scan(&trade_id)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	for i, subtrade := range trade.Subtrades {
-		subtrade_sql := `
-		INSERT INTO subtrades (tradeid, subtradeid, tradetimestamp, type, reason, quantity, avgprice, total, createdat, updatedat)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, current_timestamp, current_timestamp)`
-		_, err = DbWebApp.Exec(
-			subtrade_sql,
-			trade_id,
-			i+1,
-			subtrade.Timestamp,
-			subtrade.Type,
-			subtrade.Reason,
-			subtrade.Quantity,
-			subtrade.AvgPrice,
-			subtrade.Total,
-		)
-	}
-	if err != nil {
-		panic(err.Error())
-	}
-
-	json.NewEncoder(w).Encode("OK")
-}
-
 func SelectTrades(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting SelectTrades..."))
 
@@ -100,18 +19,17 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 	user := UserByUsername(username)
 
 	type Subtrade struct {
-		SubtradeId int
-		Timestamp  string
-		Type       string
-		Reason     string
-		Quantity   float64
-		AvgPrice   float64
-		Total      float64
+		Id        int
+		Timestamp string
+		Type      string
+		Reason    string
+		Quantity  float64
+		AvgPrice  float64
+		Total     float64
 	}
 
 	type Trade struct {
 		Id               int
-		Usertrade        int
 		Exchange         string
 		FirstPairId      int
 		SecondPairId     int
@@ -153,35 +71,33 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 			TRADES_MACRO AS (
 				SELECT
 					t.id,
-					t.usertrade,
 					t.exchange,
 					t.firstpair,
 					t.secondpair,
 					CASE
 						WHEN SUM(CASE WHEN s."type" = 'BUY' THEN s.quantity END) IS NULL THEN 0
-						ELSE SUM(CASE WHEN s."type" = 'BUY' THEN s.quantity END) 
+						ELSE SUM(CASE WHEN s."type" = 'BUY' THEN s.quantity END)
 					END AS qtybuys,
 					CASE
 						WHEN SUM(CASE WHEN s."type" = 'SELL' THEN s.quantity END) IS NULL THEN 0
-						ELSE SUM(CASE WHEN s."type" = 'SELL' THEN s.quantity END) 
+						ELSE SUM(CASE WHEN s."type" = 'SELL' THEN s.quantity END)
 					END AS qtysells,
 					CASE
 						WHEN SUM(CASE WHEN s."type" = 'BUY' THEN s.total END) IS NULL THEN 0
-						ELSE SUM(CASE WHEN s."type" = 'BUY' THEN s.total END) 
+						ELSE SUM(CASE WHEN s."type" = 'BUY' THEN s.total END)
 					END AS totalbuys,
 					CASE
 						WHEN SUM(CASE WHEN s."type" = 'SELL' THEN s.total END) IS NULL THEN 0
-						ELSE SUM(CASE WHEN s."type" = 'SELL' THEN s.total END) 
+						ELSE SUM(CASE WHEN s."type" = 'SELL' THEN s.total END)
 					END AS totalsells
-				FROM trades t 
-				LEFT JOIN subtrades s ON(t.usertrade  = s.tradeid)
+				FROM trades t
+				LEFT JOIN subtrades s ON(t.id  = s.tradeid)
 				WHERE t.userid = $1
 				AND t.isopen = $2
-				GROUP BY 1, 2, 3, 4, 5),
+				GROUP BY 1, 2, 3, 4),
 			TRADES_MICRO AS (
 				SELECT
 					t.id,
-					t.usertrade,
 					t.exchange,
 					t.firstpair AS firstpairid,
 					c1.name AS firstpairname,
@@ -209,7 +125,6 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 				LEFT JOIN CURRENT_PRICE c2 ON(t.secondpair = c2.coinid))
 		SELECT
 			t.id,
-			t.usertrade,
 			t.exchange,
 			t.firstpairid,
 			t.firstpairname,
@@ -235,7 +150,11 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 		FROM TRADES_MICRO t
 		LEFT JOIN CURRENT_PRICE c3 ON(c3.coinid = 1);`
 
-	trades_rows, err := DbWebApp.Query(trades_sql, user.Id, isopen)
+	trades_rows, err := DbWebApp.Query(
+		trades_sql,
+		user.Id,
+		isopen)
+	defer trades_rows.Close()
 	if err != nil {
 		panic(err.Error())
 	}
@@ -243,7 +162,6 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 		trade := Trade{}
 		if err = trades_rows.Scan(
 			&trade.Id,
-			&trade.Usertrade,
 			&trade.Exchange,
 			&trade.FirstPairId,
 			&trade.FirstPairName,
@@ -272,7 +190,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 
 		subtrades_sql := `
 			SELECT
-				subtradeid,
+				id,
 				type,
 				reason,
 				TO_CHAR(tradetimestamp, 'YYYY-MM-DD"T"HH24:MI'),
@@ -284,7 +202,10 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 			ORDER BY 1;`
 
 		subtrades := []Subtrade{}
-		subtrades_rows, err := DbWebApp.Query(subtrades_sql, trade.Id)
+		subtrades_rows, err := DbWebApp.Query(
+			subtrades_sql,
+			trade.Id)
+		defer subtrades_rows.Close()
 		if err != nil {
 			panic(err.Error())
 		}
@@ -292,15 +213,16 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 		for subtrades_rows.Next() {
 			subtrade := Subtrade{}
 			if err = subtrades_rows.Scan(
-				&subtrade.SubtradeId,
+				&subtrade.Id,
 				&subtrade.Type,
 				&subtrade.Reason,
 				&subtrade.Timestamp,
 				&subtrade.Quantity,
 				&subtrade.AvgPrice,
 				&subtrade.Total); err != nil {
-				return
+				panic(err.Error())
 			}
+
 			subtrades = append(subtrades, subtrade)
 		}
 
@@ -311,24 +233,24 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(trades)
 }
 
-func UpdateTrade(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting UpdateTrade..."))
+func InsertTrade(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(Gray(8-1, "Starting InsertTrade..."))
 
-	_ = SelectSession(r)
+	session := SelectSession(r)
+	user := UserByEmail(session.Email)
 
 	trade := struct {
-		Id         int    `json:"Id"`
-		Exchange   string `json:"Exchange"`
-		FirstPair  string `json:"FirstPair"`
-		SecondPair string `json:"SecondPair"`
-		Subtrades  []struct {
+		Exchange     string `json:"Exchange"`
+		FirstPairId  int    `json:"FirstPair"`
+		SecondPairId int    `json:"SecondPair"`
+		Subtrades    []struct {
 			Timestamp string      `json:"Timestamp"`
 			Type      string      `json:"Type"`
 			Reason    string      `json:"Reason"`
 			Quantity  json.Number `json:"Quantity"`
 			AvgPrice  json.Number `json:"AvgPrice"`
 			Total     json.Number `json:"Total"`
-		} `json:"Subtrades"`
+		} `json:"subtrades"`
 	}{}
 
 	decoder := json.NewDecoder(r.Body)
@@ -337,16 +259,48 @@ func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	DbWebApp.QueryRow("DELETE FROM subtrades WHERE tradeid = $1;", trade.Id)
+	var next_user_trade int
+	next_trade_sql := `
+		SELECT
+			CASE
+				WHEN MAX(usertrade) + 1 IS NULL THEN 1
+				ELSE MAX(usertrade) + 1
+			END
+		FROM trades
+		WHERE userid = $1;`
 
-	for i, subtrade := range trade.Subtrades {
+	err = DbWebApp.QueryRow(
+		next_trade_sql,
+		user.Id,
+	).Scan(&next_user_trade)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	var trade_id int
+	trade_sql := `
+		INSERT INTO trades (userid, usertrade, exchange, firstpair, secondpair, createdat, updatedat, isopen)
+		VALUES ($1, $2, $3, $4, $5, current_timestamp, current_timestamp, true)
+		RETURNING id;`
+	err = DbWebApp.QueryRow(
+		trade_sql,
+		user.Id,
+		next_user_trade,
+		trade.Exchange,
+		trade.FirstPairId,
+		trade.SecondPairId,
+	).Scan(&trade_id)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	for _, subtrade := range trade.Subtrades {
 		subtrade_sql := `
-		INSERT INTO subtrades (tradeid, subtradeid, tradetimestamp, type, reason, quantity, avgprice, total, createdat, updatedat)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, current_timestamp, current_timestamp)`
-		_, err = DbWebApp.Exec(
+		INSERT INTO subtrades (tradeid, tradetimestamp, type, reason, quantity, avgprice, total, createdat, updatedat)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, current_timestamp, current_timestamp)`
+		DbWebApp.Exec(
 			subtrade_sql,
-			trade.Id,
-			i+1,
+			trade_id,
 			subtrade.Timestamp,
 			subtrade.Type,
 			subtrade.Reason,
@@ -362,6 +316,56 @@ func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode("OK")
 }
 
+func UpdateTrade(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(Gray(8-1, "Starting UpdateTrade..."))
+
+	_ = SelectSession(r)
+
+	trade := struct {
+		Id           int    `json:"Id"`
+		Exchange     string `json:"Exchange"`
+		FirstPairId  int    `json:"FirstPairId"`
+		SecondPairId int    `json:"SecondPairId"`
+		Subtrades    []struct {
+			Timestamp string      `json:"Timestamp"`
+			Type      string      `json:"Type"`
+			Reason    string      `json:"Reason"`
+			Quantity  json.Number `json:"Quantity"`
+			AvgPrice  json.Number `json:"AvgPrice"`
+			Total     json.Number `json:"Total"`
+		} `json:"Subtrades"`
+	}{}
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&trade)
+	if err != nil {
+		panic(err)
+	}
+
+	DbWebApp.Exec(`
+		DELETE FROM subtrades
+		WHERE tradeid = $1;
+	`, trade.Id)
+
+	for _, subtrade := range trade.Subtrades {
+		subtrade_sql := `
+		INSERT INTO subtrades (tradeid, tradetimestamp, type, reason, quantity, avgprice, total, createdat, updatedat)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, current_timestamp, current_timestamp)`
+		DbWebApp.Exec(
+			subtrade_sql,
+			trade.Id,
+			subtrade.Timestamp,
+			subtrade.Type,
+			subtrade.Reason,
+			subtrade.Quantity,
+			subtrade.AvgPrice,
+			subtrade.Total,
+		)
+	}
+
+	json.NewEncoder(w).Encode("OK")
+}
+
 func CloseTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting CloseTrade..."))
 
@@ -370,11 +374,12 @@ func CloseTrade(w http.ResponseWriter, r *http.Request) {
 
 	tradeid := mux.Vars(r)["tradeid"]
 
-	DbWebApp.QueryRow(`
+	DbWebApp.Exec(`
 		UPDATE trades
 		SET isopen = False
 		WHERE userid = $1
-		AND usertrade = $2;`, user.Id, tradeid)
+		AND usertrade = $2;
+		`, user.Id, tradeid)
 
 	json.NewEncoder(w).Encode("OK")
 }
@@ -387,7 +392,7 @@ func OpenTrade(w http.ResponseWriter, r *http.Request) {
 
 	tradeid := mux.Vars(r)["tradeid"]
 
-	DbWebApp.QueryRow(`
+	DbWebApp.Exec(`
 		UPDATE trades
 		SET isopen = True
 		WHERE userid = $1
@@ -404,18 +409,20 @@ func DeleteTrade(w http.ResponseWriter, r *http.Request) {
 
 	tradeid := mux.Vars(r)["tradeid"]
 
-	DbWebApp.QueryRow(`
+	DbWebApp.Exec(`
 		DELETE FROM subtrades
 		WHERE tradeid IN (
 			SELECT id
 			FROM trades
 			WHERE userid = $1
-			AND usertrade = $2);`, user.Id, tradeid)
+			AND usertrade = $2);
+		`, user.Id, tradeid)
 
-	DbWebApp.QueryRow(`
+	DbWebApp.Exec(`
 		DELETE FROM trades
 		WHERE userid = $1
-		AND usertrade = $2;`, user.Id, tradeid)
+		AND usertrade = $2;
+		`, user.Id, tradeid)
 
 	json.NewEncoder(w).Encode("OK")
 }

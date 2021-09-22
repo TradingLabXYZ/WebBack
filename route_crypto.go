@@ -30,17 +30,25 @@ func SelectPrice(w http.ResponseWriter, r *http.Request) {
 					price
 				FROM prices
 				WHERE coinid = $1
-				AND createdat = (SELECT MAX(createdat) FROM prices)) p1
+				AND createdat = (
+					SELECT MAX(createdat)
+					FROM prices)) p1
 		LEFT JOIN (
 				SELECT
 					price
 				FROM prices
 				WHERE coinid = $2
-				AND createdat = (SELECT MAX(createdat) FROM prices)) p2
+				AND createdat = (
+					SELECT MAX(createdat)
+					FROM prices)) p2
 			ON(1 = 1);`
 
 	var price float64
-	err = DbWebApp.QueryRow(price_sql, first_pair_id, second_pair_id).Scan(&price)
+	err = DbWebApp.QueryRow(
+		price_sql,
+		first_pair_id,
+		second_pair_id,
+	).Scan(&price)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -67,9 +75,9 @@ func SelectPairs(w http.ResponseWriter, r *http.Request) {
 			coinid,
 			symbol,
 			slug
-		FROM coins;
-		`
+		FROM coins;`
 	pairs_rows, err := DbWebApp.Query(pairs_sql)
+	defer pairs_rows.Close()
 	if err != nil {
 		panic(err.Error())
 	}

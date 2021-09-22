@@ -42,16 +42,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 func (user *User) CreateSession() (session Session) {
 	fmt.Println(Gray(8-1, "Starting CreateSession..."))
-	statement := `
+	session_sql := `
 		INSERT INTO sessions (uuid, email, userid, createdat)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, uuid, email, userid, createdat;`
-	stmt, err := DbWebApp.Prepare(statement)
-	if err != nil {
-		return
-	}
-	defer stmt.Close()
-	err = stmt.QueryRow(
+	DbWebApp.QueryRow(
+		session_sql,
 		createUUID(),
 		user.Email,
 		user.Id,
@@ -63,8 +59,5 @@ func (user *User) CreateSession() (session Session) {
 		&session.UserId,
 		&session.CreatedAt,
 	)
-	if err != nil {
-		panic(err.Error())
-	}
 	return
 }

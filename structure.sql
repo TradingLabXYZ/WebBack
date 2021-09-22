@@ -35,7 +35,6 @@ CREATE TABLE prices (
 create table trades (
   id              serial primary key,
   userid          integer references users(id),
-  usertrade       integer not null,
   createdat       timestamp not null,
   updatedat       timestamp not null,
   deletedat       timestamp,
@@ -46,7 +45,7 @@ create table trades (
 );
 
 create table subtrades (
-  subtradeid      integer,
+  id              serial primary key,
   tradeid         integer references trades(id),
   createdat       timestamp not null,
   updatedat       timestamp not null,

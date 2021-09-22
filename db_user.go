@@ -39,17 +39,29 @@ func UserByEmail(email string) (user User) {
 		&user.Email,
 		&user.Password,
 		&user.UserName)
+
 	return
 }
 
 func UserByUsername(username string) (user User) {
 	fmt.Println(Gray(8-1, "Starting UserByUsername..."))
-	_ = DbWebApp.QueryRow(`
-					SELECT
-						id
-					FROM users
-					WHERE username = $1;`, username).Scan(
-		&user.Id)
+
+	rows, err := DbWebApp.Query(`
+		SELECT
+			id,
+			email
+		FROM users
+		WHERE username = $1;`, username)
+	defer rows.Close()
+	if err != nil {
+		panic(err.Error())
+	}
+	for rows.Next() {
+		if err := rows.Scan(&user.Id, &user.Email); err != nil {
+			panic(err.Error())
+		}
+	}
+
 	return
 }
 
@@ -77,5 +89,6 @@ func SelectSession(r *http.Request) (session Session) {
 	if err != nil {
 		panic(err.Error())
 	}
+
 	return
 }

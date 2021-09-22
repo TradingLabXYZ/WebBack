@@ -9,9 +9,9 @@ import (
 	"github.com/rs/cors"
 )
 
-func main() {
+var DbWebApp = DbConnect()
 
-	DbConnect()
+func main() {
 	defer DbWebApp.Close()
 
 	router := mux.NewRouter()
