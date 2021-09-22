@@ -259,33 +259,14 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	var next_user_trade int
-	next_trade_sql := `
-		SELECT
-			CASE
-				WHEN MAX(usertrade) + 1 IS NULL THEN 1
-				ELSE MAX(usertrade) + 1
-			END
-		FROM trades
-		WHERE userid = $1;`
-
-	err = DbWebApp.QueryRow(
-		next_trade_sql,
-		user.Id,
-	).Scan(&next_user_trade)
-	if err != nil {
-		panic(err.Error())
-	}
-
 	var trade_id int
 	trade_sql := `
-		INSERT INTO trades (userid, usertrade, exchange, firstpair, secondpair, createdat, updatedat, isopen)
-		VALUES ($1, $2, $3, $4, $5, current_timestamp, current_timestamp, true)
+		INSERT INTO trades (userid, exchange, firstpair, secondpair, createdat, updatedat, isopen)
+		VALUES ($1, $2, $3, $4, current_timestamp, current_timestamp, true)
 		RETURNING id;`
 	err = DbWebApp.QueryRow(
 		trade_sql,
 		user.Id,
-		next_user_trade,
 		trade.Exchange,
 		trade.FirstPairId,
 		trade.SecondPairId,
@@ -369,17 +350,15 @@ func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 func CloseTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting CloseTrade..."))
 
-	session := SelectSession(r)
-	user := UserByEmail(session.Email)
+	_ = SelectSession(r)
 
 	tradeid := mux.Vars(r)["tradeid"]
 
 	DbWebApp.Exec(`
 		UPDATE trades
 		SET isopen = False
-		WHERE userid = $1
-		AND usertrade = $2;
-		`, user.Id, tradeid)
+		WHERE id = $1;
+		`, tradeid)
 
 	json.NewEncoder(w).Encode("OK")
 }
@@ -387,16 +366,15 @@ func CloseTrade(w http.ResponseWriter, r *http.Request) {
 func OpenTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting OpenTrade..."))
 
-	session := SelectSession(r)
-	user := UserByEmail(session.Email)
+	_ = SelectSession(r)
 
 	tradeid := mux.Vars(r)["tradeid"]
 
 	DbWebApp.Exec(`
 		UPDATE trades
 		SET isopen = True
-		WHERE userid = $1
-		AND usertrade = $2;`, user.Id, tradeid)
+		WHERE id = $1;
+		`, tradeid)
 
 	json.NewEncoder(w).Encode("OK")
 }
@@ -404,8 +382,7 @@ func OpenTrade(w http.ResponseWriter, r *http.Request) {
 func DeleteTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting DeleteTrade..."))
 
-	session := SelectSession(r)
-	user := UserByEmail(session.Email)
+	_ = SelectSession(r)
 
 	tradeid := mux.Vars(r)["tradeid"]
 
@@ -414,15 +391,13 @@ func DeleteTrade(w http.ResponseWriter, r *http.Request) {
 		WHERE tradeid IN (
 			SELECT id
 			FROM trades
-			WHERE userid = $1
-			AND usertrade = $2);
-		`, user.Id, tradeid)
+			WHERE id = $1);
+		`, tradeid)
 
 	DbWebApp.Exec(`
 		DELETE FROM trades
-		WHERE userid = $1
-		AND usertrade = $2;
-		`, user.Id, tradeid)
+		WHERE id = $1;
+		`, tradeid)
 
 	json.NewEncoder(w).Encode("OK")
 }
