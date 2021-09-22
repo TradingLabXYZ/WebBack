@@ -8,16 +8,13 @@ import (
 	. "github.com/logrusorgru/aurora"
 )
 
-var DbWebApp *sqlx.DB
-
-func DbConnect() {
+func DbConnect() (DbWebApp *sqlx.DB) {
 
 	WEBAPP_DATABASE_URL := "***REMOVED***"
-	dbWebApp, err := sqlx.Connect("postgres", WEBAPP_DATABASE_URL)
+	DbWebApp, err := sqlx.Connect("postgres", WEBAPP_DATABASE_URL)
 	if err != nil {
 		panic(err.Error())
 	}
-	DbWebApp = dbWebApp
 
 	if err = DbWebApp.Ping(); err != nil {
 		DbWebApp.Close()
@@ -26,4 +23,6 @@ func DbConnect() {
 	}
 
 	fmt.Println(Bold(Green("Successfully connected to WebApp database")))
+
+	return
 }
