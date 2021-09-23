@@ -1,4 +1,4 @@
-module github.com/complimenti/WebBack
+module github.com/TradingLabXYZ/WebBack
 
 go 1.15
 
