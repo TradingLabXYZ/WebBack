@@ -31,7 +31,7 @@ func main() {
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{
 			"http://localhost:9000",
-			"https://rabbitflicker-y6ho6u.stormkit.dev",
+			"https://fishsunset-fmujji.stormkit.dev",
 			"http://www.tradinglab.xyz",
 			"https://tradinglab.xyz",
 			"https://www.tradinglab.xyz",
