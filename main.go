@@ -42,7 +42,7 @@ func main() {
 
 	handler := c.Handler(router)
 
-	fmt.Println("Application is running on port 8080")
+	fmt.Println("Application is running on port 8080..")
 
 	log.Fatal(http.ListenAndServe(":8080", handler))
 }
