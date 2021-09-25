@@ -10,7 +10,7 @@ import (
 	"github.com/rs/cors"
 )
 
-var mode = os.Args[0]
+var mode = os.Args[1]
 var DbWebApp = DbConnect(mode)
 
 func main() {
