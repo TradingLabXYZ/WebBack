@@ -29,7 +29,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type Trade struct {
-		Id               int
+		Id               string
 		Exchange         string
 		FirstPairId      int
 		SecondPairId     int
@@ -259,10 +259,10 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	var trade_id int
+	var trade_id string
 	trade_sql := `
-		INSERT INTO trades (userid, exchange, firstpair, secondpair, createdat, updatedat, isopen)
-		VALUES ($1, $2, $3, $4, current_timestamp, current_timestamp, true)
+		INSERT INTO trades (id, userid, exchange, firstpair, secondpair, createdat, updatedat, isopen)
+		VALUES (SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2, $3, $4, current_timestamp, current_timestamp, true)
 		RETURNING id;`
 	err = DbWebApp.QueryRow(
 		trade_sql,
@@ -303,7 +303,7 @@ func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 	_ = SelectSession(r)
 
 	trade := struct {
-		Id           int    `json:"Id"`
+		Id           string `json:"Id"`
 		Exchange     string `json:"Exchange"`
 		FirstPairId  int    `json:"FirstPairId"`
 		SecondPairId int    `json:"SecondPairId"`
