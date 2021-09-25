@@ -32,7 +32,6 @@ func main() {
 		AllowedOrigins: []string{
 			"http://localhost:9000",
 			"https://fishsunset-fmujji.stormkit.dev",
-			"https://fishsunset-fmujji-44088927018555.stormkit.dev",
 			"http://www.tradinglab.xyz",
 			"https://tradinglab.xyz",
 			"https://www.tradinglab.xyz",
