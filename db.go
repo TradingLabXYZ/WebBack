@@ -8,7 +8,9 @@ import (
 	. "github.com/logrusorgru/aurora"
 )
 
-func DbConnect() (DbWebApp *sqlx.DB) {
+func DbConnect(mode string) (DbWebApp *sqlx.DB) {
+
+	fmt.Println("PRINTING MODE --> ", mode)
 
 	WEBAPP_DATABASE_URL := "postgres://doadmin:ne6hzpnshtndhsc6@milhos-do-user-9445301-0.b.db.ondigitalocean.com:25061/webappconnectionpool"
 	DbWebApp, err := sqlx.Connect("postgres", WEBAPP_DATABASE_URL)
