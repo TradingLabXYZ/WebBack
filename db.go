@@ -28,8 +28,6 @@ func DbConnect() (DbWebApp *sqlx.DB) {
 		DB_NAME,
 	)
 
-	fmt.Println(WEBAPP_DATABASE_URL)
-
 	DbWebApp, err := sqlx.Connect("postgres", WEBAPP_DATABASE_URL)
 	if err != nil {
 		panic(err.Error())
