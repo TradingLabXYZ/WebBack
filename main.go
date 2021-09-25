@@ -12,6 +12,9 @@ import (
 var DbWebApp = DbConnect()
 
 func main() {
+
+	fmt.Println("THIS IS A TEST")
+
 	defer DbWebApp.Close()
 
 	router := mux.NewRouter()
@@ -35,6 +38,8 @@ func main() {
 			"http://www.tradinglab.xyz",
 			"https://tradinglab.xyz",
 			"https://www.tradinglab.xyz",
+			"http://test.tradinglab.xyz",
+			"https://test.tradinglab.xyz",
 		},
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
