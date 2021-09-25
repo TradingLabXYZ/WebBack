@@ -12,6 +12,9 @@ import (
 var DbWebApp = DbConnect()
 
 func main() {
+
+	fmt.Println("THIS IS A TEST")
+
 	defer DbWebApp.Close()
 
 	router := mux.NewRouter()
