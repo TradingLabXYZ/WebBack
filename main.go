@@ -4,19 +4,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 )
 
-var mode = os.Args[1]
-var DbWebApp = DbConnect(mode)
+var DbWebApp = DbConnect()
 
 func main() {
-
-	fmt.Println(mode)
-
 	defer DbWebApp.Close()
 
 	router := mux.NewRouter()

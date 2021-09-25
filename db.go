@@ -2,29 +2,44 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	. "github.com/logrusorgru/aurora"
 )
 
-func DbConnect(mode string) (DbWebApp *sqlx.DB) {
+func DbConnect() (DbWebApp *sqlx.DB) {
 
-	fmt.Println("PRINTING MODE --> ", mode)
+	env := os.Getenv("TL_APP_ENV")
+	var DB_NAME string
+	if env == "production" {
+		DB_NAME = "webappconnectionpool"
+	} else if env == "test" {
+		DB_NAME = "testwebappconnectionpool"
+	}
 
-	WEBAPP_DATABASE_URL := "postgres://doadmin:ne6hzpnshtndhsc6@milhos-do-user-9445301-0.b.db.ondigitalocean.com:25061/webappconnectionpool"
+	WEBAPP_DATABASE_URL := fmt.Sprintf(
+		"postgres://%s:%s@%s:%s/%s",
+		os.Getenv("TL_DB_USER"),
+		os.Getenv("TL_DB_PASS"),
+		os.Getenv("TL_DB_HOST"),
+		os.Getenv("TL_DB_PORT"),
+		DB_NAME,
+	)
+
+	fmt.Println(WEBAPP_DATABASE_URL)
+
 	DbWebApp, err := sqlx.Connect("postgres", WEBAPP_DATABASE_URL)
 	if err != nil {
 		panic(err.Error())
 	}
 
 	if err = DbWebApp.Ping(); err != nil {
-		DbWebApp.Close()
-		fmt.Println(Bold(Red("Unsuccessfully connected to WebApp database")))
+		fmt.Println(Bold(Red("Unsuccessfully connected to")), DB_NAME)
 		return
 	}
 
-	fmt.Println(Bold(Green("Successfully connected to WebApp database")))
-
+	fmt.Println(Bold(Green("Successfully connected to")), DB_NAME)
 	return
 }
