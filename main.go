@@ -35,9 +35,8 @@ func main() {
 		AllowedOrigins: []string{
 			"http://localhost:9000",
 			"https://fishsunset-fmujji.stormkit.dev",
-			"http://www.tradinglab.xyz",
-			"https://tradinglab.xyz",
-			"https://www.tradinglab.xyz",
+			"http://test.tradinglab.xyz",
+			"https://test.tradinglab.xyz",
 		},
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
