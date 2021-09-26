@@ -16,10 +16,14 @@ func main() {
 	defer DbWebApp.Close()
 
 	router := mux.NewRouter()
+
 	router.HandleFunc("/login", Login).Methods("POST")
 	router.HandleFunc("/register", Register).Methods("POST")
 
-	router.HandleFunc("/select_trades/{username}/{isopen}", SelectTrades).Methods("GET")
+	selectTradesRouter := router.PathPrefix("/select_trades/{username}/{isopen}").Subrouter()
+	selectTradesRouter.Use(CheckUserPermissions)
+	selectTradesRouter.HandleFunc("", SelectTrades)
+
 	router.HandleFunc("/insert_trade", InsertTrade).Methods("POST")
 	router.HandleFunc("/close_trade/{tradeid}", CloseTrade).Methods("GET")
 	router.HandleFunc("/open_trade/{tradeid}", OpenTrade).Methods("GET")

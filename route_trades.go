@@ -10,6 +10,75 @@ import (
 	. "github.com/logrusorgru/aurora"
 )
 
+func CheckUserPermissions(next http.Handler) http.Handler {
+	fmt.Println(Gray(8-1, "Starting CheckUserPermissions..."))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		username := mux.Vars(r)["username"]
+		userA := UserByUsername(username)
+		permission := userA.Permission
+		if permission == "all" {
+			next.ServeHTTP(w, r)
+		} else {
+			session := SelectSession(r)
+			if session.Id == 0 {
+				w.Write([]byte("Denied, need login"))
+				return
+			}
+			userB := UserByEmail(session.Email)
+			switch permission {
+			case "private":
+				w.Write([]byte("Denied, user private"))
+				return
+			case "followers":
+				var isfollower bool
+				_ = DbWebApp.QueryRow(`
+					SELECT TRUE
+					FROM followers
+					WHERE usera = $1
+					AND userb = $2;`, userA.Id, userB.Id).Scan(
+					&isfollower,
+				)
+				if isfollower {
+					next.ServeHTTP(w, r)
+				} else {
+					w.Write([]byte("Denied, need follow"))
+					return
+				}
+			case "subscribers":
+				var issubscriber bool
+				_ = DbWebApp.QueryRow(`
+					SELECT TRUE
+					FROM subscribers
+					WHERE usera = $1
+					AND userb = $2;`, userA.Id, userB.Id).Scan(
+					&issubscriber,
+				)
+				if issubscriber {
+					next.ServeHTTP(w, r)
+				} else {
+					w.Write([]byte("Denied, need subscribe"))
+					return
+				}
+			case "individuals":
+				var isindividual bool
+				_ = DbWebApp.QueryRow(`
+					SELECT TRUE
+					FROM individuals
+					WHERE usera = $1
+					AND userb = $2;`, userA.Id, userB.Id).Scan(
+					&isindividual,
+				)
+				if isindividual {
+					next.ServeHTTP(w, r)
+				} else {
+					w.Write([]byte("Denied, need individual"))
+					return
+				}
+			}
+		}
+	})
+}
+
 func SelectTrades(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting SelectTrades..."))
 

@@ -15,6 +15,7 @@ type User struct {
 	UserName      string
 	LoginPassword string
 	Password      string
+	Permission    string
 }
 
 type Session struct {
@@ -32,13 +33,16 @@ func UserByEmail(email string) (user User) {
 						id,
 						email,
 						password,
-						username
+						username,
+						permission
 					FROM users
 					WHERE email = $1;`, email).Scan(
 		&user.Id,
 		&user.Email,
 		&user.Password,
-		&user.UserName)
+		&user.UserName,
+		&user.Permission,
+	)
 
 	return
 }
@@ -49,7 +53,8 @@ func UserByUsername(username string) (user User) {
 	rows, err := DbWebApp.Query(`
 		SELECT
 			id,
-			email
+			email,
+			permission
 		FROM users
 		WHERE username = $1;`, username)
 	defer rows.Close()
@@ -57,7 +62,10 @@ func UserByUsername(username string) (user User) {
 		panic(err.Error())
 	}
 	for rows.Next() {
-		if err := rows.Scan(&user.Id, &user.Email); err != nil {
+		if err := rows.Scan(
+			&user.Id,
+			&user.Email,
+			&user.Permission); err != nil {
 			panic(err.Error())
 		}
 	}
@@ -87,7 +95,7 @@ func SelectSession(r *http.Request) (session Session) {
 		&session.CreatedAt,
 	)
 	if err != nil {
-		panic(err.Error())
+		fmt.Println("No session found, user not logged in...")
 	}
 
 	return

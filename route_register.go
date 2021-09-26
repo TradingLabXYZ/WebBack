@@ -26,10 +26,11 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 func InsertUser(email string, username string, password string) {
 	fmt.Println(Gray(8-1, "Starting InsertUser..."))
+	permission := "all"
 	statement := `
-		INSERT INTO users (email, username, password, createdat, updatedat)
-		VALUES ($1, $2, $3, current_timestamp, current_timestamp);`
-	_, err := DbWebApp.Exec(statement, email, username, Encrypt(password))
+		INSERT INTO users (email, username, password, permission, createdat, updatedat)
+		VALUES ($1, $2, $3, $4, current_timestamp, current_timestamp);`
+	_, err := DbWebApp.Exec(statement, email, username, Encrypt(password), permission)
 	if err != nil {
 		panic(err)
 	}

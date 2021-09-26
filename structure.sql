@@ -3,6 +3,7 @@ create table users (
   email         varchar(255) not null unique,
   username      varchar(255) not null unique,
   password      varchar(255) not null,
+  permission    permissions not null,
   createdat     timestamp not null,
   updatedat     timestamp not null,
   deletedat     timestamp
@@ -32,7 +33,7 @@ CREATE TABLE prices (
   price numeric
 );
 
-create table trades (
+CREATE TABLE trades (
   id              varchar(12) not null unique,
   userid          integer references users(id),
   createdat       timestamp not null,
@@ -44,7 +45,7 @@ create table trades (
   isopen          boolean
 );
 
-create table subtrades (
+CREATE TABLE subtrades (
   id              serial primary key,
   tradeid         varchar(12) references trades(id),
   createdat       timestamp not null,
@@ -56,4 +57,31 @@ create table subtrades (
   quantity        numeric,
   avgprice        numeric,
   total           numeric
+);
+
+CREATE TABLE followers (
+  id serial primary key,
+  usera integer references users(id) not null,
+  userb integer references users(id) not null,
+  createdat timestamp,
+  updatedat timestamp,
+  deletedat timestamp
+);
+
+CREATE TABLE subscribers (
+  id serial primary key,
+  usera integer references users(id) not null,
+  userb integer references users(id) not null,
+  createdat timestamp,
+  updatedat timestamp,
+  deletedat timestamp
+);
+
+CREATE TABLE individuals (
+  id serial primary key,
+  usera integer references users(id) not null,
+  userb integer references users(id) not null,
+  createdat timestamp,
+  updatedat timestamp,
+  deletedat timestamp
 );
