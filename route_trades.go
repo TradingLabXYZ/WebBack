@@ -18,6 +18,7 @@ func CheckUserPermissions(next http.Handler) http.Handler {
 		permission := userA.Permission
 		if permission == "all" {
 			next.ServeHTTP(w, r)
+			return
 		} else {
 			session := SelectSession(r)
 			if session.Id == 0 {
@@ -55,6 +56,7 @@ func CheckUserPermissions(next http.Handler) http.Handler {
 				)
 				if issubscriber {
 					next.ServeHTTP(w, r)
+					return
 				} else {
 					w.Write([]byte("Denied, need subscribe"))
 					return
@@ -70,6 +72,7 @@ func CheckUserPermissions(next http.Handler) http.Handler {
 				)
 				if isindividual {
 					next.ServeHTTP(w, r)
+					return
 				} else {
 					w.Write([]byte("Denied, need individual"))
 					return
