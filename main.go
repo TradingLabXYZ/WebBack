@@ -20,7 +20,7 @@ func main() {
 	router.HandleFunc("/login", Login).Methods("POST")
 	router.HandleFunc("/register", Register).Methods("POST")
 
-	selectTradesRouter := router.PathPrefix("/select_trades/{username}/{isopen}").Subrouter()
+	selectTradesRouter := router.PathPrefix("/select_trades/{username}").Subrouter()
 	selectTradesRouter.Use(CheckUserPermissions)
 	selectTradesRouter.HandleFunc("", SelectTrades)
 
