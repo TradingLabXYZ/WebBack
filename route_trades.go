@@ -22,7 +22,7 @@ func CheckUserPermissions(next http.Handler) http.Handler {
 		} else {
 			session := SelectSession(r)
 			if session.Id == 0 {
-				w.Write([]byte("Denied, need login"))
+				w.Write([]byte(`{"Status": "denied", "Reason": "login"}`))
 				return
 			}
 			userB := UserByEmail(session.Email)
@@ -32,7 +32,7 @@ func CheckUserPermissions(next http.Handler) http.Handler {
 			}
 			switch permission {
 			case "private":
-				w.Write([]byte("Denied, user private"))
+				w.Write([]byte(`{"Status": "denied", "Reason": "private"}`))
 				return
 			case "followers":
 				var isfollower bool
@@ -46,7 +46,7 @@ func CheckUserPermissions(next http.Handler) http.Handler {
 				if isfollower {
 					next.ServeHTTP(w, r)
 				} else {
-					w.Write([]byte("Denied, need follow"))
+					w.Write([]byte(`{"Status": "denied", "Reason": "follow"}`))
 					return
 				}
 			case "subscribers":
@@ -62,7 +62,7 @@ func CheckUserPermissions(next http.Handler) http.Handler {
 					next.ServeHTTP(w, r)
 					return
 				} else {
-					w.Write([]byte("Denied, need subscribe"))
+					w.Write([]byte(`{"Status": "denied", "Reason": "subscribe"}`))
 					return
 				}
 			case "individuals":
@@ -78,7 +78,7 @@ func CheckUserPermissions(next http.Handler) http.Handler {
 					next.ServeHTTP(w, r)
 					return
 				} else {
-					w.Write([]byte("Denied, need individual"))
+					w.Write([]byte(`{"Status": "denied", "Reason": "individual"}`))
 					return
 				}
 			}
