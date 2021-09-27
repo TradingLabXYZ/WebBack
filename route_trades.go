@@ -26,6 +26,10 @@ func CheckUserPermissions(next http.Handler) http.Handler {
 				return
 			}
 			userB := UserByEmail(session.Email)
+			if userA.Id == userB.Id {
+				next.ServeHTTP(w, r)
+				return
+			}
 			switch permission {
 			case "private":
 				w.Write([]byte("Denied, user private"))
@@ -85,7 +89,6 @@ func CheckUserPermissions(next http.Handler) http.Handler {
 func SelectTrades(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting SelectTrades..."))
 
-	isopen := mux.Vars(r)["isopen"]
 	username := mux.Vars(r)["username"]
 
 	user := UserByUsername(username)
@@ -102,6 +105,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 
 	type Trade struct {
 		Id               string
+		IsOpen           string
 		Exchange         string
 		FirstPairId      int
 		SecondPairId     int
@@ -143,6 +147,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 			TRADES_MACRO AS (
 				SELECT
 					t.id,
+					t.isopen,
 					t.exchange,
 					t.firstpair,
 					t.secondpair,
@@ -165,11 +170,11 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 				FROM trades t
 				LEFT JOIN subtrades s ON(t.id  = s.tradeid)
 				WHERE t.userid = $1
-				AND t.isopen = $2
-				GROUP BY 1, 2, 3, 4),
+				GROUP BY 1, 2, 3, 4, 5),
 			TRADES_MICRO AS (
 				SELECT
 					t.id,
+					t.isopen,
 					t.exchange,
 					t.firstpair AS firstpairid,
 					c1.name AS firstpairname,
@@ -197,6 +202,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 				LEFT JOIN CURRENT_PRICE c2 ON(t.secondpair = c2.coinid))
 		SELECT
 			t.id,
+			t.isopen,
 			t.exchange,
 			t.firstpairid,
 			t.firstpairname,
@@ -224,8 +230,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 
 	trades_rows, err := DbWebApp.Query(
 		trades_sql,
-		user.Id,
-		isopen)
+		user.Id)
 	defer trades_rows.Close()
 	if err != nil {
 		panic(err.Error())
@@ -234,6 +239,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 		trade := Trade{}
 		if err = trades_rows.Scan(
 			&trade.Id,
+			&trade.IsOpen,
 			&trade.Exchange,
 			&trade.FirstPairId,
 			&trade.FirstPairName,
