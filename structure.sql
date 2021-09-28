@@ -1,21 +1,21 @@
 create table users (
-  id            serial primary key,
-  email         varchar(255) not null unique,
-  username      varchar(255) not null unique,
-  password      varchar(255) not null,
-  permission    permissions not null,
-  createdat     timestamp not null,
-  updatedat     timestamp not null,
-  deletedat     timestamp
+  id serial primary key,
+  email varchar(255) not null unique,
+  username varchar(255) not null unique,
+  password varchar(255) not null,
+  permission permissions not null,
+  createdat timestamp not null,
+  updatedat timestamp not null,
+  deletedat timestamp
 );
 
 create table sessions (
-  id            serial primary key,
-  uuid          varchar(64) not null unique,
-  email         varchar(255),
-  userid        integer references users(id),
-  createdat     timestamp not null,
-  deletedat     timestamp
+  id serial primary key,
+  uuid varchar(64) not null unique,
+  email varchar(255),
+  userid integer references users(id),
+  createdat timestamp not null,
+  deletedat timestamp
 );
 
 CREATE TABLE coins (
@@ -34,54 +34,48 @@ CREATE TABLE prices (
 );
 
 CREATE TABLE trades (
-  id              varchar(12) not null unique,
-  userid          integer references users(id),
-  createdat       timestamp not null,
-  updatedat       timestamp not null,
-  deletedat       timestamp,
-  exchange        varchar(64),
-  firstpair       numeric references coins(coinid),
-  secondpair      numeric references coins(coinid),
-  isopen          boolean
+  id varchar(12) not null unique,
+  userid integer references users(id),
+  createdat timestamp not null,
+  updatedat timestamp not null,
+  deletedat timestamp,
+  exchange varchar(64),
+  firstpair numeric references coins(coinid),
+  secondpair numeric references coins(coinid),
+  isopen boolean
 );
 
 CREATE TABLE subtrades (
-  id              serial primary key,
-  tradeid         varchar(12) references trades(id),
-  createdat       timestamp not null,
-  updatedat       timestamp not null,
-  deletedat       timestamp,
+  id serial primary key,
+  tradeid varchar(12) references trades(id),
+  createdat timestamp not null,
+  updatedat timestamp not null,
+  deletedat timestamp,
   tradetimestamp  timestamp,
-  type            varchar(5),
-  reason          varchar(64),
-  quantity        numeric,
-  avgprice        numeric,
-  total           numeric
+  type varchar(5),
+  reason varchar(64),
+  quantity numeric,
+  avgprice numeric,
+  total numeric
 );
 
 CREATE TABLE followers (
   id serial primary key,
-  usera integer references users(id) not null,
-  userb integer references users(id) not null,
-  createdat timestamp,
-  updatedat timestamp,
-  deletedat timestamp
+  followefrom integer references users(id) not null,
+  followto integer references users(id) not null,
+  createdat timestamp
 );
 
 CREATE TABLE subscribers (
   id serial primary key,
-  usera integer references users(id) not null,
-  userb integer references users(id) not null,
-  createdat timestamp,
-  updatedat timestamp,
-  deletedat timestamp
+  subscribefrom integer references users(id) not null,
+  subscribeto integer references users(id) not null,
+  createdat timestamp
 );
 
 CREATE TABLE individuals (
   id serial primary key,
-  usera integer references users(id) not null,
-  userb integer references users(id) not null,
-  createdat timestamp,
-  updatedat timestamp,
-  deletedat timestamp
+  individualfrom integer references users(id) not null,
+  individualto integer references users(id) not null,
+  createdat timestamp
 );
