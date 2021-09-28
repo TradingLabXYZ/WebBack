@@ -95,7 +95,7 @@ func SelectSession(r *http.Request) (session Session) {
 		&session.CreatedAt,
 	)
 	if err != nil {
-		fmt.Println("No session found, user not logged in...")
+		fmt.Println(Gray(8-1, "No session found, user not logged in..."))
 	}
 
 	return
