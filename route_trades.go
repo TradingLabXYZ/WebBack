@@ -39,8 +39,8 @@ func CheckUserPermissions(next http.Handler) http.Handler {
 				_ = DbWebApp.QueryRow(`
 					SELECT TRUE
 					FROM followers
-					WHERE usera = $1
-					AND userb = $2;`, userA.Id, userB.Id).Scan(
+					WHERE followto = $1
+					AND followfrom = $2;`, userA.Id, userB.Id).Scan(
 					&isfollower,
 				)
 				if isfollower {
@@ -54,8 +54,8 @@ func CheckUserPermissions(next http.Handler) http.Handler {
 				_ = DbWebApp.QueryRow(`
 					SELECT TRUE
 					FROM subscribers
-					WHERE usera = $1
-					AND userb = $2;`, userA.Id, userB.Id).Scan(
+					WHERE subscribeto = $1
+					AND subscribefrom = $2;`, userA.Id, userB.Id).Scan(
 					&issubscriber,
 				)
 				if issubscriber {
@@ -70,8 +70,8 @@ func CheckUserPermissions(next http.Handler) http.Handler {
 				_ = DbWebApp.QueryRow(`
 					SELECT TRUE
 					FROM individuals
-					WHERE usera = $1
-					AND userb = $2;`, userA.Id, userB.Id).Scan(
+					WHERE individualto = $1
+					AND individualfrom = $2;`, userA.Id, userB.Id).Scan(
 					&isindividual,
 				)
 				if isindividual {
