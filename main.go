@@ -20,6 +20,7 @@ func main() {
 		fmt.Printf("error opening file: %v", err)
 	}
 	defer f.Close()
+	log.SetLevel(log.TraceLevel)
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(io.MultiWriter(f, os.Stdout))
 
@@ -29,6 +30,8 @@ func main() {
 
 	router.HandleFunc("/login", Login).Methods("POST")
 	router.HandleFunc("/register", Register).Methods("POST")
+
+	router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")
 
 	selectTradesRouter := router.PathPrefix("/select_trades/{username}").Subrouter()
 	selectTradesRouter.Use(CheckUserPermissions)

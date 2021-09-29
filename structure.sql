@@ -6,6 +6,8 @@ create table users (
   password varchar(255) not null,
   permission permissions not null,
   profilepicture text,
+  twitter text,
+  website text,
   createdat timestamp not null,
   updatedat timestamp not null,
   deletedat timestamp

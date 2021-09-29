@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	. "github.com/logrusorgru/aurora"
@@ -26,7 +27,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	user := UserByEmail(body.Email)
 	user.LoginPassword = body.Password
 	if user.Id != 0 && user.Password == Encrypt(user.LoginPassword) {
-		fmt.Println(Blue("Log in valid..."))
+		log.Info("Log in valid user " + strconv.Itoa(user.Id))
 		session := user.CreateSession()
 		user_data := struct {
 			SessionId      string
@@ -39,7 +40,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		}
 		json.NewEncoder(w).Encode(user_data)
 	} else {
-		fmt.Println(Yellow("Log in not valid..."))
+		log.Info("Log in not valid user " + user.Email)
 	}
 }
 
