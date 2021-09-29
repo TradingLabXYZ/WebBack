@@ -84,11 +84,14 @@ func UserByUsername(username string) (user User) {
 
 func SelectSession(r *http.Request) (session Session) {
 	fmt.Println(Gray(8-1, "Starting SelectSession..."))
-
-	auth := r.Header["Authorization"][0]
-	session.Uuid = strings.Split(auth, "sessionId=")[1]
-
-	err := DbWebApp.QueryRow(`
+	var auth string
+	if len(r.Header["Authorization"]) == 0 {
+		log.Warn("User not authenticated")
+		return
+	} else {
+		auth = r.Header["Authorization"][0]
+		session.Uuid = strings.Split(auth, "sessionId=")[1]
+		err := DbWebApp.QueryRow(`
       SELECT
         id,
         uuid,
@@ -97,15 +100,15 @@ func SelectSession(r *http.Request) (session Session) {
         createdat
       FROM sessions
       WHERE uuid = $1;`, session.Uuid).Scan(
-		&session.Id,
-		&session.Uuid,
-		&session.Email,
-		&session.UserId,
-		&session.CreatedAt,
-	)
-	if err != nil {
-		log.Info("No session found, user not logged in...")
+			&session.Id,
+			&session.Uuid,
+			&session.Email,
+			&session.UserId,
+			&session.CreatedAt,
+		)
+		if err != nil {
+			log.Info("No session found, user not logged in...")
+		}
+		return
 	}
-
-	return
 }

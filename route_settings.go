@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -87,4 +88,48 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte(file_cdn_path))
+}
+
+func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(Gray(8-1, "Starting UpdateUserSettings..."))
+
+	/** TODOs
+	- Check if Twitter URL is already taken
+	- Check if Website is already taken
+	- Check if email is already taken
+	*/
+
+	user_session := SelectSession(r)
+	user := UserByEmail(user_session.Email)
+
+	settings := struct {
+		Email   string `json:"Email"`
+		Twitter string `json:"Twitter"`
+		Website string `json:"Website"`
+	}{}
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&settings)
+	if err != nil {
+		log.Error(err)
+	}
+
+	statement := `
+		UPDATE users
+		SET email = $1,
+		twitter = $2,
+		website = $3
+		WHERE id = $4;`
+	_, err = DbWebApp.Exec(
+		statement,
+		settings.Email,
+		settings.Twitter,
+		settings.Website,
+		user.Id)
+	if err != nil {
+		log.Error(err)
+	}
+
+	w.Write([]byte("OK"))
+
 }
