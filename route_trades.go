@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	. "github.com/logrusorgru/aurora"
+	log "github.com/sirupsen/logrus"
 )
 
 func CheckUserPermissions(next http.Handler) http.Handler {
@@ -233,7 +234,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 		user.Id)
 	defer trades_rows.Close()
 	if err != nil {
-		panic(err.Error())
+		log.Error(err)
 	}
 	for trades_rows.Next() {
 		trade := Trade{}
@@ -263,7 +264,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 			&trade.Roi,
 			&trade.BtcPrice,
 		); err != nil {
-			panic(err)
+			log.Error(err)
 		}
 
 		subtrades_sql := `
@@ -285,7 +286,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 			trade.Id)
 		defer subtrades_rows.Close()
 		if err != nil {
-			panic(err.Error())
+			log.Error(err)
 		}
 
 		for subtrades_rows.Next() {
@@ -298,7 +299,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 				&subtrade.Quantity,
 				&subtrade.AvgPrice,
 				&subtrade.Total); err != nil {
-				panic(err.Error())
+				log.Error(err)
 			}
 
 			subtrades = append(subtrades, subtrade)
@@ -334,7 +335,7 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&trade)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 
 	var trade_id string
@@ -350,7 +351,7 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 		trade.SecondPairId,
 	).Scan(&trade_id)
 	if err != nil {
-		panic(err.Error())
+		log.Error(err)
 	}
 
 	for _, subtrade := range trade.Subtrades {
@@ -369,7 +370,7 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 		)
 	}
 	if err != nil {
-		panic(err.Error())
+		log.Error(err)
 	}
 
 	json.NewEncoder(w).Encode("OK")
@@ -398,7 +399,7 @@ func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&trade)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 
 	DbWebApp.Exec(`

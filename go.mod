@@ -10,6 +10,7 @@ require (
 	github.com/lib/pq v1.10.2
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/rs/cors v1.8.0
+	github.com/sirupsen/logrus v1.8.1 // indirect
 	golang.org/x/tools/gopls v0.7.0 // indirect
 	gopkg.in/guregu/null.v4 v4.0.0
 )

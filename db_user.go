@@ -7,6 +7,7 @@ import (
 	"time"
 
 	. "github.com/logrusorgru/aurora"
+	log "github.com/sirupsen/logrus"
 )
 
 type User struct {
@@ -66,7 +67,7 @@ func UserByUsername(username string) (user User) {
 		WHERE username = $1;`, username)
 	defer rows.Close()
 	if err != nil {
-		panic(err.Error())
+		log.Error(err)
 	}
 	for rows.Next() {
 		if err := rows.Scan(
@@ -74,7 +75,7 @@ func UserByUsername(username string) (user User) {
 			&user.Code,
 			&user.Email,
 			&user.Permission); err != nil {
-			panic(err.Error())
+			log.Error(err)
 		}
 	}
 
@@ -103,7 +104,7 @@ func SelectSession(r *http.Request) (session Session) {
 		&session.CreatedAt,
 	)
 	if err != nil {
-		fmt.Println(Gray(8-1, "No session found, user not logged in..."))
+		log.Info("No session found, user not logged in...")
 	}
 
 	return

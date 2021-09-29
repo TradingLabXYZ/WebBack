@@ -7,6 +7,7 @@ import (
 	"os"
 
 	. "github.com/logrusorgru/aurora"
+	log "github.com/sirupsen/logrus"
 )
 
 func Register(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +20,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}{}
 	err := decoder.Decode(&s)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 	InsertUser(s.Email, s.Username, s.Password)
 	json.NewEncoder(w).Encode("OK")
@@ -34,6 +35,6 @@ func InsertUser(email string, username string, password string) {
 		VALUES (SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2, $3, $4, $5, current_timestamp, current_timestamp);`
 	_, err := DbWebApp.Exec(statement, email, username, Encrypt(password), permission, default_profile_picture)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 }
