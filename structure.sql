@@ -1,9 +1,11 @@
 create table users (
   id serial primary key,
+  code varchar(12) not null unique,
   email varchar(255) not null unique,
   username varchar(255) not null unique,
   password varchar(255) not null,
   permission permissions not null,
+  profilepicture text,
   createdat timestamp not null,
   updatedat timestamp not null,
   deletedat timestamp

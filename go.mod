@@ -3,6 +3,7 @@ module github.com/TradingLabXYZ/WebBack
 go 1.15
 
 require (
+	github.com/aws/aws-sdk-go v1.40.51 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/joho/godotenv v1.3.0

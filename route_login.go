@@ -28,11 +28,13 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(Blue("Log in valid..."))
 		session := user.CreateSession()
 		user_data := struct {
-			SessionId string
-			UserName  string
+			SessionId      string
+			UserName       string
+			ProfilePicture string
 		}{
 			session.Uuid,
 			user.UserName,
+			user.ProfilePicture,
 		}
 		json.NewEncoder(w).Encode(user_data)
 	} else {

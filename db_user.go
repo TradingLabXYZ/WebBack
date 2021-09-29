@@ -10,12 +10,14 @@ import (
 )
 
 type User struct {
-	Id            int
-	Email         string
-	UserName      string
-	LoginPassword string
-	Password      string
-	Permission    string
+	Id             int
+	Code           string
+	Email          string
+	UserName       string
+	LoginPassword  string
+	Password       string
+	Permission     string
+	ProfilePicture string
 }
 
 type Session struct {
@@ -31,17 +33,21 @@ func UserByEmail(email string) (user User) {
 	_ = DbWebApp.QueryRow(`
 					SELECT
 						id,
+						code,
 						email,
 						password,
 						username,
-						permission
+						permission,
+						profilepicture
 					FROM users
 					WHERE email = $1;`, email).Scan(
 		&user.Id,
+		&user.Code,
 		&user.Email,
 		&user.Password,
 		&user.UserName,
 		&user.Permission,
+		&user.ProfilePicture,
 	)
 
 	return
@@ -53,6 +59,7 @@ func UserByUsername(username string) (user User) {
 	rows, err := DbWebApp.Query(`
 		SELECT
 			id,
+			code,
 			email,
 			permission
 		FROM users
@@ -64,6 +71,7 @@ func UserByUsername(username string) (user User) {
 	for rows.Next() {
 		if err := rows.Scan(
 			&user.Id,
+			&user.Code,
 			&user.Email,
 			&user.Permission); err != nil {
 			panic(err.Error())

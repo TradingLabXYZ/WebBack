@@ -33,6 +33,8 @@ func main() {
 	router.HandleFunc("/get_price/{firstpairid}/{secondpairid}", SelectPrice).Methods("GET")
 	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
 
+	router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
+
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{
 			"http://localhost:9000",
@@ -44,6 +46,7 @@ func main() {
 			"https://test.tradinglab.xyz",
 		},
 		AllowedHeaders:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT"},
 		AllowCredentials: true,
 	})
 
