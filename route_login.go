@@ -7,6 +7,7 @@ import (
 	"time"
 
 	. "github.com/logrusorgru/aurora"
+	log "github.com/sirupsen/logrus"
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
@@ -19,7 +20,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}{}
 	err := decoder.Decode(&body)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 
 	user := UserByEmail(body.Email)

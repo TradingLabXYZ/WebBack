@@ -2,16 +2,26 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"io"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
+	log "github.com/sirupsen/logrus"
 )
 
 var DbWebApp = DbConnect()
 
 func main() {
+
+	f, err := os.OpenFile("logs.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+	if err != nil {
+		fmt.Printf("error opening file: %v", err)
+	}
+	defer f.Close()
+	log.SetFormatter(&log.JSONFormatter{})
+	log.SetOutput(io.MultiWriter(f, os.Stdout))
 
 	defer DbWebApp.Close()
 
@@ -52,7 +62,6 @@ func main() {
 
 	handler := c.Handler(router)
 
-	fmt.Println("Application is running on port 8080..")
-
+	log.Info("Application is running on port 8080..")
 	log.Fatal(http.ListenAndServe(":8080", handler))
 }

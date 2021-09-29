@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	. "github.com/logrusorgru/aurora"
+	log "github.com/sirupsen/logrus"
 )
 
 func SelectPrice(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +51,7 @@ func SelectPrice(w http.ResponseWriter, r *http.Request) {
 		second_pair_id,
 	).Scan(&price)
 	if err != nil {
-		panic(err.Error())
+		log.Error(err)
 	}
 
 	json.NewEncoder(w).Encode(price)
@@ -79,7 +80,7 @@ func SelectPairs(w http.ResponseWriter, r *http.Request) {
 	pairs_rows, err := DbWebApp.Query(pairs_sql)
 	defer pairs_rows.Close()
 	if err != nil {
-		panic(err.Error())
+		log.Error(err)
 	}
 	for pairs_rows.Next() {
 		var name string
@@ -90,7 +91,7 @@ func SelectPairs(w http.ResponseWriter, r *http.Request) {
 			&pair_info.Symbol,
 			&pair_info.Slug,
 		); err != nil {
-			panic(err)
+			log.Error(err)
 		}
 		pairs[name] = pair_info
 	}

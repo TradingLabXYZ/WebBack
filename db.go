@@ -7,6 +7,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	. "github.com/logrusorgru/aurora"
+	log "github.com/sirupsen/logrus"
 )
 
 func DbConnect() (DbWebApp *sqlx.DB) {
@@ -30,7 +31,7 @@ func DbConnect() (DbWebApp *sqlx.DB) {
 
 	DbWebApp, err := sqlx.Connect("postgres", WEBAPP_DATABASE_URL)
 	if err != nil {
-		panic(err.Error())
+		log.Error(err)
 	}
 
 	if err = DbWebApp.Ping(); err != nil {

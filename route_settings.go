@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -23,9 +25,7 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	// PROCESS INPUT FILE
 	file, handler, err := r.FormFile("file")
 	if err != nil {
-		fmt.Println("Error Retrieving the File")
-		fmt.Println(err)
-		return
+		log.Warn("Error Retrieving the File")
 	}
 	defer file.Close()
 	file_extension := strings.Split(handler.Header["Content-Type"][0], "/")[1]
@@ -49,7 +49,7 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 		Prefix: aws.String("profile_pictures/" + user.Code),
 	})
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 	for _, item := range resp.Contents {
 		input := &s3.DeleteObjectInput{
@@ -58,7 +58,7 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 		}
 		_, err = svc.DeleteObject(input)
 		if err != nil {
-			panic(err)
+			log.Error(err)
 		}
 	}
 
@@ -71,7 +71,7 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 		ACL:    aws.String("public-read"),
 	})
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 
 	// SAVE PICTURE IN DB
@@ -83,7 +83,7 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 		WHERE id = $2;`
 	_, err = DbWebApp.Exec(statement, file_cdn_path, user.Id)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 
 	w.Write([]byte(file_cdn_path))
