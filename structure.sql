@@ -75,3 +75,4 @@ CREATE TABLE subscribers (
   subscribefrom integer references users(id) not null,
   subscribeto integer references users(id) not null,
   createdat timestamp
+);
