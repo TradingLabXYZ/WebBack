@@ -90,6 +90,26 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(file_cdn_path))
 }
 
+func GetUserSettings(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(Gray(8-1, "Starting GetUserSettings..."))
+
+	user_session := SelectSession(r)
+	user := UserByEmail(user_session.Email)
+
+	settings := struct {
+		Email   string `json:"Email"`
+		Twitter string `json:"Twitter"`
+		Website string `json:"Website"`
+	}{
+		user.Email,
+		user.Twitter,
+		user.Website,
+	}
+
+	json.NewEncoder(w).Encode(settings)
+
+}
+
 func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting UpdateUserSettings..."))
 

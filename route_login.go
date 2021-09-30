@@ -33,10 +33,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			SessionId      string
 			UserName       string
 			ProfilePicture string
+			Twitter        string
+			Website        string
 		}{
 			session.Uuid,
 			user.UserName,
 			user.ProfilePicture,
+			user.Twitter,
+			user.Website,
 		}
 		json.NewEncoder(w).Encode(user_data)
 	} else {
