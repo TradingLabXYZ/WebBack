@@ -100,10 +100,12 @@ func GetUserSettings(w http.ResponseWriter, r *http.Request) {
 		Email   string `json:"Email"`
 		Twitter string `json:"Twitter"`
 		Website string `json:"Website"`
+		Privacy string `json:"Privacy"`
 	}{
 		user.Email,
 		user.Twitter,
 		user.Website,
+		user.Privacy,
 	}
 
 	json.NewEncoder(w).Encode(settings)
@@ -189,6 +191,38 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 	_, err = DbWebApp.Exec(
 		statement,
 		Encrypt(passwords.NewPassword),
+		user.Id)
+	if err != nil {
+		log.Error(err)
+	}
+
+	w.Write([]byte("OK"))
+
+}
+
+func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(Gray(8-1, "Starting UpdateUserPrivacy..."))
+
+	user_session := SelectSession(r)
+	user := UserByEmail(user_session.Email)
+
+	privacy := struct {
+		Privacy string `json:"Privacy"`
+	}{}
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&privacy)
+	if err != nil {
+		log.Error(err)
+	}
+
+	statement := `
+		UPDATE users
+		SET privacy = $1
+		WHERE id = $2;`
+	_, err = DbWebApp.Exec(
+		statement,
+		privacy.Privacy,
 		user.Id)
 	if err != nil {
 		log.Error(err)

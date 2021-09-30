@@ -4,7 +4,7 @@ create table users (
   email varchar(255) not null unique,
   username varchar(255) not null unique,
   password varchar(255) not null,
-  permission permissions not null,
+  privacy privacies not null,
   profilepicture text,
   twitter text,
   website text,
@@ -75,11 +75,3 @@ CREATE TABLE subscribers (
   subscribefrom integer references users(id) not null,
   subscribeto integer references users(id) not null,
   createdat timestamp
-);
-
-CREATE TABLE individuals (
-  id serial primary key,
-  individualfrom integer references users(id) not null,
-  individualto integer references users(id) not null,
-  createdat timestamp
-);

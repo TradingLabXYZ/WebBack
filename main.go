@@ -34,9 +34,10 @@ func main() {
 	router.HandleFunc("/user_settings", GetUserSettings).Methods("GET")
 	router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")
 	router.HandleFunc("/update_password", UpdateUserPassword).Methods("POST")
+	router.HandleFunc("/update_privacy", UpdateUserPrivacy).Methods("POST")
 
 	selectTradesRouter := router.PathPrefix("/select_trades/{username}").Subrouter()
-	selectTradesRouter.Use(CheckUserPermissions)
+	selectTradesRouter.Use(CheckUserPrivacy)
 	selectTradesRouter.HandleFunc("", SelectTrades)
 
 	router.HandleFunc("/insert_trade", InsertTrade).Methods("POST")

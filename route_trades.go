@@ -11,13 +11,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func CheckUserPermissions(next http.Handler) http.Handler {
-	fmt.Println(Gray(8-1, "Starting CheckUserPermissions..."))
+func CheckUserPrivacy(next http.Handler) http.Handler {
+	fmt.Println(Gray(8-1, "Starting CheckUserPrivacy..."))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		username := mux.Vars(r)["username"]
 		userA := UserByUsername(username)
-		permission := userA.Permission
-		if permission == "all" {
+		privacy := userA.Privacy
+		if privacy == "all" {
 			next.ServeHTTP(w, r)
 			return
 		} else {
@@ -31,7 +31,7 @@ func CheckUserPermissions(next http.Handler) http.Handler {
 				next.ServeHTTP(w, r)
 				return
 			}
-			switch permission {
+			switch privacy {
 			case "private":
 				w.Write([]byte(`{"Status": "denied", "Reason": "private"}`))
 				return
