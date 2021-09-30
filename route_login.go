@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	. "github.com/logrusorgru/aurora"
+	log "github.com/sirupsen/logrus"
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
@@ -19,24 +21,30 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}{}
 	err := decoder.Decode(&body)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 
 	user := UserByEmail(body.Email)
 	user.LoginPassword = body.Password
 	if user.Id != 0 && user.Password == Encrypt(user.LoginPassword) {
-		fmt.Println(Blue("Log in valid..."))
+		log.Info("Log in valid user " + strconv.Itoa(user.Id))
 		session := user.CreateSession()
 		user_data := struct {
-			SessionId string
-			UserName  string
+			SessionId      string
+			UserName       string
+			ProfilePicture string
+			Twitter        string
+			Website        string
 		}{
 			session.Uuid,
 			user.UserName,
+			user.ProfilePicture,
+			user.Twitter,
+			user.Website,
 		}
 		json.NewEncoder(w).Encode(user_data)
 	} else {
-		fmt.Println(Yellow("Log in not valid..."))
+		log.Info("Log in not valid user " + user.Email)
 	}
 }
 

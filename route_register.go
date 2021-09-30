@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	. "github.com/logrusorgru/aurora"
+	log "github.com/sirupsen/logrus"
 )
 
 func Register(w http.ResponseWriter, r *http.Request) {
@@ -18,7 +20,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}{}
 	err := decoder.Decode(&s)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 	InsertUser(s.Email, s.Username, s.Password)
 	json.NewEncoder(w).Encode("OK")
@@ -26,11 +28,13 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 func InsertUser(email string, username string, password string) {
 	fmt.Println(Gray(8-1, "Starting InsertUser..."))
+	privacy := "all"
+	default_profile_picture := os.Getenv("CDN_PATH") + "/profile_pictures/default_picture.png"
 	statement := `
-		INSERT INTO users (email, username, password, createdat, updatedat)
-		VALUES ($1, $2, $3, current_timestamp, current_timestamp);`
-	_, err := DbWebApp.Exec(statement, email, username, Encrypt(password))
+		INSERT INTO users (code, email, username, password, privacy, profilepicture, createdat, updatedat)
+		VALUES (SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2, $3, $4, $5, current_timestamp, current_timestamp);`
+	_, err := DbWebApp.Exec(statement, email, username, Encrypt(password), privacy, default_profile_picture)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 }
