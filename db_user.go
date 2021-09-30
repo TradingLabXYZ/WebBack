@@ -19,6 +19,8 @@ type User struct {
 	Password       string
 	Permission     string
 	ProfilePicture string
+	Twitter        string
+	Website        string
 }
 
 type Session struct {
@@ -39,7 +41,9 @@ func UserByEmail(email string) (user User) {
 						password,
 						username,
 						permission,
-						profilepicture
+						profilepicture,
+						twitter,
+						website
 					FROM users
 					WHERE email = $1;`, email).Scan(
 		&user.Id,
@@ -49,6 +53,8 @@ func UserByEmail(email string) (user User) {
 		&user.UserName,
 		&user.Permission,
 		&user.ProfilePicture,
+		&user.Twitter,
+		&user.Website,
 	)
 
 	return
@@ -62,7 +68,12 @@ func UserByUsername(username string) (user User) {
 			id,
 			code,
 			email,
-			permission
+			password,
+			username,
+			permission,
+			profilepicture,
+			twitter,
+			website
 		FROM users
 		WHERE username = $1;`, username)
 	defer rows.Close()
@@ -74,7 +85,13 @@ func UserByUsername(username string) (user User) {
 			&user.Id,
 			&user.Code,
 			&user.Email,
-			&user.Permission); err != nil {
+			&user.Password,
+			&user.UserName,
+			&user.Permission,
+			&user.ProfilePicture,
+			&user.Twitter,
+			&user.Website,
+		); err != nil {
 			log.Error(err)
 		}
 	}

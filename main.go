@@ -31,6 +31,7 @@ func main() {
 	router.HandleFunc("/login", Login).Methods("POST")
 	router.HandleFunc("/register", Register).Methods("POST")
 
+	router.HandleFunc("/user_settings", GetUserSettings).Methods("GET")
 	router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")
 
 	selectTradesRouter := router.PathPrefix("/select_trades/{username}").Subrouter()
