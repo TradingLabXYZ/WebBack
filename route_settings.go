@@ -153,3 +153,47 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 
 }
+
+func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(Gray(8-1, "Starting UpdateUserPassword..."))
+
+	user_session := SelectSession(r)
+	user := UserByEmail(user_session.Email)
+
+	passwords := struct {
+		OldPassword       string `json:"OldPassword"`
+		NewPassword       string `json:"NewPassword"`
+		RepeatNewPassword string `json:"RepeatNewPassword"`
+	}{}
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&passwords)
+	if err != nil {
+		log.Error(err)
+	}
+
+	if passwords.NewPassword != passwords.RepeatNewPassword {
+		w.Write([]byte("KO"))
+		return
+	}
+
+	if user.Password != Encrypt(passwords.OldPassword) {
+		w.Write([]byte("KO"))
+		return
+	}
+
+	statement := `
+		UPDATE users
+		SET password = $1
+		WHERE id = $2;`
+	_, err = DbWebApp.Exec(
+		statement,
+		Encrypt(passwords.NewPassword),
+		user.Id)
+	if err != nil {
+		log.Error(err)
+	}
+
+	w.Write([]byte("OK"))
+
+}
