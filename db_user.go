@@ -17,7 +17,7 @@ type User struct {
 	UserName       string
 	LoginPassword  string
 	Password       string
-	Permission     string
+	Privacy        string
 	ProfilePicture string
 	Twitter        string
 	Website        string
@@ -40,7 +40,7 @@ func UserByEmail(email string) (user User) {
 						email,
 						password,
 						username,
-						permission,
+						privacy,
 						profilepicture,
 						twitter,
 						website
@@ -51,7 +51,7 @@ func UserByEmail(email string) (user User) {
 		&user.Email,
 		&user.Password,
 		&user.UserName,
-		&user.Permission,
+		&user.Privacy,
 		&user.ProfilePicture,
 		&user.Twitter,
 		&user.Website,
@@ -70,7 +70,7 @@ func UserByUsername(username string) (user User) {
 			email,
 			password,
 			username,
-			permission,
+			privacy,
 			profilepicture,
 			twitter,
 			website
@@ -87,7 +87,7 @@ func UserByUsername(username string) (user User) {
 			&user.Email,
 			&user.Password,
 			&user.UserName,
-			&user.Permission,
+			&user.Privacy,
 			&user.ProfilePicture,
 			&user.Twitter,
 			&user.Website,
