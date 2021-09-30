@@ -8,12 +8,88 @@ import (
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	. "github.com/logrusorgru/aurora"
+	log "github.com/sirupsen/logrus"
 )
+
+func CheckUserPrivacy(next http.Handler) http.Handler {
+	fmt.Println(Gray(8-1, "Starting CheckUserPrivacy..."))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		username := mux.Vars(r)["username"]
+		userA := UserByUsername(username)
+		privacy := userA.Privacy
+		if privacy == "all" {
+			next.ServeHTTP(w, r)
+			return
+		} else {
+			session := SelectSession(r)
+			if session.Id == 0 {
+				w.Write([]byte(`{"Status": "denied", "Reason": "login"}`))
+				return
+			}
+			userB := UserByEmail(session.Email)
+			if userA.Id == userB.Id {
+				next.ServeHTTP(w, r)
+				return
+			}
+			switch privacy {
+			case "private":
+				w.Write([]byte(`{"Status": "denied", "Reason": "private"}`))
+				return
+			case "followers":
+				var isfollower bool
+				_ = DbWebApp.QueryRow(`
+					SELECT TRUE
+					FROM followers
+					WHERE followto = $1
+					AND followfrom = $2;`, userA.Id, userB.Id).Scan(
+					&isfollower,
+				)
+				if isfollower {
+					next.ServeHTTP(w, r)
+				} else {
+					w.Write([]byte(`{"Status": "denied", "Reason": "follow"}`))
+					return
+				}
+			case "subscribers":
+				var issubscriber bool
+				_ = DbWebApp.QueryRow(`
+					SELECT TRUE
+					FROM subscribers
+					WHERE subscribeto = $1
+					AND subscribefrom = $2;`, userA.Id, userB.Id).Scan(
+					&issubscriber,
+				)
+				if issubscriber {
+					next.ServeHTTP(w, r)
+					return
+				} else {
+					w.Write([]byte(`{"Status": "denied", "Reason": "subscribe"}`))
+					return
+				}
+			case "individuals":
+				var isindividual bool
+				_ = DbWebApp.QueryRow(`
+					SELECT TRUE
+					FROM individuals
+					WHERE individualto = $1
+					AND individualfrom = $2;`, userA.Id, userB.Id).Scan(
+					&isindividual,
+				)
+				if isindividual {
+					next.ServeHTTP(w, r)
+					return
+				} else {
+					w.Write([]byte(`{"Status": "denied", "Reason": "individual"}`))
+					return
+				}
+			}
+		}
+	})
+}
 
 func SelectTrades(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting SelectTrades..."))
 
-	isopen := mux.Vars(r)["isopen"]
 	username := mux.Vars(r)["username"]
 
 	user := UserByUsername(username)
@@ -30,6 +106,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 
 	type Trade struct {
 		Id               string
+		IsOpen           string
 		Exchange         string
 		FirstPairId      int
 		SecondPairId     int
@@ -71,6 +148,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 			TRADES_MACRO AS (
 				SELECT
 					t.id,
+					t.isopen,
 					t.exchange,
 					t.firstpair,
 					t.secondpair,
@@ -93,11 +171,11 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 				FROM trades t
 				LEFT JOIN subtrades s ON(t.id  = s.tradeid)
 				WHERE t.userid = $1
-				AND t.isopen = $2
-				GROUP BY 1, 2, 3, 4),
+				GROUP BY 1, 2, 3, 4, 5),
 			TRADES_MICRO AS (
 				SELECT
 					t.id,
+					t.isopen,
 					t.exchange,
 					t.firstpair AS firstpairid,
 					c1.name AS firstpairname,
@@ -125,6 +203,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 				LEFT JOIN CURRENT_PRICE c2 ON(t.secondpair = c2.coinid))
 		SELECT
 			t.id,
+			t.isopen,
 			t.exchange,
 			t.firstpairid,
 			t.firstpairname,
@@ -152,16 +231,16 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 
 	trades_rows, err := DbWebApp.Query(
 		trades_sql,
-		user.Id,
-		isopen)
+		user.Id)
 	defer trades_rows.Close()
 	if err != nil {
-		panic(err.Error())
+		log.Error(err)
 	}
 	for trades_rows.Next() {
 		trade := Trade{}
 		if err = trades_rows.Scan(
 			&trade.Id,
+			&trade.IsOpen,
 			&trade.Exchange,
 			&trade.FirstPairId,
 			&trade.FirstPairName,
@@ -185,7 +264,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 			&trade.Roi,
 			&trade.BtcPrice,
 		); err != nil {
-			panic(err)
+			log.Error(err)
 		}
 
 		subtrades_sql := `
@@ -207,7 +286,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 			trade.Id)
 		defer subtrades_rows.Close()
 		if err != nil {
-			panic(err.Error())
+			log.Error(err)
 		}
 
 		for subtrades_rows.Next() {
@@ -220,7 +299,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 				&subtrade.Quantity,
 				&subtrade.AvgPrice,
 				&subtrade.Total); err != nil {
-				panic(err.Error())
+				log.Error(err)
 			}
 
 			subtrades = append(subtrades, subtrade)
@@ -256,7 +335,7 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&trade)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 
 	var trade_id string
@@ -272,7 +351,7 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 		trade.SecondPairId,
 	).Scan(&trade_id)
 	if err != nil {
-		panic(err.Error())
+		log.Error(err)
 	}
 
 	for _, subtrade := range trade.Subtrades {
@@ -291,7 +370,7 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 		)
 	}
 	if err != nil {
-		panic(err.Error())
+		log.Error(err)
 	}
 
 	json.NewEncoder(w).Encode("OK")
@@ -320,7 +399,7 @@ func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&trade)
 	if err != nil {
-		panic(err)
+		log.Error(err)
 	}
 
 	DbWebApp.Exec(`
