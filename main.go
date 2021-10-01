@@ -46,7 +46,7 @@ func main() {
 	router.HandleFunc("/delete_trade/{tradeid}", DeleteTrade).Methods("GET")
 	router.HandleFunc("/update_trade", UpdateTrade).Methods("POST")
 
-	router.HandleFunc("/get_price/{firstpairid}/{secondpairid}", SelectPrice).Methods("GET")
+	router.HandleFunc("/websocket/{tradeid}/{firstpairid}/{secondpairid}", GetPriceSocket)
 	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
 
 	router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
