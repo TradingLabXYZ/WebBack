@@ -96,7 +96,7 @@ func GetPrices(w http.ResponseWriter, r *http.Request) {
 				return
 			default:
 			}
-			time.Sleep(time.Duration(rand.Intn(10)+2) * time.Second)
+			time.Sleep(time.Duration(rand.Intn(20)+8) * time.Second)
 		}
 	}()
 }
