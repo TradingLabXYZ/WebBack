@@ -20,7 +20,7 @@ var upgrader = websocket.Upgrader{
 func GetPrices(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting GetPrices..."))
 
-	username := mux.Vars(r)["username"]
+	usercode := mux.Vars(r)["usercode"]
 
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	ws, _ := upgrader.Upgrade(w, r, nil)
@@ -63,13 +63,13 @@ func GetPrices(w http.ResponseWriter, r *http.Request) {
 				LEFT JOIN trades t ON(u.id = t.userid)
 				LEFT JOIN latest_price l1 ON(t.firstpair = l1.coinid)
 				LEFT JOIN latest_price l2 ON(t.secondpair = l2.coinid)
-				WHERE u.username = $1
+				WHERE u.code = $1
 				AND t.isopen = TRUE;`
 
 			tradesprices := []TradePrice{}
 			prices_rows, err := DbWebApp.Query(
 				prices_sql,
-				username)
+				usercode)
 			defer prices_rows.Close()
 			if err != nil {
 				log.Error(err)
