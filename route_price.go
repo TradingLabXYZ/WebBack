@@ -83,7 +83,7 @@ func GetPrices(w http.ResponseWriter, r *http.Request) {
 					log.Error(err)
 				}
 
-				tradeprice.Price = tradeprice.Price + rand.Float64()*(1-0.01)/100000
+				tradeprice.Price = tradeprice.Price + rand.Float64()*(1-0.01)/10000
 				tradesprices = append(tradesprices, tradeprice)
 			}
 			err = ws.WriteJSON(tradesprices)
