@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -18,16 +17,10 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-func GetPriceSocket(w http.ResponseWriter, r *http.Request) {
+func GetPrices(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(Gray(8-1, "Starting GetPrices..."))
 
-	str_trade_id := mux.Vars(r)["tradeid"]
-	trade_id, err := strconv.Atoi(str_trade_id)
-
-	str_first_pair_id := mux.Vars(r)["firstpairid"]
-	first_pair_id, err := strconv.Atoi(str_first_pair_id)
-
-	str_second_pair_id := mux.Vars(r)["secondpairid"]
-	second_pair_id, err := strconv.Atoi(str_second_pair_id)
+	username := mux.Vars(r)["username"]
 
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 	ws, _ := upgrader.Upgrade(w, r, nil)
@@ -45,22 +38,55 @@ func GetPriceSocket(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	type TradePrice struct {
+		TradeId string
+		Price   float64
+	}
+
 	go func() {
 		for {
-			price := GetPrice(first_pair_id, second_pair_id)
-			price = price + rand.Float64()*(1-0.01)/10000
-			response := struct {
-				TradeId      int
-				FirstPairId  int
-				SelectPairId int
-				Price        float64
-			}{
-				trade_id,
-				first_pair_id,
-				second_pair_id,
-				price,
+			prices_sql := `
+				WITH
+					latest_price AS (
+						SELECT
+							coinid,
+							price
+						FROM prices
+						WHERE createdat = (
+							SELECT
+								MAX(createdat)
+							FROM prices))
+				SELECT 
+					t.id,
+					l2.price / l1.price AS price
+				FROM users u
+				LEFT JOIN trades t ON(u.id = t.userid)
+				LEFT JOIN latest_price l1 ON(t.firstpair = l1.coinid)
+				LEFT JOIN latest_price l2 ON(t.secondpair = l2.coinid)
+				WHERE u.username = $1
+				AND t.isopen = TRUE;`
+
+			tradesprices := []TradePrice{}
+			prices_rows, err := DbWebApp.Query(
+				prices_sql,
+				username)
+			defer prices_rows.Close()
+			if err != nil {
+				log.Error(err)
 			}
-			err = ws.WriteJSON(response)
+			for prices_rows.Next() {
+				tradeprice := TradePrice{}
+				if err = prices_rows.Scan(
+					&tradeprice.TradeId,
+					&tradeprice.Price,
+				); err != nil {
+					log.Error(err)
+				}
+
+				tradeprice.Price = tradeprice.Price + rand.Float64()*(1-0.01)/100000
+				tradesprices = append(tradesprices, tradeprice)
+			}
+			err = ws.WriteJSON(tradesprices)
 			if err != nil {
 				return
 			}
@@ -73,40 +99,4 @@ func GetPriceSocket(w http.ResponseWriter, r *http.Request) {
 			time.Sleep(time.Duration(rand.Intn(10)+2) * time.Second)
 		}
 	}()
-}
-
-func GetPrice(first_pair_id int, second_pair_id int) (price float64) {
-	fmt.Println(Gray(8-1, "Get SelectPrice..."))
-
-	price_sql := `
-		SELECT
-			p2.price / p1.price AS price
-		FROM (
-				SELECT
-					price
-				FROM prices
-				WHERE coinid = $1
-				AND createdat = (
-					SELECT MAX(createdat)
-					FROM prices)) p1
-		LEFT JOIN (
-				SELECT
-					price
-				FROM prices
-				WHERE coinid = $2
-				AND createdat = (
-					SELECT MAX(createdat)
-					FROM prices)) p2
-			ON(1 = 1);`
-
-	err := DbWebApp.QueryRow(
-		price_sql,
-		first_pair_id,
-		second_pair_id,
-	).Scan(&price)
-	if err != nil {
-		log.Error(err)
-	}
-
-	return
 }
