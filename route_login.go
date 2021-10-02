@@ -32,12 +32,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		user_data := struct {
 			SessionId      string
 			UserName       string
+			Code           string
 			ProfilePicture string
 			Twitter        string
 			Website        string
 		}{
 			session.Uuid,
 			user.UserName,
+			user.Code,
 			user.ProfilePicture,
 			user.Twitter,
 			user.Website,
