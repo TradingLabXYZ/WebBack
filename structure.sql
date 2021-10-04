@@ -1,78 +1,79 @@
-create table users (
-  id serial primary key,
-  code varchar(12) not null unique,
-  email varchar(255) not null unique,
-  username varchar(255) not null unique,
-  password varchar(255) not null,
-  privacy privacies not null,
-  profilepicture text,
-  twitter text,
-  website text,
-  createdat timestamp not null,
-  updatedat timestamp not null,
-  deletedat timestamp
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  code VARCHAR(12) NOT NULL UNIQUE,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  username VARCHAR(255) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  privacy privacies NOT NULL,
+  profilepicture TEXT,
+  twitter TEXT,
+  website TEXT,
+  plan plans NOT NULL,
+  createdat TIMESTAMP NOT NULL,
+  updatedat TIMESTAMP NOT NULL,
+  deletedat TIMESTAMP
 );
 
-create table sessions (
-  id serial primary key,
-  uuid varchar(64) not null unique,
-  email varchar(255),
-  userid integer references users(id),
-  createdat timestamp not null,
-  deletedat timestamp
+CREATE TABLE sessions (
+  id SERIAL PRIMARY KEY,
+  uuid VARCHAR(64) NOT NULL UNIQUE,
+  email VARCHAR(255),
+  userid INTEGER REFERENCES users(id),
+  createdat TIMESTAMP NOT NULL,
+  deletedat TIMESTAMP
 );
 
 CREATE TABLE coins (
-  id serial primary key,
-  coinid numeric UNIQUE,
-  name text,
-  symbol text,
-  slug text
+  id SERIAL PRIMARY KEY,
+  coinid NUMERIC UNIQUE,
+  name TEXT,
+  symbol TEXT,
+  slug TEXT
 );
 
 CREATE TABLE prices (
-  id serial primary key,
-  createdat timestamp,
-  coinid numeric references coins(coinid),
-  price numeric
+  id SERIAL PRIMARY KEY,
+  createdat TIMESTAMP,
+  coinid NUMERIC REFERENCES coins(coinid),
+  price NUMERIC
 );
 
 CREATE TABLE trades (
-  id varchar(12) not null unique,
-  userid integer references users(id),
-  createdat timestamp not null,
-  updatedat timestamp not null,
-  deletedat timestamp,
-  exchange varchar(64),
-  firstpair numeric references coins(coinid),
-  secondpair numeric references coins(coinid),
-  isopen boolean
+  id VARCHAR(12) NOT NULL UNIQUE,
+  userid INTEGER REFERENCES users(id),
+  createdat TIMESTAMP NOT NULL,
+  updatedat TIMESTAMP NOT NULL,
+  deletedat TIMESTAMP,
+  exchange VARCHAR(64),
+  firstpair NUMERIC REFERENCES coins(coinid),
+  secondpair NUMERIC REFERENCES coins(coinid),
+  isopen BOOLEAN
 );
 
 CREATE TABLE subtrades (
-  id serial primary key,
-  tradeid varchar(12) references trades(id),
-  createdat timestamp not null,
-  updatedat timestamp not null,
-  deletedat timestamp,
-  tradetimestamp  timestamp,
-  type varchar(5),
-  reason varchar(64),
-  quantity numeric,
-  avgprice numeric,
-  total numeric
+  id SERIAL PRIMARY KEY,
+  tradeid VARCHAR(12) REFERENCES trades(id),
+  createdat TIMESTAMP NOT NULL,
+  updatedat TIMESTAMP NOT NULL,
+  deletedat TIMESTAMP,
+  tradetimestamp TIMESTAMP,
+  type VARCHAR(5),
+  reason VARCHAR(64),
+  quantity NUMERIC,
+  avgprice NUMERIC,
+  total NUMERIC
 );
 
 CREATE TABLE followers (
-  id serial primary key,
-  followefrom integer references users(id) not null,
-  followto integer references users(id) not null,
-  createdat timestamp
+  id SERIAL PRIMARY KEY,
+  followefrom INTEGER REFERENCES users(id) NOT NULL,
+  followto INTEGER references users(id) NOT NULL,
+  createdat TIMESTAMP
 );
 
 CREATE TABLE subscribers (
   id serial primary key,
-  subscribefrom integer references users(id) not null,
-  subscribeto integer references users(id) not null,
-  createdat timestamp
+  subscribefrom INTEGER REFERENCES users(id) NOT NULL,
+  subscribeto INTEGER REFERENCES users(id) NOT NULL,
+  createdat TIMESTAMP
 );
