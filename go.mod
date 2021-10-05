@@ -12,6 +12,7 @@ require (
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/rs/cors v1.8.0
 	github.com/sirupsen/logrus v1.8.1 // indirect
+	github.com/stellar/go v0.0.0-20211004213516-a1db2a6b1fd3 // indirect
 	golang.org/x/tools/gopls v0.7.0 // indirect
 	gopkg.in/guregu/null.v4 v4.0.0
 )

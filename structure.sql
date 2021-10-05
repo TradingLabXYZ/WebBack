@@ -75,8 +75,28 @@ CREATE TABLE followers (
 );
 
 CREATE TABLE subscribers (
-  id serial primary key,
+  id SERIAL PRIMARY KEY,
   subscribefrom INTEGER REFERENCES users(id) NOT NULL,
   subscribeto INTEGER REFERENCES users(id) NOT NULL,
   createdat TIMESTAMP
+);
+
+CREATE TABLE internalwallets (
+  id SERIAL PRIMARY KEY,
+  blockchain TEXT,
+  currency TEXT,
+  address TEXT,
+  description TEXT,
+  createdat TIMESTAMP NOT NULL
+);
+
+CREATE TABLE memos (
+  id SERIAL PRIMARY KEY,
+  userid INTEGER REFERENCES users(id) NOT NULL,
+  blockchain TEXT NOT NULL,
+  currency TEXT NOT NULL,
+  depositaddress TEXT NOT NULL,
+  memo VARCHAR(20) NOT NULL,
+  createdat TIMESTAMP NOT NULL,
+  status BOOLEAN 
 );
