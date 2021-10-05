@@ -1,3 +1,6 @@
+CREATE TYPE privacies AS ENUM ('all', 'private', 'subscribers', 'followers');
+CREATE TYPE plans AS ENUM ('basic', 'premium', 'pro');
+
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   code VARCHAR(12) NOT NULL UNIQUE,
