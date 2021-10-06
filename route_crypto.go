@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	. "github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
@@ -141,12 +140,26 @@ func SelectTransactionCredentials(w http.ResponseWriter, r *http.Request) {
 func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting ValidateTransaction..."))
 
+	transaction_detail := struct {
+		Id     string  `json:"Id"`
+		Memo   string  `json:"Memo"`
+		Amount float64 `json:"Amount"`
+	}{}
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&transaction_detail)
+	if err != nil {
+		log.Error(err)
+	}
+
+	fmt.Println("tx_id", transaction_detail.Id)
+	fmt.Println("tx_memo", transaction_detail.Memo)
+	fmt.Println("tx_amount", transaction_detail.Amount)
+
 	time.Sleep(2 * time.Second)
 
 	session := SelectSession(r)
 	user := UserByEmail(session.Email)
-
-	tx := mux.Vars(r)["tx"]
 
 	type StellarTx struct {
 		Memo           string    `json:"memo"`
@@ -166,7 +179,7 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 		Signatures     []string  `json:"signatures"`
 	}
 
-	stellar_tx_url := fmt.Sprintf("https://horizon.stellar.org/transactions/%s", tx)
+	stellar_tx_url := fmt.Sprintf("https://horizon.stellar.org/transactions/%s", transaction_detail.Id)
 
 	res, err := http.Get(stellar_tx_url)
 	if err != nil {
