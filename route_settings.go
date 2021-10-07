@@ -111,7 +111,6 @@ func GetUserSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(settings)
-
 }
 
 func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
@@ -155,7 +154,6 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte("OK"))
-
 }
 
 func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
@@ -199,7 +197,6 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte("OK"))
-
 }
 
 func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
@@ -231,5 +228,4 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte("OK"))
-
 }

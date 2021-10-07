@@ -140,52 +140,51 @@ func SelectTransactionCredentials(w http.ResponseWriter, r *http.Request) {
 func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting ValidateTransaction..."))
 
+	session := SelectSession(r)
+	user := UserByEmail(session.Email)
+
+	time.Sleep(2 * time.Second)
+
 	transaction_detail := struct {
-		Id     string  `json:"Id"`
-		Memo   string  `json:"Memo"`
-		Amount float64 `json:"Amount"`
+		Id        string  `json:"Id"`
+		Memo      string  `json:"Memo"`
+		Amount    float64 `json:"Amount"`
+		AmountXdr xdr.Int64
 	}{}
 
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&transaction_detail)
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{
+			"session": session.Id,
+			"user":    user.Id,
+		}).Error("Failed decoding data from user")
+		json.NewEncoder(w).Encode("KO")
+		return
 	}
 
-	fmt.Println("tx_id", transaction_detail.Id)
-	fmt.Println("tx_memo", transaction_detail.Memo)
-	fmt.Println("tx_amount", transaction_detail.Amount)
-
-	time.Sleep(2 * time.Second)
-
-	session := SelectSession(r)
-	user := UserByEmail(session.Email)
+	transaction_detail.AmountXdr = xdr.Int64(transaction_detail.Amount)
 
 	type StellarTx struct {
-		Memo           string    `json:"memo"`
-		ID             string    `json:"id"`
-		Successful     bool      `json:"successful"`
-		CreatedAt      time.Time `json:"created_at"`
-		SourceAccount  string    `json:"source_account"`
-		FeeAccount     string    `json:"fee_account"`
-		FeeCharged     string    `json:"fee_charged"`
-		MaxFee         string    `json:"max_fee"`
-		OperationCount int       `json:"operation_count"`
-		EnvelopeXdr    string    `json:"envelope_xdr"`
-		ResultXdr      string    `json:"result_xdr"`
-		ResultMetaXdr  string    `json:"result_meta_xdr"`
-		FeeMetaXdr     string    `json:"fee_meta_xdr"`
-		MemoType       string    `json:"memo_type"`
-		Signatures     []string  `json:"signatures"`
+		Memo          string    `json:"memo"`
+		ID            string    `json:"id"`
+		Successful    bool      `json:"successful"`
+		CreatedAt     time.Time `json:"created_at"`
+		SourceAccount string    `json:"source_account"`
+		EnvelopeXdr   string    `json:"envelope_xdr"`
 	}
 
-	stellar_tx_url := fmt.Sprintf("https://horizon.stellar.org/transactions/%s", transaction_detail.Id)
+	stellar_tx_url := fmt.Sprintf(
+		"https://horizon.stellar.org/transactions/%s",
+		transaction_detail.Id,
+	)
 
 	res, err := http.Get(stellar_tx_url)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"session": session.Id,
 			"user":    user.Id,
+			"txid":    transaction_detail.Id,
 		}).Error("Failed fetching TX from Horizon API")
 		json.NewEncoder(w).Encode("KO")
 		return
@@ -195,6 +194,7 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{
 			"session": session.Id,
 			"user":    user.Id,
+			"txid":    transaction_detail.Id,
 		}).Error("Failed converting TX into struct")
 		json.NewEncoder(w).Encode("KO")
 		return
@@ -207,6 +207,7 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{
 			"session": session.Id,
 			"user":    user.Id,
+			"txid":    transaction_detail.Id,
 		}).Error("Unsucsessfull TX")
 		json.NewEncoder(w).Encode("KO")
 		return
@@ -220,35 +221,69 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{
 			"session": session.Id,
 			"user":    user.Id,
+			"txid":    transaction_detail.Id,
 		}).Error("Corrupted EnvelopeXDR")
 		json.NewEncoder(w).Encode("KO")
 		return
 	}
 
-	if envelope.V1.Tx.Operations[0].Body.PaymentOp == nil {
+	paymentOp := envelope.V1.Tx.Operations[0].Body.PaymentOp
+	createAccountOp := envelope.V1.Tx.Operations[0].Body.CreateAccountOp
+	if paymentOp == nil && createAccountOp == nil {
 		log.WithFields(log.Fields{
 			"session": session.Id,
 			"user":    user.Id,
+			"txid":    transaction_detail.Id,
 		}).Error("Not a tx payment type")
 		json.NewEncoder(w).Encode("KO")
 		return
 	}
 
-	// VERIFICIARE CHE ANCHE L IMPORTO DELLA TRANSAZIONE SIA CORRETTO, QUINDI POST REQUEST
-	amount := envelope.V1.Tx.Operations[0].Body.PaymentOp.Amount
-	asset := envelope.V1.Tx.Operations[0].Body.PaymentOp.Asset.String()
-	fmt.Println("Memo", stellar_tx.Memo)
-	fmt.Println("Asset", asset)
-	fmt.Println("Amount", amount)
+	var amount xdr.Int64
+	var asset string
+	if paymentOp != nil {
+		amount = envelope.V1.Tx.Operations[0].Body.PaymentOp.Amount
+		asset = envelope.V1.Tx.Operations[0].Body.PaymentOp.Asset.String()
+	} else if createAccountOp != nil {
+		amount = envelope.V1.Tx.Operations[0].Body.CreateAccountOp.StartingBalance
+		asset = "native"
+	}
 
 	if asset != "native" {
 		log.WithFields(log.Fields{
 			"session": session.Id,
 			"user":    user.Id,
+			"txid":    transaction_detail.Id,
 		}).Error("No XLM transaction")
 		json.NewEncoder(w).Encode("KO")
 		return
 	}
 
+	if transaction_detail.Memo != stellar_tx.Memo {
+		log.WithFields(log.Fields{
+			"session": session.Id,
+			"user":    user.Id,
+			"txid":    transaction_detail.Id,
+		}).Error("Memos do not match")
+		json.NewEncoder(w).Encode("KO")
+		return
+	}
+
+	delta_amounts := transaction_detail.AmountXdr - amount
+	if delta_amounts > 10000000 {
+		log.WithFields(log.Fields{
+			"session": session.Id,
+			"user":    user.Id,
+			"txid":    transaction_detail.Id,
+		}).Error("Tx amount not valid")
+		json.NewEncoder(w).Encode("KO")
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"session": session.Id,
+		"user":    user.Id,
+		"txid":    transaction_detail.Id,
+	}).Info("Successfully validated XLM transaction")
 	json.NewEncoder(w).Encode("OK")
 }
