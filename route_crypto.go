@@ -134,6 +134,8 @@ func SelectTransactionCredentials(w http.ResponseWriter, r *http.Request) {
 		memo,
 	}
 
+	credentials.Memo = "141f965131cf9f89f97" // TEMP TO TEST
+
 	json.NewEncoder(w).Encode(credentials)
 }
 
@@ -145,25 +147,30 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 
 	time.Sleep(2 * time.Second)
 
-	transaction_detail := struct {
-		Id        string  `json:"Id"`
-		Memo      string  `json:"Memo"`
-		Amount    float64 `json:"Amount"`
-		AmountXdr xdr.Int64
+	input_tx := struct {
+		Id         string  `json:"Id"`
+		Memo       string  `json:"Memo"`
+		Months     int     `json:"Months"`
+		Amount     float64 `json:"Amount"`
+		Blockchain string  `json:"Blockchain"`
+		Currency   string  `json:"Currency"`
+		AmountXdr  xdr.Int64
 	}{}
 
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&transaction_detail)
+	err := decoder.Decode(&input_tx)
 	if err != nil {
+		fmt.Println(err)
 		log.WithFields(log.Fields{
-			"session": session.Id,
-			"user":    user.Id,
-		}).Error("Failed decoding data from user")
+			"session":    session.Id,
+			"user":       user.Id,
+			"custom_msg": "Failed decoding data from user",
+		}).Error(err)
 		json.NewEncoder(w).Encode("KO")
 		return
 	}
 
-	transaction_detail.AmountXdr = xdr.Int64(transaction_detail.Amount)
+	input_tx.AmountXdr = xdr.Int64(input_tx.Amount)
 
 	type StellarTx struct {
 		Memo          string    `json:"memo"`
@@ -176,26 +183,28 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 
 	stellar_tx_url := fmt.Sprintf(
 		"https://horizon.stellar.org/transactions/%s",
-		transaction_detail.Id,
+		input_tx.Id,
 	)
 
 	res, err := http.Get(stellar_tx_url)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"session": session.Id,
-			"user":    user.Id,
-			"txid":    transaction_detail.Id,
-		}).Error("Failed fetching TX from Horizon API")
+			"session":    session.Id,
+			"user":       user.Id,
+			"txid":       input_tx.Id,
+			"custom_msg": "Failed fetching TX from Horizon API",
+		}).Error(err)
 		json.NewEncoder(w).Encode("KO")
 		return
 	}
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"session": session.Id,
-			"user":    user.Id,
-			"txid":    transaction_detail.Id,
-		}).Error("Failed converting TX into struct")
+			"session":    session.Id,
+			"user":       user.Id,
+			"txid":       input_tx.Id,
+			"custom_msg": "Failed converting TX into struct",
+		}).Error(err)
 		json.NewEncoder(w).Encode("KO")
 		return
 	}
@@ -205,10 +214,11 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 
 	if !stellar_tx.Successful {
 		log.WithFields(log.Fields{
-			"session": session.Id,
-			"user":    user.Id,
-			"txid":    transaction_detail.Id,
-		}).Error("Unsucsessfull TX")
+			"session":    session.Id,
+			"user":       user.Id,
+			"txid":       input_tx.Id,
+			"custom_msg": "Unsucsessfull TX",
+		}).Error(err)
 		json.NewEncoder(w).Encode("KO")
 		return
 	}
@@ -219,10 +229,11 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 	err = xdr.SafeUnmarshalBase64(envelopeXDR, &envelope)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"session": session.Id,
-			"user":    user.Id,
-			"txid":    transaction_detail.Id,
-		}).Error("Corrupted EnvelopeXDR")
+			"session":    session.Id,
+			"user":       user.Id,
+			"txid":       input_tx.Id,
+			"custom_msg": "Corrupted EnvelopeXDR",
+		}).Error(err)
 		json.NewEncoder(w).Encode("KO")
 		return
 	}
@@ -231,10 +242,11 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 	createAccountOp := envelope.V1.Tx.Operations[0].Body.CreateAccountOp
 	if paymentOp == nil && createAccountOp == nil {
 		log.WithFields(log.Fields{
-			"session": session.Id,
-			"user":    user.Id,
-			"txid":    transaction_detail.Id,
-		}).Error("Not a tx payment type")
+			"session":    session.Id,
+			"user":       user.Id,
+			"txid":       input_tx.Id,
+			"custom_msg": "Not a tx payment type",
+		}).Error(err)
 		json.NewEncoder(w).Encode("KO")
 		return
 	}
@@ -251,31 +263,77 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 
 	if asset != "native" {
 		log.WithFields(log.Fields{
-			"session": session.Id,
-			"user":    user.Id,
-			"txid":    transaction_detail.Id,
-		}).Error("No XLM transaction")
+			"session":    session.Id,
+			"user":       user.Id,
+			"txid":       input_tx.Id,
+			"custom_msg": "No XLM transaction",
+		}).Error(err)
 		json.NewEncoder(w).Encode("KO")
 		return
 	}
 
-	if transaction_detail.Memo != stellar_tx.Memo {
+	if input_tx.Memo != stellar_tx.Memo {
 		log.WithFields(log.Fields{
-			"session": session.Id,
-			"user":    user.Id,
-			"txid":    transaction_detail.Id,
-		}).Error("Memos do not match")
+			"session":    session.Id,
+			"user":       user.Id,
+			"txid":       input_tx.Id,
+			"custom_msg": "Memos do not match",
+		}).Error(err)
 		json.NewEncoder(w).Encode("KO")
 		return
 	}
 
-	delta_amounts := transaction_detail.AmountXdr - amount
+	delta_amounts := input_tx.AmountXdr - amount
 	if delta_amounts > 10000000 {
 		log.WithFields(log.Fields{
-			"session": session.Id,
-			"user":    user.Id,
-			"txid":    transaction_detail.Id,
-		}).Error("Tx amount not valid")
+			"session":    session.Id,
+			"user":       user.Id,
+			"txid":       input_tx.Id,
+			"custom_msg": "TX amount not valid",
+		}).Error(err)
+		json.NewEncoder(w).Encode("KO")
+		return
+	}
+
+	// All the checks have been successfull
+
+	// Upgrading user to Premium
+	upgrade_sql := `
+		UPDATE users
+		SET plan = 'premium'
+		WHERE id = $1;`
+	_, err = DbWebApp.Exec(upgrade_sql, user.Id)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"session":    session.Id,
+			"user":       user.Id,
+			"txid":       input_tx.Id,
+			"custom_msg": "Update user to premium failed",
+		}).Error(err)
+		json.NewEncoder(w).Encode("KO")
+		return
+	}
+
+	// Adding a payment into table
+	payment_sql := `
+		INSERT INTO payments (userid, blockchain, currency, transactionid, amount, months, createdat, endat)  
+		VALUES ($1, $2, $3, $4, $5, $6, current_timestamp, current_timestamp + interval '1 month' * $7);`
+	_, err = DbWebApp.Exec(
+		payment_sql,
+		user.Id,
+		input_tx.Blockchain,
+		input_tx.Currency,
+		input_tx.Id,
+		amount,
+		input_tx.Months,
+		input_tx.Months)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"session":    session.Id,
+			"user":       user.Id,
+			"txid":       input_tx.Id,
+			"custom_msg": "Insert new payment failed",
+		}).Error(err)
 		json.NewEncoder(w).Encode("KO")
 		return
 	}
@@ -283,7 +341,7 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 	log.WithFields(log.Fields{
 		"session": session.Id,
 		"user":    user.Id,
-		"txid":    transaction_detail.Id,
+		"txid":    input_tx.Id,
 	}).Info("Successfully validated XLM transaction")
 	json.NewEncoder(w).Encode("OK")
 }

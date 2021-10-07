@@ -100,3 +100,15 @@ CREATE TABLE memos (
   createdat TIMESTAMP NOT NULL,
   status BOOLEAN 
 );
+
+CREATE TABLE payments (
+  id SERIAL PRIMARY KEY,
+  userid INTEGER REFERENCES users(id) NOT NULL,
+  blockchain TEXT NOT NULL,
+  currency TEXT NOT NULL,
+  transactionid TEXT NOT NULL,
+  amount NUMERIC NOT NULL,
+  months INTEGER NOT NULL,
+  createdat TIMESTAMP NOT NULL,
+  endat TIMESTAMP NOT NULL
+);
