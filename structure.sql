@@ -104,6 +104,7 @@ CREATE TABLE memos (
 CREATE TABLE payments (
   id SERIAL PRIMARY KEY,
   userid INTEGER REFERENCES users(id) NOT NULL,
+  type TEXT NOT NULL,
   blockchain TEXT NOT NULL,
   currency TEXT NOT NULL,
   transactionid TEXT NOT NULL,
