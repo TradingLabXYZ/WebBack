@@ -121,3 +121,72 @@ func (tx TxBuyPremium) InsertPayment(reason string) error {
 		tx.Months)
 	return err
 }
+
+func GetUserPremiumData(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(Gray(8-1, "Starting GetUserPremiumData..."))
+
+	session := SelectSession(r)
+	user := UserByEmail(session.Email)
+
+	type Payment struct {
+		CreatedAt     string
+		Amount        float64
+		Months        int
+		Blockchain    string
+		Currency      string
+		TransactionId string
+	}
+
+	user_premium_data := struct {
+		Payments      []Payment
+		RemainingDays int
+	}{}
+
+	payments_sql := `
+		SELECT
+			TO_CHAR(createdat::DATE, 'YYYY-MM-DD') AS createdat,
+			blockchain,
+			currency,
+			amount,
+			months,
+			transactionid
+		FROM payments
+		WHERE userid = $1
+		ORDER BY 1;`
+
+	rows, err := DbWebApp.Query(payments_sql, user.Id)
+	defer rows.Close()
+	if err != nil {
+		log.Error(err)
+	}
+	for rows.Next() {
+		payment := Payment{}
+		if err := rows.Scan(
+			&payment.CreatedAt,
+			&payment.Blockchain,
+			&payment.Currency,
+			&payment.Amount,
+			&payment.Months,
+			&payment.TransactionId,
+		); err != nil {
+			log.Error(err)
+		}
+		user_premium_data.Payments = append(user_premium_data.Payments, payment)
+	}
+
+	remaining_days_sql := `
+		SELECT
+			EXTRACT(DAY FROM MAX(endat)::date - now()) AS remaining_days
+		FROM payments
+		WHERE userid = $1;`
+
+	err = DbWebApp.QueryRow(
+		remaining_days_sql,
+		user.Id).Scan(&user_premium_data.RemainingDays)
+	if err != nil {
+		log.Error(err)
+	}
+
+	json.NewEncoder(w).Encode(user_premium_data)
+
+}
