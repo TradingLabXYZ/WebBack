@@ -114,7 +114,7 @@ func (tx TxBuyPremium) InsertPayment(reason string) error {
 		tx.Userid,
 		reason,
 		tx.Blockchain,
-		tx.Currency,
+		tx.Asset,
 		tx.Id,
 		tx.Amount,
 		tx.Months,
