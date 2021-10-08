@@ -51,7 +51,8 @@ func main() {
 	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
 	router.HandleFunc("/stellar_price", SelectStellarPrice).Methods("GET")
 	router.HandleFunc("/transaction_credentials", SelectTransactionCredentials).Methods("GET")
-	router.HandleFunc("/validate_tx", ValidateStellarTransaction).Methods("POST")
+
+	router.HandleFunc("/buy_months", BuyPremiumMonths).Methods("POST")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{
