@@ -61,6 +61,8 @@ func main() {
 			"https://tradinglab.xyz",
 			"https://www.tradinglab.xyz",
 			"https://staging.tradinglab.xyz",
+			"https://hoofcoffee-wet0e0.stormkit.dev",
+			"https://hoofcoffee-wet0e0--staging.stormkit.dev",
 		},
 		AllowedHeaders:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT"},
