@@ -35,6 +35,8 @@ func main() {
 	router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")
 	router.HandleFunc("/update_password", UpdateUserPassword).Methods("POST")
 	router.HandleFunc("/update_privacy", UpdateUserPrivacy).Methods("POST")
+	router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
+	router.HandleFunc("/user_premium_data", GetUserPremiumData).Methods("GET")
 
 	selectTradesRouter := router.PathPrefix("/select_trades/{username}").Subrouter()
 	selectTradesRouter.Use(CheckUserPrivacy)
@@ -48,8 +50,10 @@ func main() {
 
 	router.HandleFunc("/get_prices/{usercode}", GetPrices)
 	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
+	router.HandleFunc("/stellar_price", SelectStellarPrice).Methods("GET")
+	router.HandleFunc("/transaction_credentials", SelectTransactionCredentials).Methods("GET")
 
-	router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
+	router.HandleFunc("/buy_months", BuyPremiumMonths).Methods("POST")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{
