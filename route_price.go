@@ -27,25 +27,13 @@ func GetPrices(w http.ResponseWriter, r *http.Request) {
 
 	closing_message := make(chan string)
 
-	go func() {
-		_, p, err := ws.ReadMessage()
-		if string(p) != "" {
-			closing_message <- "close"
-		}
-		if err != nil {
-			log.Println(err)
-			return
-		}
-	}()
-
 	type TradePrice struct {
 		TradeId string
 		Price   float64
 	}
 
-	go func() {
-		for {
-			prices_sql := `
+	for {
+		prices_sql := `
 				WITH
 					latest_price AS (
 						SELECT
@@ -66,37 +54,36 @@ func GetPrices(w http.ResponseWriter, r *http.Request) {
 				WHERE u.code = $1
 				AND t.isopen = TRUE;`
 
-			tradesprices := []TradePrice{}
-			prices_rows, err := DbWebApp.Query(
-				prices_sql,
-				usercode)
-			defer prices_rows.Close()
-			if err != nil {
+		tradesprices := []TradePrice{}
+		prices_rows, err := DbWebApp.Query(
+			prices_sql,
+			usercode)
+		defer prices_rows.Close()
+		if err != nil {
+			log.Error(err)
+		}
+		for prices_rows.Next() {
+			tradeprice := TradePrice{}
+			if err = prices_rows.Scan(
+				&tradeprice.TradeId,
+				&tradeprice.Price,
+			); err != nil {
 				log.Error(err)
 			}
-			for prices_rows.Next() {
-				tradeprice := TradePrice{}
-				if err = prices_rows.Scan(
-					&tradeprice.TradeId,
-					&tradeprice.Price,
-				); err != nil {
-					log.Error(err)
-				}
 
-				tradeprice.Price = tradeprice.Price + rand.Float64()*(1-0.01)/10000
-				tradesprices = append(tradesprices, tradeprice)
-			}
-			err = ws.WriteJSON(tradesprices)
-			if err != nil {
-				return
-			}
-			select {
-			case _ = <-closing_message:
-				ws.Close()
-				return
-			default:
-			}
-			time.Sleep(time.Duration(rand.Intn(20)+8) * time.Second)
+			tradeprice.Price = tradeprice.Price + rand.Float64()*(1-0.01)/10000
+			tradesprices = append(tradesprices, tradeprice)
 		}
-	}()
+		err = ws.WriteJSON(tradesprices)
+		if err != nil {
+			return
+		}
+		select {
+		case _ = <-closing_message:
+			ws.Close()
+			return
+		default:
+		}
+		time.Sleep(time.Duration(rand.Intn(20)+8) * time.Second)
+	}
 }

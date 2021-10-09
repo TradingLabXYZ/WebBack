@@ -101,15 +101,16 @@ func GetUserSettings(w http.ResponseWriter, r *http.Request) {
 		Twitter string `json:"Twitter"`
 		Website string `json:"Website"`
 		Privacy string `json:"Privacy"`
+		Plan    string `json:"Plan"`
 	}{
 		user.Email,
 		user.Twitter,
 		user.Website,
 		user.Privacy,
+		user.Plan,
 	}
 
 	json.NewEncoder(w).Encode(settings)
-
 }
 
 func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
@@ -153,7 +154,6 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte("OK"))
-
 }
 
 func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
@@ -197,7 +197,6 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte("OK"))
-
 }
 
 func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
@@ -229,5 +228,4 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte("OK"))
-
 }
