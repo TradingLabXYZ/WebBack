@@ -1,6 +1,6 @@
 module github.com/TradingLabXYZ/WebBack
 
-go 1.17
+go 1.15
 
 require (
 	github.com/aws/aws-sdk-go v1.40.59
