@@ -16,8 +16,8 @@ func DbConnect() (DbWebApp *sqlx.DB) {
 	var DB_NAME string
 	if env == "production" {
 		DB_NAME = "webappconnectionpool"
-	} else if env == "test" {
-		DB_NAME = "testwebappconnectionpool"
+	} else if env == "staging" {
+		DB_NAME = "stagingwebappconnectionpool"
 	}
 
 	WEBAPP_DATABASE_URL := fmt.Sprintf(
