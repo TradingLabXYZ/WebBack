@@ -16,7 +16,11 @@ import (
 func SelectPairs(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting SelectPairs..."))
 
-	_ = SelectSession(r)
+	session := SelectSession(r)
+	if session.Id == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	type PairInfo struct {
 		CoinId int
@@ -58,7 +62,11 @@ func SelectPairs(w http.ResponseWriter, r *http.Request) {
 func SelectStellarPrice(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting SelectStellarPrice..."))
 
-	_ = SelectSession(r)
+	session := SelectSession(r)
+	if session.Id == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	stellar_price := struct {
 		Price string
@@ -86,8 +94,12 @@ func SelectStellarPrice(w http.ResponseWriter, r *http.Request) {
 func SelectTransactionCredentials(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting SelectTransactionCredentials..."))
 
-	user_session := SelectSession(r)
-	user := UserByEmail(user_session.Email)
+	session := SelectSession(r)
+	if session.Id == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	user := UserByEmail(session.Email)
 
 	wallet_sql := `
 		SELECT
@@ -143,6 +155,10 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting ValidateTransaction..."))
 
 	session := SelectSession(r)
+	if session.Id == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	user := UserByEmail(session.Email)
 
 	time.Sleep(2 * time.Second)
