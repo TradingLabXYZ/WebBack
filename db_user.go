@@ -2,9 +2,6 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-	"strings"
-	"time"
 
 	. "github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
@@ -22,14 +19,6 @@ type User struct {
 	ProfilePicture string
 	Twitter        string
 	Website        string
-}
-
-type Session struct {
-	Id        int
-	Uuid      string
-	Email     string
-	UserId    int
-	CreatedAt time.Time
 }
 
 func UserByEmail(email string) (user User) {
@@ -102,35 +91,4 @@ func UserByUsername(username string) (user User) {
 	}
 
 	return
-}
-
-func SelectSession(r *http.Request) (session Session) {
-	fmt.Println(Gray(8-1, "Starting SelectSession..."))
-	var auth string
-	if len(r.Header["Authorization"]) == 0 {
-		log.Warn("User not authenticated")
-		return
-	} else {
-		auth = r.Header["Authorization"][0]
-		session.Uuid = strings.Split(auth, "sessionId=")[1]
-		err := DbWebApp.QueryRow(`
-      SELECT
-        id,
-        uuid,
-        email,
-        userid,
-        createdat
-      FROM sessions
-      WHERE uuid = $1;`, session.Uuid).Scan(
-			&session.Id,
-			&session.Uuid,
-			&session.Email,
-			&session.UserId,
-			&session.CreatedAt,
-		)
-		if err != nil {
-			log.Info("No session found, user not logged in...")
-		}
-		return
-	}
 }
