@@ -33,8 +33,8 @@ func UserByEmail(email string) (user User) {
 						privacy,
 						plan,
 						profilepicture,
-						twitter,
-						website
+						CASE WHEN twitter IS NULL THEN '' ELSE twitter END AS twitter,
+						CASE WHEN website IS NULL THEN '' ELSE website END AS website
 					FROM users
 					WHERE email = $1;`, email).Scan(
 		&user.Id,
@@ -65,8 +65,8 @@ func UserByUsername(username string) (user User) {
 			privacy,
 			plan,
 			profilepicture,
-			twitter,
-			website
+			CASE WHEN twitter IS NULL THEN '' ELSE twitter END AS twitter,
+			CASE WHEN website IS NULL THEN '' ELSE website END AS website
 		FROM users
 		WHERE username = $1;`, username)
 	defer rows.Close()

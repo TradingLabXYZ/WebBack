@@ -316,6 +316,10 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting InsertTrade..."))
 
 	session := SelectSession(r)
+	if session.Id == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	user := UserByEmail(session.Email)
 
 	trade := struct {
@@ -379,7 +383,11 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting UpdateTrade..."))
 
-	_ = SelectSession(r)
+	session := SelectSession(r)
+	if session.Id == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	trade := struct {
 		Id           string `json:"Id"`
@@ -427,9 +435,16 @@ func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 }
 
 func CloseTrade(w http.ResponseWriter, r *http.Request) {
+
+	fmt.Println("I AM CLOSING TRADE")
+
 	fmt.Println(Gray(8-1, "Starting CloseTrade..."))
 
-	_ = SelectSession(r)
+	session := SelectSession(r)
+	if session.Id == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	tradeid := mux.Vars(r)["tradeid"]
 
@@ -445,7 +460,11 @@ func CloseTrade(w http.ResponseWriter, r *http.Request) {
 func OpenTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting OpenTrade..."))
 
-	_ = SelectSession(r)
+	session := SelectSession(r)
+	if session.Id == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	tradeid := mux.Vars(r)["tradeid"]
 
@@ -461,7 +480,11 @@ func OpenTrade(w http.ResponseWriter, r *http.Request) {
 func DeleteTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting DeleteTrade..."))
 
-	_ = SelectSession(r)
+	session := SelectSession(r)
+	if session.Id == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	tradeid := mux.Vars(r)["tradeid"]
 

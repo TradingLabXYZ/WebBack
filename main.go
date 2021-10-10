@@ -13,6 +13,19 @@ import (
 
 var DbWebApp = DbConnect()
 
+func AuthMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		session := SelectSession(r)
+		if session.Id == 0 {
+			fmt.Println("BAD SESSION")
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		fmt.Println("GOOD SESSION", r.URL)
+		h.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 
 	f, err := os.OpenFile("logs.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
@@ -28,6 +41,14 @@ func main() {
 
 	router := mux.NewRouter()
 
+	// Define subrouter middlewares
+	auth_router := router.PathPrefix("/").Subrouter()
+	auth_router.Use(AuthMiddleware)
+
+	trades_router := router.PathPrefix("/select_trades/{username}").Subrouter()
+	trades_router.Use(CheckUserPrivacy)
+
+	// API endpoints
 	router.HandleFunc("/login", Login).Methods("POST")
 	router.HandleFunc("/register", Register).Methods("POST")
 
@@ -38,12 +59,12 @@ func main() {
 	router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
 	router.HandleFunc("/user_premium_data", GetUserPremiumData).Methods("GET")
 
-	selectTradesRouter := router.PathPrefix("/select_trades/{username}").Subrouter()
-	selectTradesRouter.Use(CheckUserPrivacy)
-	selectTradesRouter.HandleFunc("", SelectTrades)
+	trades_router.HandleFunc("", SelectTrades)
 
 	router.HandleFunc("/insert_trade", InsertTrade).Methods("POST")
-	router.HandleFunc("/close_trade/{tradeid}", CloseTrade).Methods("GET")
+
+	auth_router.HandleFunc("/close_trade/{tradeid}", CloseTrade).Methods("GET")
+
 	router.HandleFunc("/open_trade/{tradeid}", OpenTrade).Methods("GET")
 	router.HandleFunc("/delete_trade/{tradeid}", DeleteTrade).Methods("GET")
 	router.HandleFunc("/update_trade", UpdateTrade).Methods("POST")
