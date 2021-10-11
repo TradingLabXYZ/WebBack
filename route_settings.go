@@ -21,11 +21,6 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting InsertProfilePicture..."))
 
 	session := SelectSession(r)
-	if session.Id == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
 	user := UserByEmail(session.Email)
 
 	// PROCESS INPUT FILE
@@ -99,10 +94,6 @@ func GetUserSettings(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting GetUserSettings..."))
 
 	session := SelectSession(r)
-	if session.Id == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 	user := UserByEmail(session.Email)
 
 	settings := struct {
@@ -132,10 +123,6 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	*/
 
 	session := SelectSession(r)
-	if session.Id == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 	user := UserByEmail(session.Email)
 
 	settings := struct {
@@ -173,10 +160,6 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting UpdateUserPassword..."))
 
 	session := SelectSession(r)
-	if session.Id == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 	user := UserByEmail(session.Email)
 
 	passwords := struct {
@@ -220,10 +203,6 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting UpdateUserPrivacy..."))
 
 	session := SelectSession(r)
-	if session.Id == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 	user := UserByEmail(session.Email)
 
 	privacy := struct {
