@@ -316,10 +316,6 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting InsertTrade..."))
 
 	session := SelectSession(r)
-	if session.Id == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 	user := UserByEmail(session.Email)
 
 	trade := struct {
@@ -382,13 +378,6 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 
 func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting UpdateTrade..."))
-
-	session := SelectSession(r)
-	if session.Id == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
 	trade := struct {
 		Id           string `json:"Id"`
 		Exchange     string `json:"Exchange"`
@@ -414,7 +403,6 @@ func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 		DELETE FROM subtrades
 		WHERE tradeid = $1;
 	`, trade.Id)
-
 	for _, subtrade := range trade.Subtrades {
 		subtrade_sql := `
 		INSERT INTO subtrades (tradeid, tradetimestamp, type, reason, quantity, avgprice, total, createdat, updatedat)
@@ -435,59 +423,30 @@ func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 }
 
 func CloseTrade(w http.ResponseWriter, r *http.Request) {
-
-	fmt.Println("I AM CLOSING TRADE")
-
 	fmt.Println(Gray(8-1, "Starting CloseTrade..."))
-
-	session := SelectSession(r)
-	if session.Id == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
 	tradeid := mux.Vars(r)["tradeid"]
-
 	DbWebApp.Exec(`
 		UPDATE trades
 		SET isopen = False
 		WHERE id = $1;
 		`, tradeid)
-
 	json.NewEncoder(w).Encode("OK")
 }
 
 func OpenTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting OpenTrade..."))
-
-	session := SelectSession(r)
-	if session.Id == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
 	tradeid := mux.Vars(r)["tradeid"]
-
 	DbWebApp.Exec(`
 		UPDATE trades
 		SET isopen = True
 		WHERE id = $1;
 		`, tradeid)
-
 	json.NewEncoder(w).Encode("OK")
 }
 
 func DeleteTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting DeleteTrade..."))
-
-	session := SelectSession(r)
-	if session.Id == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
 	tradeid := mux.Vars(r)["tradeid"]
-
 	DbWebApp.Exec(`
 		DELETE FROM subtrades
 		WHERE tradeid IN (
@@ -495,11 +454,9 @@ func DeleteTrade(w http.ResponseWriter, r *http.Request) {
 			FROM trades
 			WHERE id = $1);
 		`, tradeid)
-
 	DbWebApp.Exec(`
 		DELETE FROM trades
 		WHERE id = $1;
 		`, tradeid)
-
 	json.NewEncoder(w).Encode("OK")
 }

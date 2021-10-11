@@ -11,7 +11,7 @@ import (
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting Authenticate..."))
+	fmt.Println(Gray(8-1, "Starting Login..."))
 
 	decoder := json.NewDecoder(r.Body)
 	body := struct {

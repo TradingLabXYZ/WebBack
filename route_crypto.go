@@ -16,12 +16,6 @@ import (
 func SelectPairs(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting SelectPairs..."))
 
-	session := SelectSession(r)
-	if session.Id == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
 	type PairInfo struct {
 		CoinId int
 		Symbol string
@@ -62,12 +56,6 @@ func SelectPairs(w http.ResponseWriter, r *http.Request) {
 func SelectStellarPrice(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting SelectStellarPrice..."))
 
-	session := SelectSession(r)
-	if session.Id == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-
 	stellar_price := struct {
 		Price string
 	}{}
@@ -95,10 +83,6 @@ func SelectTransactionCredentials(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting SelectTransactionCredentials..."))
 
 	session := SelectSession(r)
-	if session.Id == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 	user := UserByEmail(session.Email)
 
 	wallet_sql := `
@@ -146,8 +130,6 @@ func SelectTransactionCredentials(w http.ResponseWriter, r *http.Request) {
 		memo,
 	}
 
-	credentials.Memo = "141f965131cf9f89f97" // TEMP TO TEST
-
 	json.NewEncoder(w).Encode(credentials)
 }
 
@@ -155,10 +137,6 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting ValidateTransaction..."))
 
 	session := SelectSession(r)
-	if session.Id == 0 {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 	user := UserByEmail(session.Email)
 
 	time.Sleep(2 * time.Second)
