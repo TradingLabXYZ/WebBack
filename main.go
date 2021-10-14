@@ -73,6 +73,8 @@ func main() {
 	auth_router.HandleFunc("/delete_trade/{tradeid}", DeleteTrade).Methods("GET")
 	auth_router.HandleFunc("/update_trade", UpdateTrade).Methods("POST")
 
+	router.HandleFunc("/get_trades/{username}", GetTrades)
+
 	router.HandleFunc("/get_prices/{usercode}", GetPrices)
 	auth_router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
 	auth_router.HandleFunc("/stellar_price", SelectStellarPrice).Methods("GET")

@@ -307,6 +307,7 @@ func SelectTrades(w http.ResponseWriter, r *http.Request) {
 
 		trade.Subtrades = subtrades
 		trades = append(trades, trade)
+
 	}
 
 	json.NewEncoder(w).Encode(trades)
