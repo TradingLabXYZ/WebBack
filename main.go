@@ -73,7 +73,7 @@ func main() {
 	auth_router.HandleFunc("/delete_trade/{tradeid}", DeleteTrade).Methods("GET")
 	auth_router.HandleFunc("/update_trade", UpdateTrade).Methods("POST")
 
-	router.HandleFunc("/get_trades/{username}", GetTrades)
+	router.HandleFunc("/get_trades/{username}/{requestid}", GetTrades)
 
 	router.HandleFunc("/get_prices/{usercode}", GetPrices)
 	auth_router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
@@ -90,6 +90,8 @@ func main() {
 	})
 
 	handler := c.Handler(router)
+
+	go InstanciateTradesDispatcher()
 
 	log.Info("Application is running on port 8080..")
 	log.Fatal(http.ListenAndServe(":8080", handler))

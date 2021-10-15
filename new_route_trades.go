@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"net/http"
 	"time"
 
@@ -10,6 +9,12 @@ import (
 	. "github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 )
+
+type WsTrade struct {
+	Channel   chan string
+	Username  string
+	RequestId string
+}
 
 type WsTradeOutput struct {
 	UserDetails UserDetails
@@ -59,8 +64,54 @@ type Trade struct {
 	Subtrades        []Subtrade
 }
 
+var tradesWss = make(map[string][]WsTrade)
+
+func InstanciateTradesDispatcher() {
+	for {
+		var users []string
+		user_sql := `
+				SELECT DISTINCT
+					username
+				FROM users
+				WHERE updatedat  > current_timestamp - interval '2 seconds';`
+		user_rows, err := DbWebApp.Query(user_sql)
+		defer user_rows.Close()
+		if err != nil {
+			log.WithFields(log.Fields{
+				"custom_msg": "Failed fetching user_sql",
+			}).Error(err)
+			return
+		}
+		for user_rows.Next() {
+			var user string
+			if err = user_rows.Scan(&user); err != nil {
+				log.WithFields(log.Fields{
+					"custom_msg": "Failed scanning user_sql",
+				}).Error(err)
+				return
+			}
+			users = append(users, user)
+		}
+
+		for _, x := range users {
+			for _, q := range tradesWss[x] {
+				q.Channel <- q.Username
+			}
+		}
+
+		time.Sleep(2 * time.Second)
+	}
+}
+
 func GetTrades(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting GetTrades..."))
+
+	username := mux.Vars(r)["username"]
+	requestid := mux.Vars(r)["requestid"]
+
+	c := make(chan string)
+	listener := WsTrade{c, username, requestid}
+	tradesWss[username] = append(tradesWss[username], listener)
 
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		for _, origin := range Origins {
@@ -70,34 +121,48 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 		}
 		return false
 	}
-
 	ws, _ := upgrader.Upgrade(w, r, nil)
-	defer ws.Close()
 
-	username := mux.Vars(r)["username"]
-	user := UserByUsername(username)
-	if user.Id == 0 {
-		log.WithFields(log.Fields{
-			"username": username,
-		}).Warn("Unknow usercode, closing wb")
-		return
-	}
-
-	for {
-
-		wsTradeOutput := NewSelectUserTrades(username)
-
-		err := ws.WriteJSON(wsTradeOutput)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"username":   username,
-				"custom_msg": "Failed returning pricing to ws",
-			}).Error(err)
-			return
+	go func() {
+		for {
+			_, _, err := ws.ReadMessage()
+			if err != nil {
+				for i, v := range tradesWss[username] {
+					if v.RequestId == requestid {
+						tradesWss[username] = append(tradesWss[username][:i], tradesWss[username][i+1:]...)
+					}
+				}
+				ws.Close()
+				return
+			} else {
+				ws.Close()
+				log.WithFields(log.Fields{
+					"sessionid":  requestid,
+					"username":   username,
+					"custom_msg": "Failed running receiving trades ws",
+				}).Error(err)
+				return
+			}
 		}
-
-		time.Sleep(time.Duration(rand.Intn(4)+2) * time.Second)
-	}
+	}()
+	go func() {
+		for {
+			s1 := <-c
+			if s1 == username {
+				wsTradeOutput := NewSelectUserTrades(username)
+				err := ws.WriteJSON(wsTradeOutput)
+				if err != nil {
+					ws.Close()
+					log.WithFields(log.Fields{
+						"sessionid":  requestid,
+						"username":   username,
+						"custom_msg": "Failed running sending trades ws",
+					}).Error(err)
+					return
+				}
+			}
+		}
+	}()
 }
 
 func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
@@ -116,7 +181,7 @@ func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
 	if err != nil {
 		log.WithFields(log.Fields{
 			"username":   username,
-			"custom_msg": "Failed running prices query",
+			"custom_msg": "Failed running user_details",
 		}).Error(err)
 		return
 	}
@@ -224,7 +289,10 @@ func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
 		username)
 	defer trades_rows.Close()
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{
+			"username":   username,
+			"custom_msg": "Failed running trades_sql",
+		}).Error(err)
 	}
 	for trades_rows.Next() {
 		trade := Trade{}
@@ -254,7 +322,10 @@ func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
 			&trade.Roi,
 			&trade.BtcPrice,
 		); err != nil {
-			log.Error(err)
+			log.WithFields(log.Fields{
+				"username":   username,
+				"custom_msg": "Failed parsing trades_sql",
+			}).Error(err)
 		}
 
 		subtrades_sql := `
@@ -276,7 +347,11 @@ func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
 			trade.Id)
 		defer subtrades_rows.Close()
 		if err != nil {
-			log.Error(err)
+			log.WithFields(log.Fields{
+				"username":   username,
+				"custom_msg": "Failed running subtrades_sql",
+			}).Error(err)
+
 		}
 
 		for subtrades_rows.Next() {
@@ -289,7 +364,11 @@ func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
 				&subtrade.Quantity,
 				&subtrade.AvgPrice,
 				&subtrade.Total); err != nil {
-				log.Error(err)
+				log.WithFields(log.Fields{
+					"username":   username,
+					"custom_msg": "Failed parsing subtrades_sql",
+				}).Error(err)
+
 			}
 
 			subtrades = append(subtrades, subtrade)
