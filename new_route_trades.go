@@ -123,6 +123,18 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 	}
 	ws, _ := upgrader.Upgrade(w, r, nil)
 
+	wsTradeOutput := NewSelectUserTrades(username)
+	err := ws.WriteJSON(wsTradeOutput)
+	if err != nil {
+		ws.Close()
+		log.WithFields(log.Fields{
+			"sessionid":  requestid,
+			"username":   username,
+			"custom_msg": "Failed running sending initial trades ws",
+		}).Error(err)
+		return
+	}
+
 	go func() {
 		for {
 			_, _, err := ws.ReadMessage()
