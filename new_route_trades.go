@@ -162,6 +162,7 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 			s1 := <-c
 			if s1 == username {
 				wsTradeOutput := NewSelectUserTrades(username)
+				fmt.Println(wsTradeOutput)
 				err := ws.WriteJSON(wsTradeOutput)
 				if err != nil {
 					ws.Close()

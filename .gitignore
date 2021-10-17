@@ -1,4 +1,4 @@
 WebBack
-tl_set_env_var.sh
+set_env_variables.sh
 *.log
 go.sum
