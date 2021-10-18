@@ -30,7 +30,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		session := user.CreateSession()
 		user_data := struct {
 			SessionId      string
-			UserName       string
+			Username       string
 			Code           string
 			ProfilePicture string
 			Twitter        string
