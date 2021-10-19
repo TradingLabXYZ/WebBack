@@ -100,7 +100,6 @@ func InstanciateTradesDispatcher() {
 
 		for _, x := range users {
 			for _, q := range tradesWss[x] {
-				fmt.Println("SENDIG MESSAGE TO CHANNEL")
 				q.Channel <- q.Username
 			}
 		}
@@ -168,7 +167,6 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 			s1 := <-c
 			if s1 == username {
 				wsTradeOutput := NewSelectUserTrades(username)
-				fmt.Println(wsTradeOutput)
 				err := ws.WriteJSON(wsTradeOutput)
 				if err != nil {
 					ws.Close()
