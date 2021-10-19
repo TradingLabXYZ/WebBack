@@ -428,7 +428,9 @@ func CloseTrade(w http.ResponseWriter, r *http.Request) {
 	tradeid := mux.Vars(r)["tradeid"]
 	DbWebApp.Exec(`
 		UPDATE trades
-		SET isopen = False
+		SET
+			isopen = False,
+			updatedat = current_timestamp
 		WHERE id = $1;
 		`, tradeid)
 	json.NewEncoder(w).Encode("OK")
@@ -439,7 +441,9 @@ func OpenTrade(w http.ResponseWriter, r *http.Request) {
 	tradeid := mux.Vars(r)["tradeid"]
 	DbWebApp.Exec(`
 		UPDATE trades
-		SET isopen = True
+		SET
+			isopen = True,
+			updatedat = current_timestamp
 		WHERE id = $1;
 		`, tradeid)
 	json.NewEncoder(w).Encode("OK")
