@@ -70,10 +70,15 @@ func InstanciateTradesDispatcher() {
 	for {
 		var users []string
 		user_sql := `
-				SELECT DISTINCT
-					username
-				FROM users
-				WHERE updatedat  > current_timestamp - interval '2 seconds';`
+			SELECT DISTINCT
+					u.username
+			FROM subtrades s
+			LEFT JOIN trades t on(s.tradeid=t.id)
+			LEFT JOIN users u ON(t.userid = u.id)
+			WHERE (
+					s.updatedat > current_timestamp - interval '1 seconds' OR
+					t.updatedat > current_timestamp - interval '1 seconds'
+			);`
 		user_rows, err := DbWebApp.Query(user_sql)
 		defer user_rows.Close()
 		if err != nil {
@@ -95,11 +100,12 @@ func InstanciateTradesDispatcher() {
 
 		for _, x := range users {
 			for _, q := range tradesWss[x] {
+				fmt.Println("SENDIG MESSAGE TO CHANNEL")
 				q.Channel <- q.Username
 			}
 		}
 
-		time.Sleep(2 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }
 
