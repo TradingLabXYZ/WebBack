@@ -10,17 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type WsTrade struct {
-	Channel   chan string
-	Username  string
-	RequestId string
-}
-
-type WsTradeOutput struct {
-	UserDetails UserDetails
-	Trades      []Trade
-}
-
 type UserDetails struct {
 	Username string
 	Twitter  string
@@ -38,6 +27,7 @@ type Subtrade struct {
 
 type Trade struct {
 	Id               string
+	Username         string
 	IsOpen           string
 	Exchange         string
 	FirstPairId      int
@@ -48,27 +38,46 @@ type Trade struct {
 	SecondPairSymbol string
 	FirstPairPrice   float64
 	SecondPairPrice  float64
+	CurrentPrice     float64
 	QtyBuys          float64
 	QtySells         float64
-	TotalBuys        float64
-	TotalSells       float64
 	QtyAvailable     float64
-	CurrentPrice     float64
+	TotalBuys        float64
+	TotalBuysBtc     float64
+	TotalBuysUsd     float64
+	TotalSells       float64
+	TotalSellsBtc    float64
+	TotalSellsUsd    float64
 	ActualReturn     float64
 	FutureReturn     float64
+	FutureReturnBtc  float64
+	FutureReturnUsd  float64
 	TotalReturn      float64
-	ReturnBtc        float64
-	ReturnUsd        float64
+	TotalReturnBtc   float64
+	TotalReturnUsd   float64
 	Roi              float64
 	BtcPrice         float64
 	Subtrades        []Subtrade
+}
+
+type TradesOutput struct {
+	UserDetails    UserDetails
+	Trades         []Trade
+	CountTrades    float64
+	TotalReturnUsd float64
+	TotalReturnBtc float64
+	Roi            float64
+}
+
+type WsTrade struct {
+	Channel   chan TradesOutput
+	RequestId string
 }
 
 var tradesWss = make(map[string][]WsTrade)
 
 func InstanciateTradesDispatcher() {
 	for {
-		var users []string
 		user_sql := `
 			SELECT DISTINCT
 					u.username
@@ -77,7 +86,8 @@ func InstanciateTradesDispatcher() {
 			LEFT JOIN users u ON(t.userid = u.id)
 			WHERE (
 					s.updatedat > current_timestamp - interval '1 seconds' OR
-					t.updatedat > current_timestamp - interval '1 seconds'
+					t.updatedat > current_timestamp - interval '1 seconds' OR
+					u.updatedat > current_timestamp - interval '1 seconds'
 			);`
 		user_rows, err := DbWebApp.Query(user_sql)
 		defer user_rows.Close()
@@ -88,22 +98,21 @@ func InstanciateTradesDispatcher() {
 			return
 		}
 		for user_rows.Next() {
-			var user string
-			if err = user_rows.Scan(&user); err != nil {
+			var username string
+			if err = user_rows.Scan(&username); err != nil {
 				log.WithFields(log.Fields{
 					"custom_msg": "Failed scanning user_sql",
 				}).Error(err)
 				return
 			}
-			users = append(users, user)
+			go func() {
+				user := UserByUsername(username)
+				userSnapshot := user.GetUserSnapshot()
+				for _, q := range tradesWss[username] {
+					q.Channel <- userSnapshot
+				}
+			}()
 		}
-
-		for _, x := range users {
-			for _, q := range tradesWss[x] {
-				q.Channel <- q.Username
-			}
-		}
-
 		time.Sleep(1 * time.Second)
 	}
 }
@@ -114,8 +123,10 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 	username := mux.Vars(r)["username"]
 	requestid := mux.Vars(r)["requestid"]
 
-	c := make(chan string)
-	listener := WsTrade{c, username, requestid}
+	user := UserByUsername(username)
+
+	c := make(chan TradesOutput)
+	listener := WsTrade{c, requestid}
 	tradesWss[username] = append(tradesWss[username], listener)
 
 	upgrader.CheckOrigin = func(r *http.Request) bool {
@@ -128,18 +139,19 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 	}
 	ws, _ := upgrader.Upgrade(w, r, nil)
 
-	wsTradeOutput := NewSelectUserTrades(username)
+	wsTradeOutput := user.GetUserSnapshot()
 	err := ws.WriteJSON(wsTradeOutput)
 	if err != nil {
 		ws.Close()
 		log.WithFields(log.Fields{
 			"sessionid":  requestid,
 			"username":   username,
-			"custom_msg": "Failed running sending initial trades ws",
+			"custom_msg": "Failed running sending initial snapshot",
 		}).Error(err)
 		return
 	}
 
+	// RECEIVE MESSAGES
 	go func() {
 		for {
 			_, _, err := ws.ReadMessage()
@@ -162,18 +174,19 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}()
+
+	// SEND MESSAGES
 	go func() {
 		for {
 			s1 := <-c
-			if s1 == username {
-				wsTradeOutput := NewSelectUserTrades(username)
-				err := ws.WriteJSON(wsTradeOutput)
+			if s1.UserDetails.Username == username {
+				err := ws.WriteJSON(s1)
 				if err != nil {
 					ws.Close()
 					log.WithFields(log.Fields{
 						"sessionid":  requestid,
 						"username":   username,
-						"custom_msg": "Failed running sending trades ws",
+						"custom_msg": "Failed running sending snapshot",
 					}).Error(err)
 					return
 				}
@@ -182,28 +195,19 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 	}()
 }
 
-func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
+func (user User) GetUserSnapshot() (tradesOutput TradesOutput) {
 
-	user_details_sql := `
-		SELECT
-			username,
-			CASE WHEN twitter IS NULL THEN '' ELSE twitter END AS twitter
-		FROM users u
-		WHERE username = $1;`
-
-	userDetails := UserDetails{}
-	err := DbWebApp.QueryRow(
-		user_details_sql,
-		username).Scan(&userDetails.Username, &userDetails.Twitter)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"username":   username,
-			"custom_msg": "Failed running user_details",
-		}).Error(err)
-		return
+	tradesOutput.UserDetails = UserDetails{
+		user.UserName,
+		user.Twitter,
 	}
 
-	trades := []Trade{}
+	tradesOutput.Trades = user.SelectUserTrades()
+	tradesOutput.CalculateTradesTotals()
+	return
+}
+
+func (user User) SelectUserTrades() (trades []Trade) {
 
 	trades_sql := `
 		WITH
@@ -219,6 +223,7 @@ func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
 			TRADES_MACRO AS (
 				SELECT
 					t.id,
+					u.username,
 					t.isopen,
 					t.exchange,
 					t.firstpair,
@@ -243,10 +248,11 @@ func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
 				LEFT JOIN subtrades s ON(t.id  = s.tradeid)
 				INNER JOIN users u ON(t.userid = u.id)
 				WHERE u.username = $1
-				GROUP BY 1, 2, 3, 4, 5),
+				GROUP BY 1, 2, 3, 4, 5, 6),
 			TRADES_MICRO AS (
 				SELECT
 					t.id,
+					t.username,
 					t.isopen,
 					t.exchange,
 					t.firstpair AS firstpairid,
@@ -257,12 +263,12 @@ func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
 					c2.name AS secondpairname,
 					c2.symbol AS secondpairsymbol,
 					c2.price AS secondpairprice,
+					(c2.price / c1.price) AS currentprice,
 					t.qtybuys,
 					t.qtysells,
+					t.qtybuys - t.qtysells AS qtyavailable,
 					t.totalbuys,
 					t.totalsells,
-					t.qtybuys - t.qtysells AS qtyavailable,
-					(c2.price / c1.price) AS currentprice,
 					t.totalsells - t.totalbuys AS actualreturn,
 					(t.qtybuys - t.qtysells) * (c2.price / c1.price) AS futurereturn,
 					t.totalsells - t.totalbuys + (t.qtybuys - t.qtysells) * (c2.price / c1.price) AS totalreturn,
@@ -275,6 +281,7 @@ func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
 				LEFT JOIN CURRENT_PRICE c2 ON(t.secondpair = c2.coinid))
 		SELECT
 			t.id,
+			t.username,
 			t.isopen,
 			t.exchange,
 			t.firstpairid,
@@ -285,17 +292,23 @@ func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
 			t.secondpairname,
 			t.secondpairsymbol,
 			t.secondpairprice,
+			t.currentprice,
 			t.qtybuys,
 			t.qtysells,
-			t.totalbuys,
-			t.totalsells,
 			t.qtyavailable,
-			t.currentprice,
+			t.totalbuys,
+			t.totalbuys * t.firstpairprice / c3.price AS totalbuysbtc,
+			t.totalbuys * t.firstpairprice AS totalbuysusd,
+			t.totalsells,
+			t.totalsells * t.firstpairprice / c3.price AS totalsellbtc,
+			t.totalsells * t.firstpairprice AS totalsellusd,
 			t.actualreturn,
 			t.futurereturn,
+			t.futurereturn * t.firstpairprice / c3.price AS futurereturnbtc,
+			t.futurereturn * t.firstpairprice AS futurereturnusd,
 			t.totalreturn,
-			t.totalreturn * t.firstpairprice / c3.price as returnbtc,
-			t.totalreturn * t.firstpairprice as returnusd,
+			t.totalreturn * t.firstpairprice / c3.price AS returnbtc,
+			t.totalreturn * t.firstpairprice AS returnusd,
 			t.roi,
 			c3.price AS btcprice
 		FROM TRADES_MICRO t
@@ -303,11 +316,11 @@ func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
 
 	trades_rows, err := DbWebApp.Query(
 		trades_sql,
-		username)
+		user.UserName)
 	defer trades_rows.Close()
 	if err != nil {
 		log.WithFields(log.Fields{
-			"username":   username,
+			"username":   user.UserName,
 			"custom_msg": "Failed running trades_sql",
 		}).Error(err)
 	}
@@ -315,6 +328,7 @@ func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
 		trade := Trade{}
 		if err = trades_rows.Scan(
 			&trade.Id,
+			&trade.Username,
 			&trade.IsOpen,
 			&trade.Exchange,
 			&trade.FirstPairId,
@@ -325,27 +339,42 @@ func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
 			&trade.SecondPairName,
 			&trade.SecondPairSymbol,
 			&trade.SecondPairPrice,
+			&trade.CurrentPrice,
 			&trade.QtyBuys,
 			&trade.QtySells,
-			&trade.TotalBuys,
-			&trade.TotalSells,
 			&trade.QtyAvailable,
-			&trade.CurrentPrice,
+			&trade.TotalBuys,
+			&trade.TotalBuysBtc,
+			&trade.TotalBuysUsd,
+			&trade.TotalSells,
+			&trade.TotalSellsBtc,
+			&trade.TotalSellsUsd,
 			&trade.ActualReturn,
 			&trade.FutureReturn,
+			&trade.FutureReturnBtc,
+			&trade.FutureReturnUsd,
 			&trade.TotalReturn,
-			&trade.ReturnBtc,
-			&trade.ReturnUsd,
+			&trade.TotalReturnBtc,
+			&trade.TotalReturnUsd,
 			&trade.Roi,
 			&trade.BtcPrice,
 		); err != nil {
 			log.WithFields(log.Fields{
-				"username":   username,
+				"username":   user.UserName,
 				"custom_msg": "Failed parsing trades_sql",
 			}).Error(err)
 		}
 
-		subtrades_sql := `
+		subtrades := trade.SelectTradeSubtrades()
+		trade.Subtrades = subtrades
+
+		trades = append(trades, trade)
+	}
+	return
+}
+
+func (trade Trade) SelectTradeSubtrades() (subtrades []Subtrade) {
+	subtrades_sql := `
 			SELECT
 				id,
 				type,
@@ -358,45 +387,53 @@ func NewSelectUserTrades(username string) (wsTradeOutput WsTradeOutput) {
 			WHERE tradeid = $1
 			ORDER BY 1;`
 
-		subtrades := []Subtrade{}
-		subtrades_rows, err := DbWebApp.Query(
-			subtrades_sql,
-			trade.Id)
-		defer subtrades_rows.Close()
-		if err != nil {
-			log.WithFields(log.Fields{
-				"username":   username,
-				"custom_msg": "Failed running subtrades_sql",
-			}).Error(err)
+	subtrades_rows, err := DbWebApp.Query(
+		subtrades_sql,
+		trade.Id)
+	defer subtrades_rows.Close()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"username":   trade.Username,
+			"custom_msg": "Failed running subtrades_sql",
+		}).Error(err)
 
-		}
-
-		for subtrades_rows.Next() {
-			subtrade := Subtrade{}
-			if err = subtrades_rows.Scan(
-				&subtrade.Id,
-				&subtrade.Type,
-				&subtrade.Reason,
-				&subtrade.Timestamp,
-				&subtrade.Quantity,
-				&subtrade.AvgPrice,
-				&subtrade.Total); err != nil {
-				log.WithFields(log.Fields{
-					"username":   username,
-					"custom_msg": "Failed parsing subtrades_sql",
-				}).Error(err)
-
-			}
-
-			subtrades = append(subtrades, subtrade)
-		}
-
-		trade.Subtrades = subtrades
-		trades = append(trades, trade)
 	}
 
-	wsTradeOutput.Trades = trades
-	wsTradeOutput.UserDetails = userDetails
+	for subtrades_rows.Next() {
+		subtrade := Subtrade{}
+		if err = subtrades_rows.Scan(
+			&subtrade.Id,
+			&subtrade.Type,
+			&subtrade.Reason,
+			&subtrade.Timestamp,
+			&subtrade.Quantity,
+			&subtrade.AvgPrice,
+			&subtrade.Total); err != nil {
+			log.WithFields(log.Fields{
+				"username":   trade.Username,
+				"custom_msg": "Failed parsing subtrades_sql",
+			}).Error(err)
+		}
 
+		subtrades = append(subtrades, subtrade)
+	}
 	return
+}
+
+func (tradesOutput *TradesOutput) CalculateTradesTotals() {
+	var totalReturnBtc float64
+	var totalReturnUsd float64
+	var totalBuysBtc float64
+	var totalSellBtc float64
+	var futureReturnBtc float64
+	for _, trade := range tradesOutput.Trades {
+		totalReturnBtc = totalReturnBtc + trade.TotalReturnBtc
+		totalReturnUsd = totalReturnUsd + trade.TotalReturnUsd
+		totalBuysBtc = totalBuysBtc + trade.TotalBuysBtc
+		totalSellBtc = totalSellBtc + trade.TotalSellsBtc
+		futureReturnBtc = futureReturnBtc + trade.FutureReturnBtc
+	}
+	tradesOutput.TotalReturnBtc = totalReturnBtc
+	tradesOutput.TotalReturnUsd = totalReturnUsd
+	tradesOutput.Roi = ((futureReturnBtc+totalSellBtc)/totalBuysBtc - 1) * 100
 }

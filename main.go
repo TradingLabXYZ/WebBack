@@ -123,7 +123,7 @@ func setupRoutes() (router *mux.Router) {
 	auth_router := router.PathPrefix("/").Subrouter()
 	auth_router.Use(setUpAuthMiddleware)
 
-	trades_router := router.PathPrefix("/select_trades/{username}").Subrouter()
+	trades_router := router.PathPrefix("/get_trades/{username}/{requestid}").Subrouter()
 	trades_router.Use(CheckUserPrivacy)
 
 	// API endpoints
@@ -137,14 +137,12 @@ func setupRoutes() (router *mux.Router) {
 	auth_router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
 	auth_router.HandleFunc("/user_premium_data", GetUserPremiumData).Methods("GET")
 
-	trades_router.HandleFunc("", SelectTrades)
+	trades_router.HandleFunc("", GetTrades)
 	auth_router.HandleFunc("/insert_trade", InsertTrade).Methods("POST")
 	auth_router.HandleFunc("/close_trade/{tradeid}", CloseTrade).Methods("GET")
 	auth_router.HandleFunc("/open_trade/{tradeid}", OpenTrade).Methods("GET")
 	auth_router.HandleFunc("/delete_trade/{tradeid}", DeleteTrade).Methods("GET")
 	auth_router.HandleFunc("/update_trade", UpdateTrade).Methods("POST")
-
-	router.HandleFunc("/get_trades/{username}/{requestid}", GetTrades)
 
 	router.HandleFunc("/get_prices/{usercode}", GetPrices)
 	auth_router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
