@@ -245,11 +245,6 @@ func DeleteTrade(w http.ResponseWriter, r *http.Request) {
 		`, tradeid)
 
 	DbWebApp.Exec(`
-		DELETE FROM trades
-		WHERE id = $1;
-		`, tradeid)
-
-	DbWebApp.Exec(`
 		UPDATE users
 		SET updatedat = current_timestamp
 		WHERE id = (
@@ -257,6 +252,11 @@ func DeleteTrade(w http.ResponseWriter, r *http.Request) {
 				userid
 			FROM trades
 			WHERE id = $1);
+		`, tradeid)
+
+	DbWebApp.Exec(`
+		DELETE FROM trades
+		WHERE id = $1;
 		`, tradeid)
 
 	json.NewEncoder(w).Encode("OK")
