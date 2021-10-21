@@ -91,7 +91,7 @@ func SelectTransactionCredentials(w http.ResponseWriter, r *http.Request) {
 			currency,
 			address
 		FROM internalwallets
-		WHERE blockchain = 'Stellar'`
+		WHERE blockchain = 'Stellar';`
 
 	var blockchain string
 	var currency string
