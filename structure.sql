@@ -98,7 +98,7 @@ CREATE TABLE memos (
   depositaddress TEXT NOT NULL,
   memo VARCHAR(20) NOT NULL,
   createdat TIMESTAMP NOT NULL,
-  status BOOLEAN 
+  status TEXT
 );
 
 CREATE TABLE payments (
