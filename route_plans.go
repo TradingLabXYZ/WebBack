@@ -37,7 +37,7 @@ func BuyPremiumMonths(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user := UserByEmail(session.Email)
+	user := SelectUser("email", session.Email)
 
 	var tx TxBuyPremium
 	decoder := json.NewDecoder(r.Body)
@@ -134,7 +134,7 @@ func GetUserPremiumData(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user := UserByEmail(session.Email)
+	user := SelectUser("email", session.Email)
 
 	type Payment struct {
 		CreatedAt     string

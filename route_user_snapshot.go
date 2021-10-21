@@ -106,7 +106,7 @@ func InstanciateTradesDispatcher() {
 				return
 			}
 			go func() {
-				user := UserByUsername(username)
+				user := SelectUser("username", username)
 				userSnapshot := user.GetUserSnapshot()
 				for _, q := range tradesWss[username] {
 					q.Channel <- userSnapshot
@@ -123,7 +123,7 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 	username := mux.Vars(r)["username"]
 	requestid := mux.Vars(r)["requestid"]
 
-	user := UserByUsername(username)
+	user := SelectUser("username", username)
 
 	c := make(chan TradesOutput)
 	listener := WsTrade{c, requestid}

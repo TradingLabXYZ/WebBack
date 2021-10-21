@@ -21,7 +21,7 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting InsertProfilePicture..."))
 
 	session := SelectSession(r)
-	user := UserByEmail(session.Email)
+	user := SelectUser("email", session.Email)
 
 	// PROCESS INPUT FILE
 	file, handler, err := r.FormFile("file")
@@ -94,7 +94,7 @@ func GetUserSettings(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting GetUserSettings..."))
 
 	session := SelectSession(r)
-	user := UserByEmail(session.Email)
+	user := SelectUser("email", session.Email)
 
 	settings := struct {
 		Email   string `json:"Email"`
@@ -123,7 +123,7 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	*/
 
 	session := SelectSession(r)
-	user := UserByEmail(session.Email)
+	user := SelectUser("email", session.Email)
 
 	settings := struct {
 		Email   string `json:"Email"`
@@ -160,7 +160,7 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting UpdateUserPassword..."))
 
 	session := SelectSession(r)
-	user := UserByEmail(session.Email)
+	user := SelectUser("email", session.Email)
 
 	passwords := struct {
 		OldPassword       string `json:"OldPassword"`
@@ -203,7 +203,7 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting UpdateUserPrivacy..."))
 
 	session := SelectSession(r)
-	user := UserByEmail(session.Email)
+	user := SelectUser("email", session.Email)
 
 	privacy := struct {
 		Privacy string `json:"Privacy"`

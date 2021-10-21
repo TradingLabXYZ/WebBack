@@ -33,7 +33,7 @@ func GetPrices(w http.ResponseWriter, r *http.Request) {
 	defer ws.Close()
 
 	usercode := mux.Vars(r)["usercode"]
-	user := UserByUsercode(usercode)
+	user := SelectUser("code", usercode)
 	if user.Id == 0 {
 		log.WithFields(log.Fields{
 			"usercode": usercode,
