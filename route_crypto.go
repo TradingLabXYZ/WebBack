@@ -83,7 +83,7 @@ func SelectTransactionCredentials(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting SelectTransactionCredentials..."))
 
 	session := SelectSession(r)
-	user := UserByEmail(session.Email)
+	user := SelectUser("email", session.Email)
 
 	wallet_sql := `
 		SELECT
@@ -137,7 +137,7 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting ValidateTransaction..."))
 
 	session := SelectSession(r)
-	user := UserByEmail(session.Email)
+	user := SelectUser("email", session.Email)
 
 	time.Sleep(2 * time.Second)
 

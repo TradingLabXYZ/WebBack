@@ -15,7 +15,7 @@ func CheckUserPrivacy(next http.Handler) http.Handler {
 	fmt.Println(Gray(8-1, "Starting CheckUserPrivacy..."))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		username := mux.Vars(r)["username"]
-		userA := UserByUsername(username)
+		userA := SelectUser("username", username)
 		privacy := userA.Privacy
 		if privacy == "all" {
 			next.ServeHTTP(w, r)
@@ -26,7 +26,7 @@ func CheckUserPrivacy(next http.Handler) http.Handler {
 				w.Write([]byte(`{"Status": "denied", "Reason": "login"}`))
 				return
 			}
-			userB := UserByEmail(session.Email)
+			userB := SelectUser("email", session.Email)
 			if userA.Id == userB.Id {
 				next.ServeHTTP(w, r)
 				return
@@ -91,7 +91,7 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting InsertTrade..."))
 
 	session := SelectSession(r)
-	user := UserByEmail(session.Email)
+	user := SelectUser("email", session.Email)
 
 	trade := struct {
 		Exchange     string `json:"Exchange"`
