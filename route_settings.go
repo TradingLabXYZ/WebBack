@@ -11,7 +11,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
+	aws_session "github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	. "github.com/logrusorgru/aurora"
@@ -20,8 +20,8 @@ import (
 func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting InsertProfilePicture..."))
 
-	user_session := SelectSession(r)
-	user := UserByEmail(user_session.Email)
+	session := SelectSession(r)
+	user := SelectUser("email", session.Email)
 
 	// PROCESS INPUT FILE
 	file, handler, err := r.FormFile("file")
@@ -41,7 +41,7 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 		Endpoint:    aws.String("https://fra1.digitaloceanspaces.com"),
 		Region:      aws.String("fra1"),
 	}
-	sess := session.New(s3Config)
+	sess := aws_session.New(s3Config)
 
 	// DELETE OLD
 	svc := s3.New(sess)
@@ -93,8 +93,8 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 func GetUserSettings(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting GetUserSettings..."))
 
-	user_session := SelectSession(r)
-	user := UserByEmail(user_session.Email)
+	session := SelectSession(r)
+	user := SelectUser("email", session.Email)
 
 	settings := struct {
 		Email   string `json:"Email"`
@@ -122,8 +122,8 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	- Check if email is already taken
 	*/
 
-	user_session := SelectSession(r)
-	user := UserByEmail(user_session.Email)
+	session := SelectSession(r)
+	user := SelectUser("email", session.Email)
 
 	settings := struct {
 		Email   string `json:"Email"`
@@ -159,8 +159,8 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting UpdateUserPassword..."))
 
-	user_session := SelectSession(r)
-	user := UserByEmail(user_session.Email)
+	session := SelectSession(r)
+	user := SelectUser("email", session.Email)
 
 	passwords := struct {
 		OldPassword       string `json:"OldPassword"`
@@ -202,8 +202,8 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting UpdateUserPrivacy..."))
 
-	user_session := SelectSession(r)
-	user := UserByEmail(user_session.Email)
+	session := SelectSession(r)
+	user := SelectUser("email", session.Email)
 
 	privacy := struct {
 		Privacy string `json:"Privacy"`
