@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	. "github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting Authenticate..."))
+	fmt.Println(Gray(8-1, "Starting Login..."))
 
 	decoder := json.NewDecoder(r.Body)
 	body := struct {
@@ -24,50 +23,34 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		log.Error(err)
 	}
 
-	user := UserByEmail(body.Email)
+	user := SelectUser("email", body.Email)
 	user.LoginPassword = body.Password
 	if user.Id != 0 && user.Password == Encrypt(user.LoginPassword) {
 		log.Info("Log in valid user " + strconv.Itoa(user.Id))
 		session := user.CreateSession()
 		user_data := struct {
 			SessionId      string
-			UserName       string
+			Username       string
+			Email          string
 			Code           string
 			ProfilePicture string
 			Twitter        string
 			Website        string
+			Privacy        string
+			Plan           string
 		}{
 			session.Uuid,
 			user.UserName,
+			user.Email,
 			user.Code,
 			user.ProfilePicture,
 			user.Twitter,
 			user.Website,
+			user.Privacy,
+			user.Plan,
 		}
 		json.NewEncoder(w).Encode(user_data)
 	} else {
-		log.Info("Log in not valid user " + user.Email)
+		log.Info("Log in not valid user " + strconv.Itoa(user.Id))
 	}
-}
-
-func (user *User) CreateSession() (session Session) {
-	fmt.Println(Gray(8-1, "Starting CreateSession..."))
-	session_sql := `
-		INSERT INTO sessions (uuid, email, userid, createdat)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, uuid, email, userid, createdat;`
-	DbWebApp.QueryRow(
-		session_sql,
-		createUUID(),
-		user.Email,
-		user.Id,
-		time.Now(),
-	).Scan(
-		&session.Id,
-		&session.Uuid,
-		&session.Email,
-		&session.UserId,
-		&session.CreatedAt,
-	)
-	return
 }
