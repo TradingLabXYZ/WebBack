@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	. "github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 )
@@ -120,14 +121,32 @@ func InstanciateTradesDispatcher() {
 func GetTrades(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting GetTrades..."))
 
+	session, err := GetSession(r, "cookie")
+	if err != nil {
+		log.Warn("User not log in")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	user := SelectUser("email", session.Email)
+
 	username := mux.Vars(r)["username"]
+	userToSee := SelectUser("username", username)
 	requestid := mux.Vars(r)["requestid"]
 
-	user := SelectUser("username", username)
+	status := user.CheckPrivacy(userToSee)
+	if status != "OK" {
+		w.Write([]byte(status))
+		return
+	}
 
 	c := make(chan TradesOutput)
 	listener := WsTrade{c, requestid}
 	tradesWss[username] = append(tradesWss[username], listener)
+
+	var upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
 
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		for _, origin := range Origins {
@@ -140,7 +159,7 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 	ws, _ := upgrader.Upgrade(w, r, nil)
 
 	wsTradeOutput := user.GetUserSnapshot()
-	err := ws.WriteJSON(wsTradeOutput)
+	err = ws.WriteJSON(wsTradeOutput)
 	if err != nil {
 		ws.Close()
 		log.WithFields(log.Fields{
@@ -193,6 +212,63 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}()
+}
+
+func (user User) CheckPrivacy(userToSee User) (status string) {
+	fmt.Println(Gray(8-1, "Starting CheckUserPrivacy..."))
+	if user.Id == userToSee.Id {
+		return "OK"
+	}
+	switch userToSee.Privacy {
+	case "all":
+		return "OK"
+	case "private":
+		return `{"Status": "denied", "Reason": "private"}`
+	case "followers":
+		var isfollower bool
+		_ = DbWebApp.QueryRow(`
+					SELECT TRUE
+					FROM followers
+					WHERE followto = $1
+					AND followfrom = $2;`, user.Id, userToSee.Id).Scan(
+			&isfollower,
+		)
+		if isfollower {
+			return "OK"
+		} else {
+			return `{"Status": "denied", "Reason": "follow"}`
+		}
+	case "subscribers":
+		var issubscriber bool
+		_ = DbWebApp.QueryRow(`
+					SELECT TRUE
+					FROM subscribers
+					WHERE subscribeto = $1
+					AND subscribefrom = $2;`, user.Id, userToSee.Id).Scan(
+			&issubscriber,
+		)
+		if issubscriber {
+			return "OK"
+		} else {
+			return `{"Status": "denied", "Reason": "subscribe"}`
+		}
+	case "individuals":
+		var isindividual bool
+		_ = DbWebApp.QueryRow(`
+					SELECT TRUE
+					FROM individuals
+					WHERE individualto = $1
+					AND individualfrom = $2;`, user.Id, userToSee.Id).Scan(
+			&isindividual,
+		)
+		if isindividual {
+			return
+		} else {
+			return `{"Status": "denied", "Reason": "individual"}`
+		}
+	default:
+		return `{"Status": "denied", "Reason": "unknown"}`
+	}
 }
 
 func (user User) GetUserSnapshot() (tradesOutput TradesOutput) {

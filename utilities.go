@@ -3,20 +3,30 @@ package main
 import (
 	"crypto/rand"
 	"crypto/sha1"
+	"errors"
 	"fmt"
 
 	_ "github.com/lib/pq"
+	log "github.com/sirupsen/logrus"
 )
 
-func Encrypt(plaintext string) (cryptext string) {
+func Encrypt(plaintext string) (cryptext string, err error) {
+	if plaintext == "" {
+		err = errors.New("Empty string")
+		return
+	}
 	cryptext = fmt.Sprintf("%x", sha1.Sum([]byte(plaintext)))
 	return
 }
 
-func createUUID() (uuid string) {
+func CreateUUID() (uuid string, err error) {
 	u := new([16]byte)
-	_, err := rand.Read(u[:])
+	_, err = rand.Read(u[:])
 	if err != nil {
+		log.WithFields(log.Fields{
+			"custom_msg": "Error during UUID creation",
+		}).Error(err)
+		err = errors.New("Error creating UUID")
 		return
 	}
 

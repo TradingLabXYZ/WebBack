@@ -21,6 +21,8 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	err := decoder.Decode(&s)
 	if err != nil {
 		log.Error(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
 	InsertUser(s.Email, s.Username, s.Password)
 	json.NewEncoder(w).Encode("OK")
@@ -31,11 +33,17 @@ func InsertUser(email string, username string, password string) {
 	privacy := "all"
 	plan := "basic"
 	default_profile_picture := os.Getenv("CDN_PATH") + "/profile_pictures/default_picture.png"
+	encrypted_password, err := Encrypt(password)
+	if err != nil {
+		log.Error(err)
+		return
+	}
 	statement := `
 		INSERT INTO users (code, email, username, password, privacy, plan, profilepicture, createdat, updatedat)
 		VALUES (SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2, $3, $4, $5, $6, current_timestamp, current_timestamp);`
-	_, err := DbWebApp.Exec(statement, email, username, Encrypt(password), privacy, plan, default_profile_picture)
+	_, err = DbWebApp.Exec(statement, email, username, encrypted_password, privacy, plan, default_profile_picture)
 	if err != nil {
 		log.Error(err)
+		return
 	}
 }

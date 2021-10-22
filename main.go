@@ -25,6 +25,11 @@ var Origins = []string{
 }
 
 func main() {
+
+	r := setupRoutes()
+	c := setUpCors()
+	h := c.Handler(r)
+
 	log_file := setUpLog()
 	defer log_file.Close()
 	DbWebApp = *setUpDb()
@@ -32,11 +37,38 @@ func main() {
 
 	go InstanciateTradesDispatcher()
 
-	r := setupRoutes()
-	c := setUpCors()
-	h := c.Handler(r)
 	fmt.Println(Bold(Green("Application is running on port 8080")))
 	log.Fatal(http.ListenAndServe(":8080", h))
+}
+
+func setupRoutes() (router *mux.Router) {
+	router = mux.NewRouter()
+
+	// API endpoints
+	router.HandleFunc("/login", Login).Methods("POST")
+	router.HandleFunc("/register", Register).Methods("POST")
+
+	router.HandleFunc("/user_settings", GetUserSettings).Methods("GET")
+	router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")
+	router.HandleFunc("/update_password", UpdateUserPassword).Methods("POST")
+	router.HandleFunc("/update_privacy", UpdateUserPrivacy).Methods("POST")
+	router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
+	router.HandleFunc("/user_premium_data", GetUserPremiumData).Methods("GET")
+
+	router.HandleFunc("/get_trades/{username}/{requestid}", GetTrades)
+	router.HandleFunc("/insert_trade", InsertTrade).Methods("POST")
+	router.HandleFunc("/close_trade/{tradeid}", CloseTrade).Methods("GET")
+	router.HandleFunc("/open_trade/{tradeid}", OpenTrade).Methods("GET")
+	router.HandleFunc("/delete_trade/{tradeid}", DeleteTrade).Methods("GET")
+	router.HandleFunc("/update_trade", UpdateTrade).Methods("POST")
+
+	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
+	router.HandleFunc("/stellar_price", SelectStellarPrice).Methods("GET")
+	router.HandleFunc("/transaction_credentials", SelectTransactionCredentials).Methods("GET")
+
+	router.HandleFunc("/buy_months", BuyPremiumMonths).Methods("POST")
+
+	return
 }
 
 func setUpLog() (file *os.File) {
@@ -102,54 +134,4 @@ func setUpCors() (c *cors.Cors) {
 		AllowedMethods:   []string{"GET", "POST", "PUT"},
 		AllowCredentials: true,
 	})
-}
-
-func setUpAuthMiddleware(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session := SelectSession(r)
-		if session.Id == 0 {
-			log.Warn("Attempted open url without sessionid")
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		h.ServeHTTP(w, r)
-	})
-}
-
-func setupRoutes() (router *mux.Router) {
-	router = mux.NewRouter()
-
-	// Define subrouter middlewares
-	auth_router := router.PathPrefix("/").Subrouter()
-	auth_router.Use(setUpAuthMiddleware)
-
-	trades_router := router.PathPrefix("/get_trades/{username}/{requestid}").Subrouter()
-	trades_router.Use(CheckUserPrivacy)
-
-	// API endpoints
-	router.HandleFunc("/login", Login).Methods("POST")
-	router.HandleFunc("/register", Register).Methods("POST")
-
-	auth_router.HandleFunc("/user_settings", GetUserSettings).Methods("GET")
-	auth_router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")
-	auth_router.HandleFunc("/update_password", UpdateUserPassword).Methods("POST")
-	auth_router.HandleFunc("/update_privacy", UpdateUserPrivacy).Methods("POST")
-	auth_router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
-	auth_router.HandleFunc("/user_premium_data", GetUserPremiumData).Methods("GET")
-
-	trades_router.HandleFunc("", GetTrades)
-	auth_router.HandleFunc("/insert_trade", InsertTrade).Methods("POST")
-	auth_router.HandleFunc("/close_trade/{tradeid}", CloseTrade).Methods("GET")
-	auth_router.HandleFunc("/open_trade/{tradeid}", OpenTrade).Methods("GET")
-	auth_router.HandleFunc("/delete_trade/{tradeid}", DeleteTrade).Methods("GET")
-	auth_router.HandleFunc("/update_trade", UpdateTrade).Methods("POST")
-
-	router.HandleFunc("/get_prices/{usercode}", GetPrices)
-	auth_router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
-	auth_router.HandleFunc("/stellar_price", SelectStellarPrice).Methods("GET")
-	auth_router.HandleFunc("/transaction_credentials", SelectTransactionCredentials).Methods("GET")
-
-	auth_router.HandleFunc("/buy_months", BuyPremiumMonths).Methods("POST")
-
-	return
 }
