@@ -20,10 +20,9 @@ CREATE TABLE users (
 CREATE TABLE sessions (
   id SERIAL PRIMARY KEY,
   uuid VARCHAR(64) NOT NULL UNIQUE,
-  email VARCHAR(255),
+  email VARCHAR(255) NOT NULL,
   userid INTEGER REFERENCES users(id),
-  createdat TIMESTAMP NOT NULL,
-  deletedat TIMESTAMP
+  createdat TIMESTAMP NOT NULL
 );
 
 CREATE TABLE coins (

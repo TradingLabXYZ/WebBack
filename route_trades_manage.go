@@ -11,86 +11,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func CheckUserPrivacy(next http.Handler) http.Handler {
-	fmt.Println(Gray(8-1, "Starting CheckUserPrivacy..."))
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		username := mux.Vars(r)["username"]
-		userA := SelectUser("username", username)
-		privacy := userA.Privacy
-		if privacy == "all" {
-			next.ServeHTTP(w, r)
-			return
-		} else {
-			session := SelectSession(r)
-			if session.Id == 0 {
-				w.Write([]byte(`{"Status": "denied", "Reason": "login"}`))
-				return
-			}
-			userB := SelectUser("email", session.Email)
-			if userA.Id == userB.Id {
-				next.ServeHTTP(w, r)
-				return
-			}
-			switch privacy {
-			case "private":
-				w.Write([]byte(`{"Status": "denied", "Reason": "private"}`))
-				return
-			case "followers":
-				var isfollower bool
-				_ = DbWebApp.QueryRow(`
-					SELECT TRUE
-					FROM followers
-					WHERE followto = $1
-					AND followfrom = $2;`, userA.Id, userB.Id).Scan(
-					&isfollower,
-				)
-				if isfollower {
-					next.ServeHTTP(w, r)
-				} else {
-					w.Write([]byte(`{"Status": "denied", "Reason": "follow"}`))
-					return
-				}
-			case "subscribers":
-				var issubscriber bool
-				_ = DbWebApp.QueryRow(`
-					SELECT TRUE
-					FROM subscribers
-					WHERE subscribeto = $1
-					AND subscribefrom = $2;`, userA.Id, userB.Id).Scan(
-					&issubscriber,
-				)
-				if issubscriber {
-					next.ServeHTTP(w, r)
-					return
-				} else {
-					w.Write([]byte(`{"Status": "denied", "Reason": "subscribe"}`))
-					return
-				}
-			case "individuals":
-				var isindividual bool
-				_ = DbWebApp.QueryRow(`
-					SELECT TRUE
-					FROM individuals
-					WHERE individualto = $1
-					AND individualfrom = $2;`, userA.Id, userB.Id).Scan(
-					&isindividual,
-				)
-				if isindividual {
-					next.ServeHTTP(w, r)
-					return
-				} else {
-					w.Write([]byte(`{"Status": "denied", "Reason": "individual"}`))
-					return
-				}
-			}
-		}
-	})
-}
-
 func InsertTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting InsertTrade..."))
 
-	session := SelectSession(r)
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.Warn("User not log in")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	user := SelectUser("email", session.Email)
 
 	trade := struct {
@@ -108,7 +37,7 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 	}{}
 
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&trade)
+	err = decoder.Decode(&trade)
 	if err != nil {
 		log.Error(err)
 	}

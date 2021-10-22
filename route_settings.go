@@ -20,7 +20,12 @@ import (
 func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting InsertProfilePicture..."))
 
-	session := SelectSession(r)
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.Warn("User not log in")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	user := SelectUser("email", session.Email)
 
 	// PROCESS INPUT FILE
@@ -93,7 +98,12 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 func GetUserSettings(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting GetUserSettings..."))
 
-	session := SelectSession(r)
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.Warn("User not log in")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	user := SelectUser("email", session.Email)
 
 	settings := struct {
@@ -122,7 +132,12 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	- Check if email is already taken
 	*/
 
-	session := SelectSession(r)
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.Warn("User not log in")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	user := SelectUser("email", session.Email)
 
 	settings := struct {
@@ -132,7 +147,7 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	}{}
 
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&settings)
+	err = decoder.Decode(&settings)
 	if err != nil {
 		log.Error(err)
 	}
@@ -159,7 +174,12 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting UpdateUserPassword..."))
 
-	session := SelectSession(r)
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.Warn("User not log in")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	user := SelectUser("email", session.Email)
 
 	passwords := struct {
@@ -169,7 +189,7 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 	}{}
 
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&passwords)
+	err = decoder.Decode(&passwords)
 	if err != nil {
 		log.Error(err)
 	}
@@ -179,7 +199,21 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.Password != Encrypt(passwords.OldPassword) {
+	encrypted_old_password, err := Encrypt(passwords.OldPassword)
+	if err != nil {
+		log.Error(err)
+		w.Write([]byte("KO"))
+		return
+	}
+
+	if user.Password != encrypted_old_password {
+		w.Write([]byte("KO"))
+		return
+	}
+
+	encrypted_new_password, err := Encrypt(passwords.NewPassword)
+	if err != nil {
+		log.Error(err)
 		w.Write([]byte("KO"))
 		return
 	}
@@ -190,7 +224,7 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		WHERE id = $2;`
 	_, err = DbWebApp.Exec(
 		statement,
-		Encrypt(passwords.NewPassword),
+		encrypted_new_password,
 		user.Id)
 	if err != nil {
 		log.Error(err)
@@ -202,7 +236,12 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting UpdateUserPrivacy..."))
 
-	session := SelectSession(r)
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.Warn("User not log in")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	user := SelectUser("email", session.Email)
 
 	privacy := struct {
@@ -210,7 +249,7 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 	}{}
 
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&privacy)
+	err = decoder.Decode(&privacy)
 	if err != nil {
 		log.Error(err)
 	}

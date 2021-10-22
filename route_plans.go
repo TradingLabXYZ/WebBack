@@ -32,7 +32,12 @@ SUCCESS --> RETURN OK
 func BuyPremiumMonths(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting BuyPremiumMonths..."))
 
-	session := SelectSession(r)
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.Warn("User not log in")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	if session.Id == 0 {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -41,7 +46,7 @@ func BuyPremiumMonths(w http.ResponseWriter, r *http.Request) {
 
 	var tx TxBuyPremium
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&tx)
+	err = decoder.Decode(&tx)
 	if err != nil {
 		fmt.Println(err)
 		log.WithFields(log.Fields{
@@ -129,7 +134,12 @@ func (tx TxBuyPremium) InsertPayment(reason string) error {
 func GetUserPremiumData(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting GetUserPremiumData..."))
 
-	session := SelectSession(r)
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.Warn("User not log in")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	if session.Id == 0 {
 		w.WriteHeader(http.StatusNotFound)
 		return

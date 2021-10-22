@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -33,69 +34,108 @@ type User struct {
 	Website        string
 }
 
-func (user *User) CreateSession() (session Session) {
+func (user *User) CreateSession() (session Session, err error) {
 	fmt.Println(Gray(8-1, "Starting CreateSession..."))
+
+	if user.Email == "" {
+		err = errors.New("Empty email")
+		return
+	}
+
+	uuid, err := CreateUUID()
+	if err != nil {
+		return
+	}
+
 	session_sql := `
 		INSERT INTO sessions (uuid, email, userid, createdat)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, uuid, email, userid, createdat;`
-	DbWebApp.QueryRow(
+
+	err = DbWebApp.QueryRow(
 		session_sql,
-		createUUID(),
+		uuid,
 		user.Email,
 		user.Id,
-		time.Now(),
-	).Scan(
+		time.Now()).Scan(
 		&session.Id,
 		&session.Uuid,
 		&session.Email,
 		&session.UserId,
 		&session.CreatedAt,
 	)
+	if err != nil {
+		err = errors.New("Error inserting new session in db")
+		return
+	}
+
 	return
 }
 
-func SelectSession(r *http.Request) (session Session) {
-	fmt.Println(Gray(8-1, "Starting SelectSession..."))
-	var auth string
+func GetSession(r *http.Request, using string) (session Session, err error) {
+	err = session.ExtractFromRequest(r, using)
+	if err != nil {
+		return
+	}
+	err = session.Select()
+	return
+}
+
+func (session *Session) ExtractFromRequest(r *http.Request, using string) (err error) {
+	switch using {
+	case "header":
+		err = session.ExtractFromHeader(r)
+		if err != nil {
+			return
+		}
+	case "cookie":
+		err = session.ExtractFromCookie(r)
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (session *Session) ExtractFromHeader(r *http.Request) (err error) {
 	if len(r.Header["Authorization"]) > 0 {
 		split_auth := strings.Split(r.Header["Authorization"][0], "sessionId=")
 		if len(split_auth) >= 1 {
-			auth = split_auth[1]
-		}
-	} else {
-		for _, cookie := range r.Cookies() {
-			if cookie.Name == "sessionId" {
-				auth = cookie.Value
-			}
-		}
-	}
-	if len(auth) > 0 {
-		session.Uuid = auth
-		err := DbWebApp.QueryRow(`
-			SELECT
-				id,
-				uuid,
-				email,
-				userid,
-				createdat
-			FROM sessions
-			WHERE uuid = $1;`, session.Uuid).Scan(
-			&session.Id,
-			&session.Uuid,
-			&session.Email,
-			&session.UserId,
-			&session.CreatedAt,
-		)
-		if err != nil {
-			log.Warn("No session found, user not logged in...")
+			session.Uuid = split_auth[1]
+			return
+		} else {
+			err = errors.New("Could not find sessionId in header")
 			return
 		}
-		return
 	} else {
-		log.Warn("No session found, user not logged in...")
+		err = errors.New("Could not find authorization in header")
 		return
 	}
+}
+
+func (session *Session) ExtractFromCookie(r *http.Request) (err error) {
+	for _, cookie := range r.Cookies() {
+		if cookie.Name == "sessionId" {
+			session.Uuid = cookie.Value
+		}
+	}
+	if session.Uuid == "" {
+		err = errors.New("Empty sessionId in cookie")
+	}
+	return
+}
+
+func (session *Session) Select() (err error) {
+	err = DbWebApp.QueryRow(`
+			SELECT
+				email,
+				userid
+			FROM sessions
+			WHERE uuid = $1;`, session.Uuid).Scan(
+		&session.Email,
+		&session.UserId,
+	)
+	return
 }
 
 func SelectUser(by string, value string) (user User) {

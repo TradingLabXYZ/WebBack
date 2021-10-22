@@ -82,7 +82,12 @@ func SelectStellarPrice(w http.ResponseWriter, r *http.Request) {
 func SelectTransactionCredentials(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting SelectTransactionCredentials..."))
 
-	session := SelectSession(r)
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.Warn("User not log in")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	user := SelectUser("email", session.Email)
 
 	wallet_sql := `
@@ -96,7 +101,7 @@ func SelectTransactionCredentials(w http.ResponseWriter, r *http.Request) {
 	var blockchain string
 	var currency string
 	var deposit_address string
-	err := DbWebApp.QueryRow(
+	err = DbWebApp.QueryRow(
 		wallet_sql).Scan(
 		&blockchain,
 		&currency,
@@ -136,7 +141,12 @@ func SelectTransactionCredentials(w http.ResponseWriter, r *http.Request) {
 func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting ValidateTransaction..."))
 
-	session := SelectSession(r)
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.Warn("User not log in")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 	user := SelectUser("email", session.Email)
 
 	time.Sleep(2 * time.Second)
@@ -152,7 +162,7 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 	}{}
 
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&input_tx)
+	err = decoder.Decode(&input_tx)
 	if err != nil {
 		fmt.Println(err)
 		log.WithFields(log.Fields{
