@@ -44,7 +44,6 @@ func main() {
 func setupRoutes() (router *mux.Router) {
 	router = mux.NewRouter()
 
-	// API endpoints
 	router.HandleFunc("/login", Login).Methods("POST")
 	router.HandleFunc("/register", Register).Methods("POST")
 
