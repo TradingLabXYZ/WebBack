@@ -121,25 +121,17 @@ func InstanciateTradesDispatcher() {
 func GetTrades(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting GetTrades..."))
 
-	session, err := GetSession(r, "cookie")
-	if err != nil {
-		log.Warn("User not log in")
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	user := SelectUser("email", session.Email)
-
 	username := mux.Vars(r)["username"]
 	userToSee := SelectUser("username", username)
-	requestid := mux.Vars(r)["requestid"]
 
-	status := user.CheckPrivacy(userToSee)
+	status := CheckPrivacy(r, userToSee)
 	if status != "OK" {
 		w.Write([]byte(status))
 		return
 	}
 
 	c := make(chan TradesOutput)
+	requestid := mux.Vars(r)["requestid"]
 	listener := WsTrade{c, requestid}
 	tradesWss[username] = append(tradesWss[username], listener)
 
@@ -158,8 +150,8 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 	}
 	ws, _ := upgrader.Upgrade(w, r, nil)
 
-	wsTradeOutput := user.GetUserSnapshot()
-	err = ws.WriteJSON(wsTradeOutput)
+	wsTradeOutput := userToSee.GetUserSnapshot()
+	err := ws.WriteJSON(wsTradeOutput)
 	if err != nil {
 		ws.Close()
 		log.WithFields(log.Fields{
@@ -214,14 +206,24 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 	}()
 }
 
-func (user User) CheckPrivacy(userToSee User) (status string) {
+func CheckPrivacy(request *http.Request, userToSee User) (status string) {
 	fmt.Println(Gray(8-1, "Starting CheckUserPrivacy..."))
+
+	if userToSee.Privacy == "all" {
+		return "OK"
+	}
+
+	session, err := GetSession(request, "cookie")
+	if err != nil {
+		return "KO"
+	}
+
+	user := SelectUser("email", session.Email)
 	if user.Id == userToSee.Id {
 		return "OK"
 	}
+
 	switch userToSee.Privacy {
-	case "all":
-		return "OK"
 	case "private":
 		return `{"Status": "denied", "Reason": "private"}`
 	case "followers":
@@ -251,20 +253,6 @@ func (user User) CheckPrivacy(userToSee User) (status string) {
 			return "OK"
 		} else {
 			return `{"Status": "denied", "Reason": "subscribe"}`
-		}
-	case "individuals":
-		var isindividual bool
-		_ = DbWebApp.QueryRow(`
-					SELECT TRUE
-					FROM individuals
-					WHERE individualto = $1
-					AND individualfrom = $2;`, user.Id, userToSee.Id).Scan(
-			&isindividual,
-		)
-		if isindividual {
-			return
-		} else {
-			return `{"Status": "denied", "Reason": "individual"}`
 		}
 	default:
 		return `{"Status": "denied", "Reason": "unknown"}`
