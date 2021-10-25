@@ -1,7 +1,7 @@
 CREATE TYPE privacies AS ENUM ('all', 'private', 'subscribers', 'followers');
 CREATE TYPE plans AS ENUM ('basic', 'premium', 'pro');
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
   code VARCHAR(12) NOT NULL UNIQUE,
   email VARCHAR(255) NOT NULL UNIQUE,
@@ -17,7 +17,7 @@ CREATE TABLE users (
   deletedat TIMESTAMP
 );
 
-CREATE TABLE sessions (
+CREATE TABLE IF NOT EXISTS sessions (
   id SERIAL PRIMARY KEY,
   uuid VARCHAR(64) NOT NULL UNIQUE,
   email VARCHAR(255) NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE sessions (
   createdat TIMESTAMP NOT NULL
 );
 
-CREATE TABLE coins (
+CREATE TABLE IF NOT EXISTS coins (
   id SERIAL PRIMARY KEY,
   coinid NUMERIC UNIQUE,
   name TEXT,
@@ -33,14 +33,14 @@ CREATE TABLE coins (
   slug TEXT
 );
 
-CREATE TABLE prices (
+CREATE TABLE IF NOT EXISTS prices (
   id SERIAL PRIMARY KEY,
   createdat TIMESTAMP,
   coinid NUMERIC REFERENCES coins(coinid),
   price NUMERIC
 );
 
-CREATE TABLE trades (
+CREATE TABLE IF NOT EXISTS trades (
   id VARCHAR(12) NOT NULL UNIQUE,
   userid INTEGER REFERENCES users(id),
   createdat TIMESTAMP NOT NULL,
@@ -52,7 +52,7 @@ CREATE TABLE trades (
   isopen BOOLEAN
 );
 
-CREATE TABLE subtrades (
+CREATE TABLE IF NOT EXISTS subtrades (
   id SERIAL PRIMARY KEY,
   tradeid VARCHAR(12) REFERENCES trades(id),
   createdat TIMESTAMP NOT NULL,
@@ -66,21 +66,21 @@ CREATE TABLE subtrades (
   total NUMERIC
 );
 
-CREATE TABLE followers (
+CREATE TABLE IF NOT EXISTS followers (
   id SERIAL PRIMARY KEY,
   followefrom INTEGER REFERENCES users(id) NOT NULL,
   followto INTEGER references users(id) NOT NULL,
   createdat TIMESTAMP
 );
 
-CREATE TABLE subscribers (
+CREATE TABLE IF NOT EXISTS subscribers (
   id SERIAL PRIMARY KEY,
   subscribefrom INTEGER REFERENCES users(id) NOT NULL,
   subscribeto INTEGER REFERENCES users(id) NOT NULL,
   createdat TIMESTAMP
 );
 
-CREATE TABLE internalwallets (
+CREATE TABLE IF NOT EXISTS internalwallets (
   id SERIAL PRIMARY KEY,
   blockchain TEXT,
   currency TEXT,
@@ -89,7 +89,7 @@ CREATE TABLE internalwallets (
   createdat TIMESTAMP NOT NULL
 );
 
-CREATE TABLE memos (
+CREATE TABLE IF NOT EXISTS memos (
   id SERIAL PRIMARY KEY,
   userid INTEGER REFERENCES users(id) NOT NULL,
   blockchain TEXT NOT NULL,
@@ -100,7 +100,7 @@ CREATE TABLE memos (
   status TEXT
 );
 
-CREATE TABLE payments (
+CREATE TABLE IF NOT EXISTS payments (
   id SERIAL PRIMARY KEY,
   userid INTEGER REFERENCES users(id) NOT NULL,
   type TEXT NOT NULL,

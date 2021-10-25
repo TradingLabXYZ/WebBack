@@ -42,7 +42,12 @@ func BuyPremiumMonths(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user := SelectUser("email", session.Email)
+	user, err := SelectUser("email", session.Email)
+	if err != nil {
+		log.Warn("User not found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	var tx TxBuyPremium
 	decoder := json.NewDecoder(r.Body)
@@ -110,7 +115,7 @@ func (user User) UpdateUserStatus(new_status string) error {
 		UPDATE users
 		SET plan = $1
 		WHERE id = $2;`
-	_, err := DbWebApp.Exec(upgrade_sql, new_status, user.Id)
+	_, err := Db.Exec(upgrade_sql, new_status, user.Id)
 	return err
 }
 
@@ -118,7 +123,7 @@ func (tx TxBuyPremium) InsertPayment(reason string) error {
 	payment_sql := `
 		INSERT INTO payments (userid, type, blockchain, currency, transactionid, amount, months, createdat, endat)  
 		VALUES ($1, $2, $3, $4, $5, $6, $7, current_timestamp, current_timestamp + interval '1 month' * $8);`
-	_, err := DbWebApp.Exec(
+	_, err := Db.Exec(
 		payment_sql,
 		tx.Userid,
 		reason,
@@ -144,7 +149,12 @@ func GetUserPremiumData(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user := SelectUser("email", session.Email)
+	user, err := SelectUser("email", session.Email)
+	if err != nil {
+		log.Warn("User not found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	type Payment struct {
 		CreatedAt     string
@@ -172,7 +182,7 @@ func GetUserPremiumData(w http.ResponseWriter, r *http.Request) {
 		WHERE userid = $1
 		ORDER BY 1;`
 
-	rows, err := DbWebApp.Query(payments_sql, user.Id)
+	rows, err := Db.Query(payments_sql, user.Id)
 	defer rows.Close()
 	if err != nil {
 		log.Error(err)
@@ -198,7 +208,7 @@ func GetUserPremiumData(w http.ResponseWriter, r *http.Request) {
 		FROM payments
 		WHERE userid = $1;`
 
-	err = DbWebApp.QueryRow(
+	err = Db.QueryRow(
 		remaining_days_sql,
 		user.Id).Scan(&user_premium_data.RemainingDays)
 	if err != nil {

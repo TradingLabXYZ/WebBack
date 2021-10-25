@@ -26,7 +26,12 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user := SelectUser("email", session.Email)
+	user, err := SelectUser("email", session.Email)
+	if err != nil {
+		log.Warn("User not found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	// PROCESS INPUT FILE
 	file, handler, err := r.FormFile("file")
@@ -87,7 +92,7 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 		UPDATE users
 		SET profilepicture = $1
 		WHERE id = $2;`
-	_, err = DbWebApp.Exec(statement, file_cdn_path, user.Id)
+	_, err = Db.Exec(statement, file_cdn_path, user.Id)
 	if err != nil {
 		log.Error(err)
 	}
@@ -104,7 +109,12 @@ func GetUserSettings(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user := SelectUser("email", session.Email)
+	user, err := SelectUser("email", session.Email)
+	if err != nil {
+		log.Warn("User not found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	settings := struct {
 		Email   string `json:"Email"`
@@ -138,7 +148,12 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user := SelectUser("email", session.Email)
+	user, err := SelectUser("email", session.Email)
+	if err != nil {
+		log.Warn("User not found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	settings := struct {
 		Email   string `json:"Email"`
@@ -158,7 +173,7 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 		twitter = $2,
 		website = $3
 		WHERE id = $4;`
-	_, err = DbWebApp.Exec(
+	_, err = Db.Exec(
 		statement,
 		settings.Email,
 		settings.Twitter,
@@ -180,7 +195,12 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user := SelectUser("email", session.Email)
+	user, err := SelectUser("email", session.Email)
+	if err != nil {
+		log.Warn("User not found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	passwords := struct {
 		OldPassword       string `json:"OldPassword"`
@@ -222,7 +242,7 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		UPDATE users
 		SET password = $1
 		WHERE id = $2;`
-	_, err = DbWebApp.Exec(
+	_, err = Db.Exec(
 		statement,
 		encrypted_new_password,
 		user.Id)
@@ -242,7 +262,12 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user := SelectUser("email", session.Email)
+	user, err := SelectUser("email", session.Email)
+	if err != nil {
+		log.Warn("User not found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	privacy := struct {
 		Privacy string `json:"Privacy"`
@@ -258,7 +283,7 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 		UPDATE users
 		SET privacy = $1
 		WHERE id = $2;`
-	_, err = DbWebApp.Exec(
+	_, err = Db.Exec(
 		statement,
 		privacy.Privacy,
 		user.Id)

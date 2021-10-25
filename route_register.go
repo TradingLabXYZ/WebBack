@@ -41,7 +41,7 @@ func InsertUser(email string, username string, password string) {
 	statement := `
 		INSERT INTO users (code, email, username, password, privacy, plan, profilepicture, createdat, updatedat)
 		VALUES (SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2, $3, $4, $5, $6, current_timestamp, current_timestamp);`
-	_, err = DbWebApp.Exec(statement, email, username, encrypted_password, privacy, plan, default_profile_picture)
+	_, err = Db.Exec(statement, email, username, encrypted_password, privacy, plan, default_profile_picture)
 	if err != nil {
 		log.Error(err)
 		return

@@ -20,7 +20,12 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user := SelectUser("email", session.Email)
+	user, err := SelectUser("email", session.Email)
+	if err != nil {
+		log.Warn("User not found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	trade := struct {
 		Exchange     string `json:"Exchange"`
@@ -47,7 +52,7 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 		INSERT INTO trades (id, userid, exchange, firstpair, secondpair, createdat, updatedat, isopen)
 		VALUES (SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2, $3, $4, current_timestamp, current_timestamp, true)
 		RETURNING id;`
-	err = DbWebApp.QueryRow(
+	err = Db.QueryRow(
 		trade_sql,
 		user.Id,
 		trade.Exchange,
@@ -62,7 +67,7 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 		subtrade_sql := `
 		INSERT INTO subtrades (tradeid, tradetimestamp, type, reason, quantity, avgprice, total, createdat, updatedat)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, current_timestamp, current_timestamp)`
-		DbWebApp.Exec(
+		Db.Exec(
 			subtrade_sql,
 			trade_id,
 			subtrade.Timestamp,
@@ -104,7 +109,7 @@ func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 		log.Error(err)
 	}
 
-	DbWebApp.Exec(`
+	Db.Exec(`
 		DELETE FROM subtrades
 		WHERE tradeid = $1;
 	`, trade.Id)
@@ -113,7 +118,7 @@ func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 		subtrade_sql := `
 		INSERT INTO subtrades (tradeid, tradetimestamp, type, reason, quantity, avgprice, total, createdat, updatedat)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, current_timestamp, current_timestamp)`
-		DbWebApp.Exec(
+		Db.Exec(
 			subtrade_sql,
 			trade.Id,
 			subtrade.Timestamp,
@@ -133,7 +138,7 @@ func CloseTrade(w http.ResponseWriter, r *http.Request) {
 
 	tradeid := mux.Vars(r)["tradeid"]
 
-	DbWebApp.Exec(`
+	Db.Exec(`
 		UPDATE trades
 		SET
 			isopen = False,
@@ -149,7 +154,7 @@ func OpenTrade(w http.ResponseWriter, r *http.Request) {
 
 	tradeid := mux.Vars(r)["tradeid"]
 
-	DbWebApp.Exec(`
+	Db.Exec(`
 		UPDATE trades
 		SET
 			isopen = True,
@@ -165,7 +170,7 @@ func DeleteTrade(w http.ResponseWriter, r *http.Request) {
 
 	tradeid := mux.Vars(r)["tradeid"]
 
-	DbWebApp.Exec(`
+	Db.Exec(`
 		DELETE FROM subtrades
 		WHERE tradeid IN (
 			SELECT id
@@ -173,7 +178,7 @@ func DeleteTrade(w http.ResponseWriter, r *http.Request) {
 			WHERE id = $1);
 		`, tradeid)
 
-	DbWebApp.Exec(`
+	Db.Exec(`
 		UPDATE users
 		SET updatedat = current_timestamp
 		WHERE id = (
@@ -183,7 +188,7 @@ func DeleteTrade(w http.ResponseWriter, r *http.Request) {
 			WHERE id = $1);
 		`, tradeid)
 
-	DbWebApp.Exec(`
+	Db.Exec(`
 		DELETE FROM trades
 		WHERE id = $1;
 		`, tradeid)

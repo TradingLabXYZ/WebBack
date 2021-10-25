@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var DbWebApp sqlx.DB
+var Db sqlx.DB
 
 var Origins = []string{
 	"http://localhost:9000",
@@ -26,14 +26,14 @@ var Origins = []string{
 
 func main() {
 
-	r := setupRoutes()
-	c := setUpCors()
+	r := SetupRoutes()
+	c := SetUpCors()
 	h := c.Handler(r)
 
-	log_file := setUpLog()
+	log_file := SetUpLog()
 	defer log_file.Close()
-	DbWebApp = *setUpDb()
-	defer DbWebApp.Close()
+	Db = *setUpDb()
+	defer Db.Close()
 
 	go InstanciateTradesDispatcher()
 
@@ -41,7 +41,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", h))
 }
 
-func setupRoutes() (router *mux.Router) {
+func SetupRoutes() (router *mux.Router) {
 	router = mux.NewRouter()
 
 	router.HandleFunc("/login", Login).Methods("POST")
@@ -70,7 +70,7 @@ func setupRoutes() (router *mux.Router) {
 	return
 }
 
-func setUpLog() (file *os.File) {
+func SetUpLog() (file *os.File) {
 	file, err := os.OpenFile(
 		"logs.log",
 		os.O_APPEND|os.O_CREATE|os.O_RDWR,
@@ -126,7 +126,7 @@ func setUpDb() (db *sqlx.DB) {
 	return
 }
 
-func setUpCors() (c *cors.Cors) {
+func SetUpCors() (c *cors.Cors) {
 	return cors.New(cors.Options{
 		AllowedOrigins:   Origins,
 		AllowedHeaders:   []string{"*"},
