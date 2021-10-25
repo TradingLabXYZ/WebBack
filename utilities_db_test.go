@@ -2,25 +2,11 @@ package main
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-type SSUser struct {
-	Id             int
-	Code           string
-	Email          string
-	UserName       string
-	LoginPassword  string
-	Password       string
-	Privacy        string
-	Plan           string
-	ProfilePicture string
-	Twitter        string
-	Website        string
-}
-
 func TestCreateSession(t *testing.T) {
-	DbWebApp = *setUpDb()
-	defer DbWebApp.Close()
 
 	// Test empty email
 	user := User{
@@ -41,12 +27,30 @@ func TestCreateSession(t *testing.T) {
 	}
 
 	// Test creation of session
+	Db.Exec(`
+		INSERT INTO users (
+			code,
+			email,
+			username,
+			password,
+			privacy,
+			plan,
+			createdat,
+			updatedat)
+		VALUES (
+			'XXXXX',
+			'r@r.r',
+			'r',
+			'rrrr',
+			'all',
+			'basic',
+			current_timestamp,
+			current_timestamp);`)
+
 	user = User{
 		Id:    1,
-		Email: "test@test.com",
+		Email: "r@r.r",
 	}
 	session, err := user.CreateSession()
-	if session.Id == 0 {
-		t.Error(err)
-	}
+	assert.Greater(t, session.Id, 0)
 }

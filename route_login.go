@@ -2,38 +2,48 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
-	. "github.com/logrusorgru/aurora"
+	validator "github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
 )
 
+type LoginCredentials struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=8,containsany=!?*()_$,containsany=1234567890"`
+}
+
 func Login(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting Login..."))
 
-	decoder := json.NewDecoder(r.Body)
-	body := struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}{}
-	err := decoder.Decode(&body)
+	if r.Body == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	credentials := LoginCredentials{}
+	err := json.NewDecoder(r.Body).Decode(&credentials)
 	if err != nil {
-		log.Error(err)
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	user := SelectUser("email", body.Email)
-	if user.Id == 0 {
-		log.Warn("Email not present")
-		w.WriteHeader(http.StatusForbidden)
+	validate := validator.New()
+	err = validate.Struct(credentials)
+	if err != nil {
+		validationErrors := err.(validator.ValidationErrors)
+		first_error := validationErrors[0].Tag()
+		w.Write([]byte(first_error))
 		return
 	}
 
-	user.LoginPassword = body.Password
-	encrypted_password, err := Encrypt(user.LoginPassword)
+	user, err := SelectUser("email", credentials.Email)
+	if err != nil {
+		w.Write([]byte("User not found"))
+		return
+	}
+
+	encrypted_password, err := Encrypt(credentials.Password)
 	if err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusForbidden)
@@ -41,7 +51,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Password != encrypted_password {
-		log.Warn("Passwords do not match")
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
@@ -75,5 +84,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		user.Privacy,
 		user.Plan,
 	}
+
 	json.NewEncoder(w).Encode(user_data)
 }

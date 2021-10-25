@@ -31,7 +31,7 @@ func SelectPairs(w http.ResponseWriter, r *http.Request) {
 			symbol,
 			slug
 		FROM coins;`
-	pairs_rows, err := DbWebApp.Query(pairs_sql)
+	pairs_rows, err := Db.Query(pairs_sql)
 	defer pairs_rows.Close()
 	if err != nil {
 		log.Error(err)
@@ -68,7 +68,7 @@ func SelectStellarPrice(w http.ResponseWriter, r *http.Request) {
 		WHERE c.symbol = 'XLM'
 		ORDER BY p.createdat DESC
 		LIMIT 1;`
-	err := DbWebApp.QueryRow(
+	err := Db.QueryRow(
 		price_sql).Scan(
 		&stellar_price.Price,
 	)
@@ -88,7 +88,12 @@ func SelectTransactionCredentials(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user := SelectUser("email", session.Email)
+	user, err := SelectUser("email", session.Email)
+	if err != nil {
+		log.Warn("User not found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	wallet_sql := `
 		SELECT
@@ -101,7 +106,7 @@ func SelectTransactionCredentials(w http.ResponseWriter, r *http.Request) {
 	var blockchain string
 	var currency string
 	var deposit_address string
-	err = DbWebApp.QueryRow(
+	err = Db.QueryRow(
 		wallet_sql).Scan(
 		&blockchain,
 		&currency,
@@ -116,7 +121,7 @@ func SelectTransactionCredentials(w http.ResponseWriter, r *http.Request) {
 		INSERT INTO memos (userid, blockchain, currency, depositaddress, status, memo, createdat)
 		VALUES ($1, $2, $3, $4, $5, SUBSTR(MD5(RANDOM()::TEXT), 0, 20), current_timestamp)
 		RETURNING memo;`
-	err = DbWebApp.QueryRow(
+	err = Db.QueryRow(
 		statement,
 		user.Id,
 		blockchain,
@@ -147,7 +152,12 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user := SelectUser("email", session.Email)
+	user, err := SelectUser("email", session.Email)
+	if err != nil {
+		log.Warn("User not found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	time.Sleep(2 * time.Second)
 
@@ -306,7 +316,7 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 		UPDATE users
 		SET plan = 'premium'
 		WHERE id = $1;`
-	_, err = DbWebApp.Exec(upgrade_sql, user.Id)
+	_, err = Db.Exec(upgrade_sql, user.Id)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"session":    session.Id,
@@ -322,7 +332,7 @@ func ValidateStellarTransaction(w http.ResponseWriter, r *http.Request) {
 	payment_sql := `
 		INSERT INTO payments (userid, blockchain, currency, transactionid, amount, months, createdat, endat)  
 		VALUES ($1, $2, $3, $4, $5, $6, current_timestamp, current_timestamp + interval '1 month' * $7);`
-	_, err = DbWebApp.Exec(
+	_, err = Db.Exec(
 		payment_sql,
 		user.Id,
 		input_tx.Blockchain,

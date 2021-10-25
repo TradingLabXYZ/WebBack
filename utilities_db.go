@@ -7,9 +7,6 @@ import (
 	"strings"
 
 	"time"
-
-	. "github.com/logrusorgru/aurora"
-	log "github.com/sirupsen/logrus"
 )
 
 type Session struct {
@@ -35,8 +32,6 @@ type User struct {
 }
 
 func (user *User) CreateSession() (session Session, err error) {
-	fmt.Println(Gray(8-1, "Starting CreateSession..."))
-
 	if user.Email == "" {
 		err = errors.New("Empty email")
 		return
@@ -52,7 +47,7 @@ func (user *User) CreateSession() (session Session, err error) {
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, uuid, email, userid, createdat;`
 
-	err = DbWebApp.QueryRow(
+	err = Db.QueryRow(
 		session_sql,
 		uuid,
 		user.Email,
@@ -126,7 +121,7 @@ func (session *Session) ExtractFromCookie(r *http.Request) (err error) {
 }
 
 func (session *Session) Select() (err error) {
-	err = DbWebApp.QueryRow(`
+	err = Db.QueryRow(`
 			SELECT
 				email,
 				userid
@@ -138,8 +133,7 @@ func (session *Session) Select() (err error) {
 	return
 }
 
-func SelectUser(by string, value string) (user User) {
-	fmt.Println(Gray(8-1, "Starting SelectUser..."))
+func SelectUser(by string, value string) (user User, err error) {
 	user_sql := fmt.Sprintf(`
 		SELECT
 			id,
@@ -149,12 +143,12 @@ func SelectUser(by string, value string) (user User) {
 			username,
 			privacy,
 			plan,
-			profilepicture,
+			CASE WHEN profilepicture IS NULL THEN '' ELSE profilepicture END AS profilepicture,
 			CASE WHEN twitter IS NULL THEN '' ELSE twitter END AS twitter,
 			CASE WHEN website IS NULL THEN '' ELSE website END AS website
 		FROM users
 		WHERE %s = $1;`, by)
-	err := DbWebApp.QueryRow(user_sql, value).Scan(
+	err = Db.QueryRow(user_sql, value).Scan(
 		&user.Id,
 		&user.Code,
 		&user.Email,
@@ -166,9 +160,5 @@ func SelectUser(by string, value string) (user User) {
 		&user.Twitter,
 		&user.Website,
 	)
-	if err != nil {
-		log.Warn("No user found...")
-		return
-	}
 	return
 }

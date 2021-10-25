@@ -90,7 +90,7 @@ func InstanciateTradesDispatcher() {
 					t.updatedat > current_timestamp - interval '1 seconds' OR
 					u.updatedat > current_timestamp - interval '1 seconds'
 			);`
-		user_rows, err := DbWebApp.Query(user_sql)
+		user_rows, err := Db.Query(user_sql)
 		defer user_rows.Close()
 		if err != nil {
 			log.WithFields(log.Fields{
@@ -107,7 +107,11 @@ func InstanciateTradesDispatcher() {
 				return
 			}
 			go func() {
-				user := SelectUser("username", username)
+				user, err := SelectUser("username", username)
+				if err != nil {
+					log.Warn("User not found")
+					return
+				}
 				userSnapshot := user.GetUserSnapshot()
 				for _, q := range tradesWss[username] {
 					q.Channel <- userSnapshot
@@ -122,7 +126,12 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting GetTrades..."))
 
 	username := mux.Vars(r)["username"]
-	userToSee := SelectUser("username", username)
+	userToSee, err := SelectUser("username", username)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		log.Warn("User not found")
+		return
+	}
 
 	status := CheckPrivacy(r, userToSee)
 	if status != "OK" {
@@ -151,7 +160,7 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 	ws, _ := upgrader.Upgrade(w, r, nil)
 
 	wsTradeOutput := userToSee.GetUserSnapshot()
-	err := ws.WriteJSON(wsTradeOutput)
+	err = ws.WriteJSON(wsTradeOutput)
 	if err != nil {
 		ws.Close()
 		log.WithFields(log.Fields{
@@ -218,7 +227,11 @@ func CheckPrivacy(request *http.Request, userToSee User) (status string) {
 		return "KO"
 	}
 
-	user := SelectUser("email", session.Email)
+	user, err := SelectUser("email", session.Email)
+	if err != nil {
+		return "KO"
+	}
+
 	if user.Id == userToSee.Id {
 		return "OK"
 	}
@@ -228,7 +241,7 @@ func CheckPrivacy(request *http.Request, userToSee User) (status string) {
 		return `{"Status": "denied", "Reason": "private"}`
 	case "followers":
 		var isfollower bool
-		_ = DbWebApp.QueryRow(`
+		_ = Db.QueryRow(`
 					SELECT TRUE
 					FROM followers
 					WHERE followto = $1
@@ -242,7 +255,7 @@ func CheckPrivacy(request *http.Request, userToSee User) (status string) {
 		}
 	case "subscribers":
 		var issubscriber bool
-		_ = DbWebApp.QueryRow(`
+		_ = Db.QueryRow(`
 					SELECT TRUE
 					FROM subscribers
 					WHERE subscribeto = $1
@@ -378,7 +391,7 @@ func (user User) SelectUserTrades() (trades []Trade) {
 		FROM TRADES_MICRO t
 		LEFT JOIN CURRENT_PRICE c3 ON(c3.coinid = 1);`
 
-	trades_rows, err := DbWebApp.Query(
+	trades_rows, err := Db.Query(
 		trades_sql,
 		user.UserName)
 	defer trades_rows.Close()
@@ -451,7 +464,7 @@ func (trade Trade) SelectTradeSubtrades() (subtrades []Subtrade) {
 			WHERE tradeid = $1
 			ORDER BY 1;`
 
-	subtrades_rows, err := DbWebApp.Query(
+	subtrades_rows, err := Db.Query(
 		subtrades_sql,
 		trade.Id)
 	defer subtrades_rows.Close()
