@@ -41,24 +41,22 @@ CREATE TABLE IF NOT EXISTS prices (
 );
 
 CREATE TABLE IF NOT EXISTS trades (
-  id VARCHAR(12) NOT NULL UNIQUE,
-  userid INTEGER REFERENCES users(id),
+  code VARCHAR(12) NOT NULL UNIQUE,
+  usercode VARCHAR(12) REFERENCES users(code),
   createdat TIMESTAMP NOT NULL,
   updatedat TIMESTAMP NOT NULL,
-  deletedat TIMESTAMP,
   exchange VARCHAR(64),
-  firstpair NUMERIC REFERENCES coins(coinid),
-  secondpair NUMERIC REFERENCES coins(coinid),
+  firstpair NUMERIC NOT NULL REFERENCES coins(coinid),
+  secondpair NUMERIC NOT NULL REFERENCES coins(coinid),
   isopen BOOLEAN
 );
 
 CREATE TABLE IF NOT EXISTS subtrades (
-  id SERIAL PRIMARY KEY,
-  tradeid VARCHAR(12) REFERENCES trades(id),
+  code VARCHAR(12) NOT NULL UNIQUE,
+  tradecode VARCHAR(12) REFERENCES trades(code),
+  usercode VARCHAR(12) REFERENCES users(code),
   createdat TIMESTAMP NOT NULL,
   updatedat TIMESTAMP NOT NULL,
-  deletedat TIMESTAMP,
-  tradetimestamp TIMESTAMP,
   type VARCHAR(5),
   reason VARCHAR(64),
   quantity NUMERIC,
@@ -112,3 +110,28 @@ CREATE TABLE IF NOT EXISTS payments (
   createdat TIMESTAMP NOT NULL,
   endat TIMESTAMP NOT NULL
 );
+
+CREATE OR REPLACE FUNCTION notify_changes()
+  RETURNS trigger AS $$
+  BEGIN
+    PERFORM pg_notify(
+      'activity_update',
+      OLD.usercode
+    );
+    RETURN NEW;
+  END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS activity_update ON trades;
+CREATE TRIGGER activity_update
+AFTER INSERT OR UPDATE OR DELETE
+ON trades
+FOR EACH ROW
+EXECUTE PROCEDURE notify_changes();
+
+DROP TRIGGER IF EXISTS activity_update ON subtrades;
+CREATE TRIGGER activity_update
+AFTER INSERT OR UPDATE OR DELETE
+ON subtrades
+FOR EACH ROW
+EXECUTE PROCEDURE notify_changes();

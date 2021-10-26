@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/lib/pq"
 	. "github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,8 +18,8 @@ type UserDetails struct {
 }
 
 type Subtrade struct {
-	Id        int
-	Timestamp string
+	Code      string
+	CreatedAt string
 	Type      string
 	Reason    string
 	Quantity  float64
@@ -27,8 +28,9 @@ type Subtrade struct {
 }
 
 type Trade struct {
-	Id               string
+	Code             string
 	Username         string
+	Usercode         string
 	IsOpen           string
 	Exchange         string
 	FirstPairId      int
@@ -77,48 +79,27 @@ type WsTrade struct {
 
 var tradesWss = make(map[string][]WsTrade)
 
-func InstanciateTradesDispatcher() {
-	for {
-		user_sql := `
-			SELECT DISTINCT
-					u.username
-			FROM subtrades s
-			LEFT JOIN trades t on(s.tradeid=t.id)
-			LEFT JOIN users u ON(t.userid = u.id)
-			WHERE (
-					s.updatedat > current_timestamp - interval '1 seconds' OR
-					t.updatedat > current_timestamp - interval '1 seconds' OR
-					u.updatedat > current_timestamp - interval '1 seconds'
-			);`
-		user_rows, err := Db.Query(user_sql)
-		defer user_rows.Close()
+func InstanciateActivityMonitor() {
+
+	reportProblem := func(ev pq.ListenerEventType, err error) {
 		if err != nil {
-			log.WithFields(log.Fields{
-				"custom_msg": "Failed fetching user_sql",
-			}).Error(err)
-			return
+			fmt.Println(err.Error())
 		}
-		for user_rows.Next() {
-			var username string
-			if err = user_rows.Scan(&username); err != nil {
-				log.WithFields(log.Fields{
-					"custom_msg": "Failed scanning user_sql",
-				}).Error(err)
-				return
-			}
-			go func() {
-				user, err := SelectUser("username", username)
-				if err != nil {
-					log.Warn("User not found")
-					return
-				}
-				userSnapshot := user.GetUserSnapshot()
-				for _, q := range tradesWss[username] {
-					q.Channel <- userSnapshot
-				}
-			}()
+	}
+
+	listener := pq.NewListener(DbUrl, 10*time.Second, time.Minute, reportProblem)
+	err := listener.Listen("activity_update")
+	if err != nil {
+		panic(err)
+	}
+	for {
+		n := <-listener.Notify
+		user_code := n.Extra
+		user, _ := SelectUser("code", user_code)
+		userSnapshot := user.GetUserSnapshot()
+		for _, q := range tradesWss[user.UserName] {
+			q.Channel <- userSnapshot
 		}
-		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -299,10 +280,11 @@ func (user User) SelectUserTrades() (trades []Trade) {
 				WHERE createdat = (SELECT MAX(createdat) FROM prices)),
 			TRADES_MACRO AS (
 				SELECT
-					t.id,
+					t.code,
 					u.username,
+					u.code AS usercode,
 					t.isopen,
-					t.exchange,
+					CASE WHEN t.exchange IS NULL THEN '' ELSE t.exchange END AS exchange,
 					t.firstpair,
 					t.secondpair,
 					CASE
@@ -322,14 +304,15 @@ func (user User) SelectUserTrades() (trades []Trade) {
 						ELSE SUM(CASE WHEN s."type" = 'SELL' THEN s.total END)
 					END AS totalsells
 				FROM trades t
-				LEFT JOIN subtrades s ON(t.id  = s.tradeid)
-				INNER JOIN users u ON(t.userid = u.id)
+				LEFT JOIN subtrades s ON(t.code  = s.tradecode)
+				INNER JOIN users u ON(t.usercode = u.code)
 				WHERE u.username = $1
-				GROUP BY 1, 2, 3, 4, 5, 6),
+				GROUP BY 1, 2, 3, 4, 5, 6, 7),
 			TRADES_MICRO AS (
 				SELECT
-					t.id,
+					t.code,
 					t.username,
+					t.usercode,
 					t.isopen,
 					t.exchange,
 					t.firstpair AS firstpairid,
@@ -357,8 +340,9 @@ func (user User) SelectUserTrades() (trades []Trade) {
 				LEFT JOIN CURRENT_PRICE c1 ON(t.firstpair = c1.coinid)
 				LEFT JOIN CURRENT_PRICE c2 ON(t.secondpair = c2.coinid))
 		SELECT
-			t.id,
+			t.code,
 			t.username,
+			t.usercode,
 			t.isopen,
 			t.exchange,
 			t.firstpairid,
@@ -404,8 +388,9 @@ func (user User) SelectUserTrades() (trades []Trade) {
 	for trades_rows.Next() {
 		trade := Trade{}
 		if err = trades_rows.Scan(
-			&trade.Id,
+			&trade.Code,
 			&trade.Username,
+			&trade.Usercode,
 			&trade.IsOpen,
 			&trade.Exchange,
 			&trade.FirstPairId,
@@ -453,20 +438,20 @@ func (user User) SelectUserTrades() (trades []Trade) {
 func (trade Trade) SelectTradeSubtrades() (subtrades []Subtrade) {
 	subtrades_sql := `
 			SELECT
-				id,
-				type,
-				reason,
-				TO_CHAR(tradetimestamp, 'YYYY-MM-DD"T"HH24:MI'),
+				code,
+				CASE WHEN type IS NULL THEN '' ELSE type END AS type,
+				CASE WHEN reason IS NULL THEN '' ELSE reason END AS reason,
+				TO_CHAR(createdat, 'YYYY-MM-DD"T"HH24:MI'),
 				quantity,
 				avgprice,
 				total
 			FROM subtrades
-			WHERE tradeid = $1
+			WHERE tradecode = $1
 			ORDER BY 1;`
 
 	subtrades_rows, err := Db.Query(
 		subtrades_sql,
-		trade.Id)
+		trade.Code)
 	defer subtrades_rows.Close()
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -479,10 +464,10 @@ func (trade Trade) SelectTradeSubtrades() (subtrades []Subtrade) {
 	for subtrades_rows.Next() {
 		subtrade := Subtrade{}
 		if err = subtrades_rows.Scan(
-			&subtrade.Id,
+			&subtrade.Code,
 			&subtrade.Type,
 			&subtrade.Reason,
-			&subtrade.Timestamp,
+			&subtrade.CreatedAt,
 			&subtrade.Quantity,
 			&subtrade.AvgPrice,
 			&subtrade.Total); err != nil {
