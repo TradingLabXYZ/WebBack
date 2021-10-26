@@ -13,6 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var DbUrl string
 var Db sqlx.DB
 
 var Origins = []string{
@@ -35,7 +36,7 @@ func main() {
 	Db = *setUpDb()
 	defer Db.Close()
 
-	go InstanciateTradesDispatcher()
+	go InstanciateActivityMonitor()
 
 	fmt.Println(Bold(Green("Application is running on port 8080")))
 	log.Fatal(http.ListenAndServe(":8080", h))
@@ -56,9 +57,9 @@ func SetupRoutes() (router *mux.Router) {
 
 	router.HandleFunc("/get_trades/{username}/{requestid}", GetTrades)
 	router.HandleFunc("/insert_trade", InsertTrade).Methods("POST")
-	router.HandleFunc("/close_trade/{tradeid}", CloseTrade).Methods("GET")
-	router.HandleFunc("/open_trade/{tradeid}", OpenTrade).Methods("GET")
-	router.HandleFunc("/delete_trade/{tradeid}", DeleteTrade).Methods("GET")
+	router.HandleFunc("/close_trade/{tradecode}", CloseTrade).Methods("GET")
+	router.HandleFunc("/open_trade/{tradecode}", OpenTrade).Methods("GET")
+	router.HandleFunc("/delete_trade/{tradecode}", DeleteTrade).Methods("GET")
 	router.HandleFunc("/update_trade", UpdateTrade).Methods("POST")
 
 	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
@@ -97,7 +98,7 @@ func setUpDb() (db *sqlx.DB) {
 		DB_NAME = "stagingwebappconnectionpool"
 	}
 
-	WEBAPP_DATABASE_URL := fmt.Sprintf(
+	DbUrl = fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s",
 		os.Getenv("TL_DB_USER"),
 		os.Getenv("TL_DB_PASS"),
@@ -106,10 +107,10 @@ func setUpDb() (db *sqlx.DB) {
 		DB_NAME,
 	)
 
-	db, err := sqlx.Connect("postgres", WEBAPP_DATABASE_URL)
+	db, err := sqlx.Connect("postgres", DbUrl)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"dbname":     WEBAPP_DATABASE_URL,
+			"dbname":     DB_NAME,
 			"custom_msg": "Failed setting up database",
 		}).Error(err)
 		return
@@ -117,7 +118,7 @@ func setUpDb() (db *sqlx.DB) {
 
 	if err = db.Ping(); err != nil {
 		log.WithFields(log.Fields{
-			"dbname":     WEBAPP_DATABASE_URL,
+			"dbname":     DB_NAME,
 			"custom_msg": "Unsucessfully connected with db",
 		}).Error(err)
 		return

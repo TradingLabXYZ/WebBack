@@ -32,7 +32,7 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 		FirstPairId  int    `json:"FirstPair"`
 		SecondPairId int    `json:"SecondPair"`
 		Subtrades    []struct {
-			Timestamp string      `json:"Timestamp"`
+			CreatedAt string      `json:"CreatedAt"`
 			Type      string      `json:"Type"`
 			Reason    string      `json:"Reason"`
 			Quantity  json.Number `json:"Quantity"`
@@ -47,30 +47,31 @@ func InsertTrade(w http.ResponseWriter, r *http.Request) {
 		log.Error(err)
 	}
 
-	var trade_id string
+	var trade_code string
 	trade_sql := `
-		INSERT INTO trades (id, userid, exchange, firstpair, secondpair, createdat, updatedat, isopen)
+		INSERT INTO trades (code, usercode, exchange, firstpair, secondpair, createdat, updatedat, isopen)
 		VALUES (SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2, $3, $4, current_timestamp, current_timestamp, true)
-		RETURNING id;`
+		RETURNING code;`
 	err = Db.QueryRow(
 		trade_sql,
-		user.Id,
+		user.Code,
 		trade.Exchange,
 		trade.FirstPairId,
 		trade.SecondPairId,
-	).Scan(&trade_id)
+	).Scan(&trade_code)
 	if err != nil {
 		log.Error(err)
 	}
 
 	for _, subtrade := range trade.Subtrades {
 		subtrade_sql := `
-		INSERT INTO subtrades (tradeid, tradetimestamp, type, reason, quantity, avgprice, total, createdat, updatedat)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, current_timestamp, current_timestamp)`
+		INSERT INTO subtrades (code, tradecode, usercode, createdat, type, reason, quantity, avgprice, total, updatedat)
+		VALUES (SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2, $3, $4, $5, $6, $7, $8, current_timestamp)`
 		Db.Exec(
 			subtrade_sql,
-			trade_id,
-			subtrade.Timestamp,
+			trade_code,
+			user.Code,
+			subtrade.CreatedAt,
 			subtrade.Type,
 			subtrade.Reason,
 			subtrade.Quantity,
@@ -89,12 +90,13 @@ func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting UpdateTrade..."))
 
 	trade := struct {
-		Id           string `json:"Id"`
+		Code         string `json:"Code"`
+		Usercode     string `json:"Usercode"`
 		Exchange     string `json:"Exchange"`
 		FirstPairId  int    `json:"FirstPairId"`
 		SecondPairId int    `json:"SecondPairId"`
 		Subtrades    []struct {
-			Timestamp string      `json:"Timestamp"`
+			CreatedAt string      `json:"CreatedAt"`
 			Type      string      `json:"Type"`
 			Reason    string      `json:"Reason"`
 			Quantity  json.Number `json:"Quantity"`
@@ -111,17 +113,18 @@ func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 
 	Db.Exec(`
 		DELETE FROM subtrades
-		WHERE tradeid = $1;
-	`, trade.Id)
+		WHERE tradecode = $1;
+	`, trade.Code)
 
 	for _, subtrade := range trade.Subtrades {
 		subtrade_sql := `
-		INSERT INTO subtrades (tradeid, tradetimestamp, type, reason, quantity, avgprice, total, createdat, updatedat)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, current_timestamp, current_timestamp)`
+		INSERT INTO subtrades (code, tradecode, usercode, createdat, type, reason, quantity, avgprice, total, updatedat)
+		VALUES (SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2, $3, $4, $5, $6, $7, $8, current_timestamp)`
 		Db.Exec(
 			subtrade_sql,
-			trade.Id,
-			subtrade.Timestamp,
+			trade.Code,
+			trade.Usercode,
+			subtrade.CreatedAt,
 			subtrade.Type,
 			subtrade.Reason,
 			subtrade.Quantity,
@@ -136,15 +139,15 @@ func UpdateTrade(w http.ResponseWriter, r *http.Request) {
 func CloseTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting CloseTrade..."))
 
-	tradeid := mux.Vars(r)["tradeid"]
+	tradecode := mux.Vars(r)["tradecode"]
 
 	Db.Exec(`
 		UPDATE trades
 		SET
 			isopen = False,
 			updatedat = current_timestamp
-		WHERE id = $1;
-		`, tradeid)
+		WHERE code = $1;
+		`, tradecode)
 
 	json.NewEncoder(w).Encode("OK")
 }
@@ -152,15 +155,15 @@ func CloseTrade(w http.ResponseWriter, r *http.Request) {
 func OpenTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting OpenTrade..."))
 
-	tradeid := mux.Vars(r)["tradeid"]
+	tradecode := mux.Vars(r)["tradecode"]
 
 	Db.Exec(`
 		UPDATE trades
 		SET
 			isopen = True,
 			updatedat = current_timestamp
-		WHERE id = $1;
-		`, tradeid)
+		WHERE code = $1;
+		`, tradecode)
 
 	json.NewEncoder(w).Encode("OK")
 }
@@ -168,30 +171,20 @@ func OpenTrade(w http.ResponseWriter, r *http.Request) {
 func DeleteTrade(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting DeleteTrade..."))
 
-	tradeid := mux.Vars(r)["tradeid"]
+	tradecode := mux.Vars(r)["tradecode"]
 
 	Db.Exec(`
 		DELETE FROM subtrades
-		WHERE tradeid IN (
-			SELECT id
+		WHERE tradecode IN (
+			SELECT code
 			FROM trades
-			WHERE id = $1);
-		`, tradeid)
-
-	Db.Exec(`
-		UPDATE users
-		SET updatedat = current_timestamp
-		WHERE id = (
-			SELECT
-				userid
-			FROM trades
-			WHERE id = $1);
-		`, tradeid)
+			WHERE code = $1);
+		`, tradecode)
 
 	Db.Exec(`
 		DELETE FROM trades
-		WHERE id = $1;
-		`, tradeid)
+		WHERE code = $1;
+		`, tradecode)
 
 	json.NewEncoder(w).Encode("OK")
 }
