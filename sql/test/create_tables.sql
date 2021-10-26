@@ -53,15 +53,17 @@ CREATE TABLE IF NOT EXISTS trades (
 
 CREATE TABLE IF NOT EXISTS subtrades (
   code VARCHAR(12) NOT NULL UNIQUE,
-  tradecode VARCHAR(12) REFERENCES trades(code),
-  usercode VARCHAR(12) REFERENCES users(code),
+  tradecode VARCHAR(12) NOT NULL,
+  usercode VARCHAR(12) NOT NULL REFERENCES users(code),
   createdat TIMESTAMP NOT NULL,
   updatedat TIMESTAMP NOT NULL,
   type VARCHAR(5),
   reason VARCHAR(64),
   quantity NUMERIC,
   avgprice NUMERIC,
-  total NUMERIC
+  total NUMERIC,
+  CONSTRAINT trades_code_fkey FOREIGN KEY (tradecode)
+    REFERENCES trades (code) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS followers (
@@ -118,7 +120,7 @@ CREATE OR REPLACE FUNCTION notify_changes()
       'activity_update',
       OLD.usercode
     );
-    RETURN NEW;
+    RETURN OLD;
   END;
 $$ LANGUAGE plpgsql;
 

@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"errors"
 	"fmt"
+	mathrand "math/rand"
 
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
@@ -37,4 +38,13 @@ func CreateUUID() (uuid string, err error) {
 	u[6] = (u[6] & 0xF) | (0x4 << 4)
 	uuid = fmt.Sprintf("%x-%x-%x-%x-%x", u[0:4], u[4:6], u[6:8], u[8:10], u[10:])
 	return
+}
+
+func RandStringBytes(n int) string {
+	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[mathrand.Intn(len(letterBytes))]
+	}
+	return string(b)
 }

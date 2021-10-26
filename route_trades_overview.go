@@ -94,6 +94,7 @@ func InstanciateActivityMonitor() {
 	}
 	for {
 		n := <-listener.Notify
+		fmt.Println("MESSAGGIO RICEVUTO")
 		user_code := n.Extra
 		user, _ := SelectUser("code", user_code)
 		userSnapshot := user.GetUserSnapshot()
@@ -140,16 +141,18 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 	}
 	ws, _ := upgrader.Upgrade(w, r, nil)
 
-	wsTradeOutput := userToSee.GetUserSnapshot()
-	err = ws.WriteJSON(wsTradeOutput)
-	if err != nil {
-		ws.Close()
-		log.WithFields(log.Fields{
-			"sessionid":  requestid,
-			"username":   username,
-			"custom_msg": "Failed running sending initial snapshot",
-		}).Error(err)
-		return
+	ws_trade_output := userToSee.GetUserSnapshot()
+	if len(ws_trade_output.Trades) > 0 {
+		err = ws.WriteJSON(ws_trade_output)
+		if err != nil {
+			ws.Close()
+			log.WithFields(log.Fields{
+				"sessionid":  requestid,
+				"username":   username,
+				"custom_msg": "Failed running sending initial snapshot",
+			}).Error(err)
+			return
+		}
 	}
 
 	// RECEIVE MESSAGES
@@ -181,6 +184,7 @@ func GetTrades(w http.ResponseWriter, r *http.Request) {
 		for {
 			s1 := <-c
 			if s1.UserDetails.Username == username {
+				fmt.Println("MESSAGGIO DA MANDARE")
 				err := ws.WriteJSON(s1)
 				if err != nil {
 					ws.Close()
