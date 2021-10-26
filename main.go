@@ -56,11 +56,11 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/user_premium_data", GetUserPremiumData).Methods("GET")
 
 	router.HandleFunc("/get_trades/{username}/{requestid}", GetTrades)
-	router.HandleFunc("/insert_trade", InsertTrade).Methods("POST")
+	router.HandleFunc("/insert_trade", CreateTrade).Methods("POST")
 	router.HandleFunc("/close_trade/{tradecode}", CloseTrade).Methods("GET")
 	router.HandleFunc("/open_trade/{tradecode}", OpenTrade).Methods("GET")
 	router.HandleFunc("/delete_trade/{tradecode}", DeleteTrade).Methods("GET")
-	router.HandleFunc("/update_trade", UpdateTrade).Methods("POST")
+	router.HandleFunc("/update_subtrade", UpdateSubtrade).Methods("POST")
 
 	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
 	router.HandleFunc("/stellar_price", SelectStellarPrice).Methods("GET")
