@@ -118,18 +118,11 @@ CREATE OR REPLACE FUNCTION notify_changes()
   BEGIN
     PERFORM pg_notify(
       'activity_update',
-      OLD.usercode
+      CASE WHEN OLD.usercode IS NULL THEN NEW.usercode ELSE OLD.usercode END
     );
     RETURN OLD;
   END;
 $$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS activity_update ON trades;
-CREATE TRIGGER activity_update
-AFTER INSERT OR UPDATE OR DELETE
-ON trades
-FOR EACH ROW
-EXECUTE PROCEDURE notify_changes();
 
 DROP TRIGGER IF EXISTS activity_update ON subtrades;
 CREATE TRIGGER activity_update

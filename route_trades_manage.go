@@ -31,6 +31,17 @@ type NewTrade struct {
 	Code     string
 }
 
+type NewSubTrade struct {
+	CreatedAt string      `json:"CreatedAt"`
+	Type      string      `json:"Type"`
+	Reason    string      `json:"Reason"`
+	TradeCode string      `json:"TradeCode"`
+	Quantity  json.Number `json:"Quantity"`
+	AvgPrice  json.Number `json:"AvgPrice"`
+	Total     json.Number `json:"Total"`
+	Usercode  string
+}
+
 func CreateTrade(w http.ResponseWriter, r *http.Request) {
 	session, err := GetSession(r, "header")
 	if err != nil {
@@ -90,6 +101,7 @@ func (new_trade *NewTrade) InsertSubTrades() {
 	timeNow := time.Now()
 
 	for i, subtrade := range new_trade.Subtrades {
+		rand_subtrade_code := RandStringBytes(12)
 		str1 := "$" + strconv.Itoa(1+i*10) + ","
 		str2 := "$" + strconv.Itoa(2+i*10) + ","
 		str3 := "$" + strconv.Itoa(3+i*10) + ","
@@ -102,7 +114,7 @@ func (new_trade *NewTrade) InsertSubTrades() {
 		str10 := "$" + strconv.Itoa(10+i*10)
 		str_n := "(" + str1 + str2 + str3 + str4 + str5 + str6 + str7 + str8 + str9 + str10 + ")"
 		valueStrings = append(valueStrings, str_n)
-		valueArgs = append(valueArgs, RandStringBytes(12))
+		valueArgs = append(valueArgs, rand_subtrade_code)
 		valueArgs = append(valueArgs, new_trade.Code)
 		valueArgs = append(valueArgs, new_trade.Usercode)
 		valueArgs = append(valueArgs, subtrade.CreatedAt)
@@ -115,10 +127,57 @@ func (new_trade *NewTrade) InsertSubTrades() {
 	}
 
 	smt := fmt.Sprintf(subtrade_sql, strings.Join(valueStrings, ","))
+
 	_, err := Db.Exec(smt, valueArgs...)
 	if err != nil {
 		panic(err.Error())
 	}
+}
+
+func CreateSubtrade(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.Warn("User not log in")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	user, err := SelectUser("email", session.Email)
+	if err != nil {
+		log.Warn("User not found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	new_subtrade := NewSubTrade{
+		Usercode: user.Code,
+	}
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&new_subtrade)
+	if err != nil {
+		log.Error(err)
+	}
+
+	subtrade_sql := `
+		INSERT INTO subtrades (
+			code, tradecode, usercode, 
+			createdat, type, reason, 
+			quantity, avgprice, total, updatedat)
+		VALUES (SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2, $3, $4, $5, $6, $7, $8, current_timestamp)`
+	Db.Exec(
+		subtrade_sql,
+		new_subtrade.TradeCode,
+		new_subtrade.Usercode,
+		new_subtrade.CreatedAt,
+		new_subtrade.Type,
+		new_subtrade.Reason,
+		new_subtrade.Quantity,
+		new_subtrade.AvgPrice,
+		new_subtrade.Total,
+	)
+	if err != nil {
+		log.Error(err)
+	}
+	return
 }
 
 func UpdateSubtrade(w http.ResponseWriter, r *http.Request) {
@@ -186,8 +245,13 @@ func CloseTrade(w http.ResponseWriter, r *http.Request) {
 		SET
 			isopen = False,
 			updatedat = current_timestamp
-		WHERE code = $1;
-		`, tradecode)
+		WHERE code = $1;`, tradecode)
+
+	Db.Exec(`
+		UPDATE subtrades
+		SET
+			updatedat = current_timestamp
+		WHERE tradecode = $1;`, tradecode)
 
 	json.NewEncoder(w).Encode("OK")
 }
@@ -209,8 +273,13 @@ func OpenTrade(w http.ResponseWriter, r *http.Request) {
 		SET
 			isopen = True,
 			updatedat = current_timestamp
-		WHERE code = $1;
-		`, tradecode)
+		WHERE code = $1;`, tradecode)
+
+	Db.Exec(`
+		UPDATE subtrades
+		SET
+			updatedat = current_timestamp
+		WHERE tradecode = $1;`, tradecode)
 
 	json.NewEncoder(w).Encode("OK")
 }
