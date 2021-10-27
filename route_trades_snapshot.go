@@ -1,14 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-	"time"
-
-	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
-	"github.com/lib/pq"
-	. "github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -63,7 +55,7 @@ type Trade struct {
 	Subtrades        []Subtrade
 }
 
-type TradesOutput struct {
+type TradesSnapshot struct {
 	UserDetails    UserDetails
 	Trades         []Trade
 	CountTrades    float64
@@ -72,200 +64,15 @@ type TradesOutput struct {
 	Roi            float64
 }
 
-type WsTrade struct {
-	Channel   chan TradesOutput
-	RequestId string
-}
+func (user User) GetSnapshot() (snapshot TradesSnapshot) {
 
-var tradesWss = make(map[string][]WsTrade)
-
-func InstanciateActivityMonitor() {
-
-	reportProblem := func(ev pq.ListenerEventType, err error) {
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-	}
-
-	listener := pq.NewListener(DbUrl, 10*time.Second, time.Minute, reportProblem)
-	err := listener.Listen("activity_update")
-	if err != nil {
-		panic(err)
-	}
-	for {
-		n := <-listener.Notify
-		fmt.Println("MESSAGGIO RICEVUTO")
-		user_code := n.Extra
-		user, _ := SelectUser("code", user_code)
-		userSnapshot := user.GetUserSnapshot()
-		for _, q := range tradesWss[user.UserName] {
-			q.Channel <- userSnapshot
-		}
-	}
-}
-
-func GetTrades(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting GetTrades..."))
-
-	username := mux.Vars(r)["username"]
-	userToSee, err := SelectUser("username", username)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		log.Warn("User not found")
-		return
-	}
-
-	status := CheckPrivacy(r, userToSee)
-	if status != "OK" {
-		w.Write([]byte(status))
-		return
-	}
-
-	c := make(chan TradesOutput)
-	requestid := mux.Vars(r)["requestid"]
-	listener := WsTrade{c, requestid}
-	tradesWss[username] = append(tradesWss[username], listener)
-
-	var upgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-	}
-
-	upgrader.CheckOrigin = func(r *http.Request) bool {
-		for _, origin := range Origins {
-			if origin == r.Header["Origin"][0] {
-				return true
-			}
-		}
-		return false
-	}
-	ws, _ := upgrader.Upgrade(w, r, nil)
-
-	ws_trade_output := userToSee.GetUserSnapshot()
-	if len(ws_trade_output.Trades) > 0 {
-		err = ws.WriteJSON(ws_trade_output)
-		if err != nil {
-			ws.Close()
-			log.WithFields(log.Fields{
-				"sessionid":  requestid,
-				"username":   username,
-				"custom_msg": "Failed running sending initial snapshot",
-			}).Error(err)
-			return
-		}
-	}
-
-	// RECEIVE MESSAGES
-	go func() {
-		for {
-			_, _, err := ws.ReadMessage()
-			if err != nil {
-				for i, v := range tradesWss[username] {
-					if v.RequestId == requestid {
-						tradesWss[username] = append(tradesWss[username][:i], tradesWss[username][i+1:]...)
-					}
-				}
-				ws.Close()
-				return
-			} else {
-				ws.Close()
-				log.WithFields(log.Fields{
-					"sessionid":  requestid,
-					"username":   username,
-					"custom_msg": "Failed running receiving trades ws",
-				}).Error(err)
-				return
-			}
-		}
-	}()
-
-	// SEND MESSAGES
-	go func() {
-		for {
-			s1 := <-c
-			if s1.UserDetails.Username == username {
-				fmt.Println("MESSAGGIO DA MANDARE")
-				err := ws.WriteJSON(s1)
-				if err != nil {
-					ws.Close()
-					log.WithFields(log.Fields{
-						"sessionid":  requestid,
-						"username":   username,
-						"custom_msg": "Failed running sending snapshot",
-					}).Error(err)
-					return
-				}
-			}
-		}
-	}()
-}
-
-func CheckPrivacy(request *http.Request, userToSee User) (status string) {
-	fmt.Println(Gray(8-1, "Starting CheckUserPrivacy..."))
-
-	if userToSee.Privacy == "all" {
-		return "OK"
-	}
-
-	session, err := GetSession(request, "cookie")
-	if err != nil {
-		return "KO"
-	}
-
-	user, err := SelectUser("email", session.Email)
-	if err != nil {
-		return "KO"
-	}
-
-	if user.Id == userToSee.Id {
-		return "OK"
-	}
-
-	switch userToSee.Privacy {
-	case "private":
-		return `{"Status": "denied", "Reason": "private"}`
-	case "followers":
-		var isfollower bool
-		_ = Db.QueryRow(`
-					SELECT TRUE
-					FROM followers
-					WHERE followto = $1
-					AND followfrom = $2;`, user.Id, userToSee.Id).Scan(
-			&isfollower,
-		)
-		if isfollower {
-			return "OK"
-		} else {
-			return `{"Status": "denied", "Reason": "follow"}`
-		}
-	case "subscribers":
-		var issubscriber bool
-		_ = Db.QueryRow(`
-					SELECT TRUE
-					FROM subscribers
-					WHERE subscribeto = $1
-					AND subscribefrom = $2;`, user.Id, userToSee.Id).Scan(
-			&issubscriber,
-		)
-		if issubscriber {
-			return "OK"
-		} else {
-			return `{"Status": "denied", "Reason": "subscribe"}`
-		}
-	default:
-		return `{"Status": "denied", "Reason": "unknown"}`
-	}
-}
-
-func (user User) GetUserSnapshot() (tradesOutput TradesOutput) {
-
-	tradesOutput.UserDetails = UserDetails{
+	snapshot.UserDetails = UserDetails{
 		user.UserName,
 		user.Twitter,
 	}
 
-	tradesOutput.Trades = user.SelectUserTrades()
-	tradesOutput.CalculateTradesTotals()
+	snapshot.Trades = user.SelectUserTrades()
+	snapshot.CalculateTradesTotals()
 	return
 }
 
@@ -486,20 +293,22 @@ func (trade Trade) SelectTradeSubtrades() (subtrades []Subtrade) {
 	return
 }
 
-func (tradesOutput *TradesOutput) CalculateTradesTotals() {
-	var totalReturnBtc float64
-	var totalReturnUsd float64
-	var totalBuysBtc float64
-	var totalSellBtc float64
-	var futureReturnBtc float64
-	for _, trade := range tradesOutput.Trades {
+func (snapshot *TradesSnapshot) CalculateTradesTotals() {
+	var (
+		totalReturnBtc  float64
+		totalReturnUsd  float64
+		totalBuysBtc    float64
+		totalSellBtc    float64
+		futureReturnBtc float64
+	)
+	for _, trade := range snapshot.Trades {
 		totalReturnBtc = totalReturnBtc + trade.TotalReturnBtc
 		totalReturnUsd = totalReturnUsd + trade.TotalReturnUsd
 		totalBuysBtc = totalBuysBtc + trade.TotalBuysBtc
 		totalSellBtc = totalSellBtc + trade.TotalSellsBtc
 		futureReturnBtc = futureReturnBtc + trade.FutureReturnBtc
 	}
-	tradesOutput.TotalReturnBtc = totalReturnBtc
-	tradesOutput.TotalReturnUsd = totalReturnUsd
-	tradesOutput.Roi = ((futureReturnBtc+totalSellBtc)/totalBuysBtc - 1) * 100
+	snapshot.TotalReturnBtc = totalReturnBtc
+	snapshot.TotalReturnUsd = totalReturnUsd
+	snapshot.Roi = ((futureReturnBtc+totalSellBtc)/totalBuysBtc - 1) * 100
 }

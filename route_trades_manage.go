@@ -115,9 +115,6 @@ func (new_trade *NewTrade) InsertSubTrades() {
 	}
 
 	smt := fmt.Sprintf(subtrade_sql, strings.Join(valueStrings, ","))
-
-	fmt.Println(smt)
-
 	_, err := Db.Exec(smt, valueArgs...)
 	if err != nil {
 		panic(err.Error())

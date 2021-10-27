@@ -15,15 +15,7 @@ import (
 
 var DbUrl string
 var Db sqlx.DB
-
-var Origins = []string{
-	"http://localhost:9000",
-	"https://tradinglab.xyz",
-	"https://www.tradinglab.xyz",
-	"https://staging.tradinglab.xyz",
-	"https://hoofcoffee-wet0e0.stormkit.dev",
-	"https://hoofcoffee-wet0e0--staging.stormkit.dev",
-}
+var trades_wss = make(map[string][]WsTrade)
 
 func main() {
 
@@ -55,7 +47,7 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
 	router.HandleFunc("/user_premium_data", GetUserPremiumData).Methods("GET")
 
-	router.HandleFunc("/get_trades/{username}/{requestid}", GetTrades)
+	router.HandleFunc("/get_trades/{username}/{requestid}", StartTradesWs)
 	router.HandleFunc("/insert_trade", CreateTrade).Methods("POST")
 	router.HandleFunc("/close_trade/{tradecode}", CloseTrade).Methods("GET")
 	router.HandleFunc("/open_trade/{tradecode}", OpenTrade).Methods("GET")
@@ -125,6 +117,15 @@ func setUpDb() (db *sqlx.DB) {
 	}
 
 	return
+}
+
+var Origins = []string{
+	"http://localhost:9000",
+	"https://tradinglab.xyz",
+	"https://www.tradinglab.xyz",
+	"https://staging.tradinglab.xyz",
+	"https://hoofcoffee-wet0e0.stormkit.dev",
+	"https://hoofcoffee-wet0e0--staging.stormkit.dev",
 }
 
 func SetUpCors() (c *cors.Cors) {
