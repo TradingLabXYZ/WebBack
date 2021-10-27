@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -311,4 +313,7 @@ func (snapshot *TradesSnapshot) CalculateTradesTotals() {
 	snapshot.TotalReturnBtc = totalReturnBtc
 	snapshot.TotalReturnUsd = totalReturnUsd
 	snapshot.Roi = ((futureReturnBtc+totalSellBtc)/totalBuysBtc - 1) * 100
+	if math.IsNaN(snapshot.Roi) || math.IsInf(snapshot.Roi, 0) {
+		snapshot.Roi = 0
+	}
 }

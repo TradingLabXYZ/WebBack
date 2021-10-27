@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	mathrand "math/rand"
+	"time"
 
 	_ "github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
@@ -41,10 +42,11 @@ func CreateUUID() (uuid string, err error) {
 }
 
 func RandStringBytes(n int) string {
+	r := mathrand.New(mathrand.NewSource(time.Now().UnixNano()))
 	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	b := make([]byte, n)
 	for i := range b {
-		b[i] = letterBytes[mathrand.Intn(len(letterBytes))]
+		b[i] = letterBytes[r.Intn(len(letterBytes))]
 	}
 	return string(b)
 }
