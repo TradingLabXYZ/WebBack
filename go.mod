@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/aws/aws-sdk-go v1.40.59
+	github.com/getsentry/sentry-go v0.11.0 // indirect
 	github.com/go-playground/validator v9.31.0+incompatible // indirect
 	github.com/go-playground/validator/v10 v10.9.0 // indirect
 	github.com/gorilla/mux v1.8.0

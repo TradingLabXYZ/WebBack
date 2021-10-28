@@ -2,12 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
-	. "github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,10 +30,13 @@ type NewTrade struct {
 }
 
 func CreateTrade(w http.ResponseWriter, r *http.Request) {
-	_, err := GetSession(r, "header")
+
+	session, err := GetSession(r, "header")
 	if err != nil {
-		log.Warn("User not log in")
-		w.WriteHeader(http.StatusNotFound)
+		log.WithFields(log.Fields{
+			"custom_msg": "Failed creating trade, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
@@ -43,6 +45,7 @@ func CreateTrade(w http.ResponseWriter, r *http.Request) {
 	err = decoder.Decode(&new_trade)
 	if err != nil {
 		log.WithFields(log.Fields{
+			"sessionid":  session.Uuid,
 			"custom_msg": "Failed decoding new trade payload",
 		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -51,15 +54,23 @@ func CreateTrade(w http.ResponseWriter, r *http.Request) {
 
 	err = new_trade.InsertTrade()
 	if err != nil {
+		log.WithFields(log.Fields{
+			"sessionid": session.Uuid,
+		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	err = new_trade.InsertSubTrades()
 	if err != nil {
+		log.WithFields(log.Fields{
+			"sessionid": session.Uuid,
+		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (new_trade *NewTrade) InsertTrade() (err error) {
@@ -88,78 +99,111 @@ func (new_trade *NewTrade) InsertTrade() (err error) {
 	return
 }
 
-func CloseTrade(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting CloseTrade..."))
+func ChangeTradeStatus(w http.ResponseWriter, r *http.Request) {
 
-	_, err := GetSession(r, "header")
+	session, err := GetSession(r, "header")
 	if err != nil {
-		log.Warn("User not log in")
-		w.WriteHeader(http.StatusNotFound)
+		log.WithFields(log.Fields{
+			"custom_msg": "Failed changing trade status, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	tradecode := mux.Vars(r)["tradecode"]
-
-	Db.Exec(`
-		UPDATE trades
-		SET
-			isopen = False,
-			updatedat = current_timestamp
-		WHERE code = $1;`, tradecode)
-
-	Db.Exec(`
-		UPDATE subtrades
-		SET
-			updatedat = current_timestamp
-		WHERE tradecode = $1;`, tradecode)
-
-	json.NewEncoder(w).Encode("OK")
-}
-
-func OpenTrade(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting OpenTrade..."))
-
-	_, err := GetSession(r, "header")
-	if err != nil {
-		log.Warn("User not log in")
-		w.WriteHeader(http.StatusNotFound)
+	if tradecode == "" {
+		log.WithFields(log.Fields{
+			"session":    session.Uuid,
+			"custom_msg": "Failed chainging trade status, empty tradecode",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	tradecode := mux.Vars(r)["tradecode"]
+	to_status_string := mux.Vars(r)["tostatus"]
+	to_status, err := strconv.ParseBool(to_status_string)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"session":    session.Uuid,
+			"custom_msg": "Failed changing trade status, wrong bool",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-	Db.Exec(`
+	var sentinel_1 string
+	err = Db.QueryRow(`
 		UPDATE trades
 		SET
-			isopen = True,
+			isopen = $1,
 			updatedat = current_timestamp
-		WHERE code = $1;`, tradecode)
+		WHERE code = $2
+		RETURNING usercode;`, to_status, tradecode).Scan(&sentinel_1)
+	if err != nil || sentinel_1 == "" {
+		log.WithFields(log.Fields{
+			"session":    session.Uuid,
+			"tradecode":  tradecode,
+			"custom_msg": "Failed chainging trade status, UPDATE trades",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-	Db.Exec(`
+	var sentinel_2 string
+	err = Db.QueryRow(`
 		UPDATE subtrades
 		SET
 			updatedat = current_timestamp
-		WHERE tradecode = $1;`, tradecode)
+		WHERE tradecode = $1
+		RETURNING usercode;`, tradecode).Scan(&sentinel_2)
+	if err != nil || sentinel_2 == "" {
+		log.WithFields(log.Fields{
+			"session":    session.Uuid,
+			"tradecode":  tradecode,
+			"custom_msg": "Failed chainging trade status, UPDATE subtrades",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-	json.NewEncoder(w).Encode("OK")
+	w.WriteHeader(http.StatusOK)
 }
 
 func DeleteTrade(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting DeleteTrade..."))
 
-	_, err := GetSession(r, "header")
+	session, err := GetSession(r, "header")
 	if err != nil {
-		log.Warn("User not log in")
-		w.WriteHeader(http.StatusNotFound)
+		log.WithFields(log.Fields{
+			"custom_msg": "Failed deleting trade, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	tradecode := mux.Vars(r)["tradecode"]
+	if tradecode == "" {
+		log.WithFields(log.Fields{
+			"session":    session.Uuid,
+			"custom_msg": "Failed deleting trade, empty tradecode",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-	Db.Exec(`
+	var sentinel_1 string
+	err = Db.QueryRow(`
 		DELETE FROM trades
-		WHERE code = $1;
-		`, tradecode)
+		WHERE code = $1
+		RETURNING usercode;`, tradecode).Scan(&sentinel_1)
+	if err != nil || sentinel_1 == "" {
+		log.WithFields(log.Fields{
+			"session":    session.Uuid,
+			"tradecode":  tradecode,
+			"custom_msg": "Failed deleting trade",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
-	json.NewEncoder(w).Encode("OK")
+	w.WriteHeader(http.StatusOK)
 }

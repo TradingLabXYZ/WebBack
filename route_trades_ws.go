@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -19,7 +18,6 @@ type WsTrade struct {
 }
 
 func StartTradesWs(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting GetTrades..."))
 
 	request_id := mux.Vars(r)["requestid"]
 	username := mux.Vars(r)["username"]
@@ -56,7 +54,6 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 }
 
 func CheckPrivacy(request *http.Request, userToSee User) (status string) {
-	fmt.Println(Gray(8-1, "Starting CheckUserPrivacy..."))
 
 	if userToSee.Privacy == "all" {
 		return "OK"
