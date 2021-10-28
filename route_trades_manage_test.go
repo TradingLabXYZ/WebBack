@@ -2,9 +2,10 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gorilla/mux"
 )
 
 func TestCreateTrade(t *testing.T) {
@@ -82,7 +83,7 @@ func TestCreateTrade(t *testing.T) {
 	w = httptest.NewRecorder()
 	CreateTrade(w, req)
 	res = w.Result()
-	if res.StatusCode != 404 {
+	if res.StatusCode != 401 {
 		t.Fatal("Failed test insert trade not valid cookie")
 	}
 
@@ -98,7 +99,7 @@ func TestCreateTrade(t *testing.T) {
 	w = httptest.NewRecorder()
 	CreateTrade(w, req)
 	res = w.Result()
-	if res.StatusCode != 404 {
+	if res.StatusCode != 401 {
 		t.Fatal("Failed test insert trade not present cookie")
 	}
 
@@ -219,7 +220,14 @@ func TestInsertTrade(t *testing.T) {
 	}
 }
 
-func TestCloseTrade(t *testing.T) {
+func TestChangeTradeStatus(t *testing.T) {
+
+	// Preliminary data upload
+	Db.Exec(`
+		INSERT INTO coins (coinid, name, symbol, slug)
+		VALUES
+			(9999, 'TestCoin', 'TC', 'testcoin'),
+			(8888, 'TestCoin2', 'TC2', 'testcoin')`)
 
 	var user_id int
 	_ = Db.QueryRow(
@@ -249,37 +257,220 @@ func TestCloseTrade(t *testing.T) {
 	}
 	session, _ := user.CreateSession()
 
-	var trade_code string // SONO ARRIVATO QUI
-	_ = Db.QueryRow(`
-		INSERT INTO trades	
-
-	`).Scan(&trade_code)
-	fmt.Println(trade_code)
-
-	req := httptest.NewRequest("GET", "/close_trade"+trade_code, nil)
-	req.Header.Set("Authorization", "Bearer sessionId="+session.Uuid)
+	// Test wrong header
+	req := httptest.NewRequest("GET", "/change_trade", nil)
+	req.Header.Set("Authorization", "Bearer sessionId=")
 	w := httptest.NewRecorder()
-	CloseTrade(w, req)
+	ChangeTradeStatus(w, req)
 	res := w.Result()
-	if res.StatusCode != 200 {
-		t.Fatal("Failed test insert trade with subtrade")
+	if res.StatusCode != 401 {
+		t.Fatal("Failed test change trade status, wrong header")
+	}
+
+	// Test empty tradecode
+	req = httptest.NewRequest("GET", "/change_trade", nil)
+	req.Header.Set("Authorization", "Bearer sessionId="+session.Uuid)
+	w = httptest.NewRecorder()
+	ChangeTradeStatus(w, req)
+	res = w.Result()
+	if res.StatusCode != 400 {
+		t.Fatal("Failed test change trade status, empty tradecode")
+	}
+
+	// Test not existing tradecode
+	req = httptest.NewRequest("GET", "/change_trade", nil)
+	vars := map[string]string{
+		"tradecode": "TEGDGDHGKJEHS",
+		"tostatus":  "true",
+	}
+	req = mux.SetURLVars(req, vars)
+	req.Header.Set("Authorization", "Bearer sessionId="+session.Uuid)
+	w = httptest.NewRecorder()
+	ChangeTradeStatus(w, req)
+	res = w.Result()
+	if res.StatusCode != 400 {
+		t.Fatal("Failed test change trade status, not existing tradecode")
+	}
+
+	// Test change trade status to false
+	Db.Exec(`
+		INSERT INTO trades(
+			code,
+			usercode,
+			createdat,
+			updatedat,
+			firstpair,
+			secondpair,
+			isopen
+		) VALUES (
+			'PQPQP',
+			'QPQPQPQ',
+			current_timestamp,
+			current_timestamp,
+			9999,
+			8888,
+			TRUE);`)
+
+	req = httptest.NewRequest("GET", "/change_trade", nil)
+	vars = map[string]string{
+		"tradecode": "PQPQP",
+		"tostatus":  "false",
+	}
+	req = mux.SetURLVars(req, vars)
+	req.Header.Set("Authorization", "Bearer sessionId="+session.Uuid)
+	w = httptest.NewRecorder()
+	ChangeTradeStatus(w, req)
+	isopen := false
+	_ = Db.QueryRow(`
+		SELECT
+			isopen
+		FROM trades
+		WHERE code = 'PQPQP'`).Scan(isopen)
+	if isopen {
+		t.Fatal("Failed test change trade status, true to false")
+	}
+
+	// Test change trade status to true
+	Db.Exec(`
+		INSERT INTO trades(
+			code,
+			usercode,
+			createdat,
+			updatedat,
+			firstpair,
+			secondpair,
+			isopen
+		) VALUES (
+			'PQPQP',
+			'QPQPQPQ',
+			current_timestamp,
+			current_timestamp,
+			9999,
+			8888,
+			FALSE);`)
+
+	req = httptest.NewRequest("GET", "/change_trade", nil)
+	vars = map[string]string{
+		"tradecode": "PQPQP",
+		"tostatus":  "true",
+	}
+	req = mux.SetURLVars(req, vars)
+	req.Header.Set("Authorization", "Bearer sessionId="+session.Uuid)
+	w = httptest.NewRecorder()
+	ChangeTradeStatus(w, req)
+	isopen = true
+	_ = Db.QueryRow(`SELECT isopen FROM trades WHERE code = 'PQPQP'`).Scan(isopen)
+	if !isopen {
+		t.Fatal("Failed test change trade status, false to true")
 	}
 }
 
-/* new_subtrades = []NewSubtrade{
-	{
-		CreatedAt: "2021dsd",
-		Type:      "BUY",
-		Reason:    "Volume",
-		Quantity:  "1",
-		AvgPrice:  "30000",
-		Total:     "30000",
-	},
+func TestDeleteTrade(t *testing.T) {
+
+	// Preliminary data upload
+	Db.Exec(`
+		INSERT INTO coins (coinid, name, symbol, slug)
+		VALUES
+			(367213, 'TestCoin', 'TC', 'testcoin'),
+			(123123, 'TestCoin2', 'TC2', 'testcoin')`)
+
+	var user_id int
+	_ = Db.QueryRow(
+		`INSERT INTO users (
+			code,
+			email,
+			username,
+			password,
+			privacy,
+			plan,
+			createdat,
+			updatedat)
+		VALUES (
+			'MBMBMBM',
+			'MBMBMBM@r.r',
+			'MBMBMBM',
+			'testpassword',
+			'all',
+			'basic',
+			current_timestamp,
+			current_timestamp)
+		RETURNING id;`).Scan(&user_id)
+
+	user := User{
+		Id:    user_id,
+		Email: "pqpqpq@r.r",
+	}
+	session, _ := user.CreateSession()
+	_ = session
+
+	Db.Exec(`
+		INSERT INTO trades(
+			code,
+			usercode,
+			createdat,
+			updatedat,
+			firstpair,
+			secondpair,
+			isopen
+		) VALUES (
+			'MBMBMBM',
+			'MBMBMBM',
+			current_timestamp,
+			current_timestamp,
+			9999,
+			8888,
+			TRUE);`)
+
+	// Test wrong header
+	req := httptest.NewRequest("GET", "/delete_trade", nil)
+	req.Header.Set("Authorization", "Bearer sessionId=")
+	w := httptest.NewRecorder()
+	DeleteTrade(w, req)
+	res := w.Result()
+	if res.StatusCode != 401 {
+		t.Fatal("Failed test delete trade, wrong header")
+	}
+
+	// Test empty tradecode
+	req = httptest.NewRequest("GET", "/delete_trade", nil)
+	req.Header.Set("Authorization", "Bearer sessionId="+session.Uuid)
+	w = httptest.NewRecorder()
+	DeleteTrade(w, req)
+	res = w.Result()
+	if res.StatusCode != 400 {
+		t.Fatal("Failed test delete, empty tradecode")
+	}
+
+	// Test not existing tradecode
+	req = httptest.NewRequest("GET", "/delete_trade", nil)
+	vars := map[string]string{
+		"tradecode": "TEGDGDHGKJEHS",
+	}
+	req = mux.SetURLVars(req, vars)
+	req.Header.Set("Authorization", "Bearer sessionId="+session.Uuid)
+	w = httptest.NewRecorder()
+	DeleteTrade(w, req)
+	res = w.Result()
+	if res.StatusCode != 400 {
+		t.Fatal("Failed delete trade, not existing tradecode")
+	}
+
+	// Test successfully delete trade previously created
+	req = httptest.NewRequest("GET", "/delete_trade", nil)
+	vars = map[string]string{
+		"tradecode": "MBMBMBM",
+	}
+	req = mux.SetURLVars(req, vars)
+	req.Header.Set("Authorization", "Bearer sessionId="+session.Uuid)
+	w = httptest.NewRecorder()
+	DeleteTrade(w, req)
+	var tradecode string
+	_ = Db.QueryRow(`
+		SELECT
+			code
+		FROM trades
+		WHERE code = 'MBMBMBM'`).Scan(tradecode)
+	if tradecode != "" {
+		t.Fatal("Failed deleting trade")
+	}
 }
-new_trade = NewTrade{
-	Exchange:     "Binance",
-	FirstPairId:  1000,
-	SecondPairId: 1001,
-	Usercode:     "JFJFJF",
-	Subtrades:    new_subtrades,
-} */

@@ -5,7 +5,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
+	sentry "github.com/getsentry/sentry-go"
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	. "github.com/logrusorgru/aurora"
@@ -18,6 +20,16 @@ var Db sqlx.DB
 var trades_wss = make(map[string][]WsTrade)
 
 func main() {
+
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn: "https://99a5eb64ecb041abb66d2809bcd4e101@o1054584.ingest.sentry.io/6040036",
+	})
+	if err != nil {
+		log.Fatalf("sentry.Init: %s", err)
+	}
+	defer sentry.Flush(2 * time.Second)
+
+	sentry.CaptureMessage("It works!")
 
 	r := SetupRoutes()
 	c := SetUpCors()
@@ -49,8 +61,7 @@ func SetupRoutes() (router *mux.Router) {
 
 	router.HandleFunc("/get_trades/{username}/{requestid}", StartTradesWs)
 	router.HandleFunc("/insert_trade", CreateTrade).Methods("POST")
-	router.HandleFunc("/close_trade/{tradecode}", CloseTrade).Methods("GET")
-	router.HandleFunc("/open_trade/{tradecode}", OpenTrade).Methods("GET")
+	router.HandleFunc("/change_trade/{tradecode}/{tostatus}", ChangeTradeStatus).Methods("GET")
 	router.HandleFunc("/delete_trade/{tradecode}", DeleteTrade).Methods("GET")
 	router.HandleFunc("/update_subtrade", UpdateSubtrade).Methods("POST")
 	router.HandleFunc("/insert_subtrade/{tradecode}", CreateSubtrade).Methods("GET")
