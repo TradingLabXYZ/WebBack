@@ -11,21 +11,23 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type NewSubtrade struct {
+	CreatedAt string      `json:"CreatedAt"`
+	Type      string      `json:"Type"`
+	Reason    string      `json:"Reason"`
+	Quantity  json.Number `json:"Quantity"`
+	AvgPrice  json.Number `json:"AvgPrice"`
+	Total     json.Number `json:"Total"`
+	Usercode  string
+}
+
 type NewTrade struct {
-	Exchange     string `json:"Exchange"`
-	FirstPairId  int    `json:"FirstPair"`
-	SecondPairId int    `json:"SecondPair"`
-	Subtrades    []struct {
-		CreatedAt string      `json:"CreatedAt"`
-		Type      string      `json:"Type"`
-		Reason    string      `json:"Reason"`
-		Quantity  json.Number `json:"Quantity"`
-		AvgPrice  json.Number `json:"AvgPrice"`
-		Total     json.Number `json:"Total"`
-		Usercode  string
-	} `json:"subtrades"`
-	Usercode string
-	Code     string
+	Exchange     string        `json:"Exchange"`
+	FirstPairId  int           `json:"FirstPair"`
+	SecondPairId int           `json:"SecondPair"`
+	Subtrades    []NewSubtrade `json:"subtrades"`
+	Usercode     string
+	Code         string
 }
 
 func CreateTrade(w http.ResponseWriter, r *http.Request) {
@@ -43,17 +45,21 @@ func CreateTrade(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{
 			"custom_msg": "Failed decoding new trade payload",
 		}).Error(err)
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	err = new_trade.InsertTrade()
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	new_trade.InsertSubTrades()
+	err = new_trade.InsertSubTrades()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 }
 
 func (new_trade *NewTrade) InsertTrade() (err error) {
@@ -74,7 +80,8 @@ func (new_trade *NewTrade) InsertTrade() (err error) {
 	).Scan(&new_trade.Code)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"custom_msg": "Failed inserting new trade",
+			"tradepayload": new_trade,
+			"custom_msg":   "Failed inserting new trade",
 		}).Error(err)
 		return
 	}
