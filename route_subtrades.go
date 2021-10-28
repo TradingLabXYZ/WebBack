@@ -57,7 +57,8 @@ func (new_trade *NewTrade) InsertSubTrades() (err error) {
 	_, err = Db.Exec(smt, valueArgs...)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"custom_msg": "Failed inserting new subtrade",
+			"subtradepayload": new_trade.Subtrades,
+			"custom_msg":      "Failed inserting new subtrade",
 		}).Error(err)
 		return
 	}
