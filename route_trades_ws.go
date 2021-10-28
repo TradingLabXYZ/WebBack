@@ -6,7 +6,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-	. "github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 )
 
