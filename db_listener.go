@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/lib/pq"
@@ -39,7 +38,6 @@ func (db_listener *DbListener) Listen() {
 	for {
 		n := <-db_listener.Listener.Notify
 		user_code := n.Extra
-		fmt.Println("RECEIVED DB CALL", user_code)
 		DistpachSnapshots(user_code)
 	}
 }

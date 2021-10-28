@@ -11,14 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func NomeDaDecidere() {
-	// Check if user exist
-	// Check privacy
-	// Add user to websockets list
-	// Check if origin is authoized
-
-}
-
 type WsTrade struct {
 	UserToSee User
 	RequestId string
