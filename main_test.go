@@ -68,6 +68,6 @@ func SetUpTestLog() (file *os.File) {
 	}
 	log.SetLevel(log.TraceLevel)
 	log.SetFormatter(&log.JSONFormatter{})
-	log.SetOutput(io.MultiWriter(file))
+	log.SetOutput(io.MultiWriter(file, os.Stdout))
 	return
 }
