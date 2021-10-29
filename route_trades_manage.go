@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -113,6 +114,8 @@ func (new_trade *NewTrade) InsertTrade() (err error) {
 
 func ChangeTradeStatus(w http.ResponseWriter, r *http.Request) {
 
+	fmt.Println("CLOSING TRADE")
+
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -121,6 +124,9 @@ func ChangeTradeStatus(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+
+	fmt.Println("session")
+	fmt.Println(session)
 
 	tradecode := mux.Vars(r)["tradecode"]
 	if tradecode == "" {
@@ -132,6 +138,9 @@ func ChangeTradeStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Println("tradecode")
+	fmt.Println(tradecode)
+
 	to_status_string := mux.Vars(r)["tostatus"]
 	to_status, err := strconv.ParseBool(to_status_string)
 	if err != nil {
@@ -142,6 +151,9 @@ func ChangeTradeStatus(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
+	fmt.Println("tostatrus")
+	fmt.Println(to_status)
 
 	var sentinel_1 string
 	err = Db.QueryRow(`

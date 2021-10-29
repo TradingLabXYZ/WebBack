@@ -14,7 +14,6 @@ import (
 )
 
 func SelectPairs(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting SelectPairs..."))
 
 	type PairInfo struct {
 		CoinId int
