@@ -26,12 +26,6 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user, err := SelectUser("email", session.Email)
-	if err != nil {
-		log.Warn("User not found")
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 
 	// PROCESS INPUT FILE
 	file, handler, err := r.FormFile("file")
@@ -40,7 +34,7 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 	file_extension := strings.Split(handler.Header["Content-Type"][0], "/")[1]
-	filename := user.Code + "." + file_extension
+	filename := session.UserCode + "." + file_extension
 	filepath := "profile_pictures/" + filename
 
 	// CONNECT AWS S3
@@ -57,7 +51,7 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	svc := s3.New(sess)
 	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{
 		Bucket: aws.String("tradinglab"),
-		Prefix: aws.String("profile_pictures/" + user.Code),
+		Prefix: aws.String("profile_pictures/" + session.UserCode),
 	})
 	if err != nil {
 		log.Error(err)
@@ -91,8 +85,8 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	statement := `
 		UPDATE users
 		SET profilepicture = $1
-		WHERE id = $2;`
-	_, err = Db.Exec(statement, file_cdn_path, user.Id)
+		WHERE code = $2;`
+	_, err = Db.Exec(statement, file_cdn_path, session.UserCode)
 	if err != nil {
 		log.Error(err)
 	}
@@ -109,7 +103,7 @@ func GetUserSettings(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user, err := SelectUser("email", session.Email)
+	user, err := SelectUser("code", session.UserCode)
 	if err != nil {
 		log.Warn("User not found")
 		w.WriteHeader(http.StatusNotFound)
@@ -148,12 +142,6 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user, err := SelectUser("email", session.Email)
-	if err != nil {
-		log.Warn("User not found")
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
 
 	settings := struct {
 		Email   string `json:"Email"`
@@ -172,13 +160,13 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 		SET email = $1,
 		twitter = $2,
 		website = $3
-		WHERE id = $4;`
+		WHERE code = $4;`
 	_, err = Db.Exec(
 		statement,
 		settings.Email,
 		settings.Twitter,
 		settings.Website,
-		user.Id)
+		session.UserCode)
 	if err != nil {
 		log.Error(err)
 	}
@@ -195,7 +183,7 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user, err := SelectUser("email", session.Email)
+	user, err := SelectUser("code", session.UserCode)
 	if err != nil {
 		log.Warn("User not found")
 		w.WriteHeader(http.StatusNotFound)
@@ -241,11 +229,11 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 	statement := `
 		UPDATE users
 		SET password = $1
-		WHERE id = $2;`
+		WHERE code = $2;`
 	_, err = Db.Exec(
 		statement,
 		encrypted_new_password,
-		user.Id)
+		user.Code)
 	if err != nil {
 		log.Error(err)
 	}
@@ -259,12 +247,6 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.Warn("User not log in")
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	user, err := SelectUser("email", session.Email)
-	if err != nil {
-		log.Warn("User not found")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
@@ -282,11 +264,11 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 	statement := `
 		UPDATE users
 		SET privacy = $1
-		WHERE id = $2;`
+		WHERE code = $2;`
 	_, err = Db.Exec(
 		statement,
 		privacy.Privacy,
-		user.Id)
+		session.UserCode)
 	if err != nil {
 		log.Error(err)
 	}

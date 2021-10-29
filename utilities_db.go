@@ -10,15 +10,12 @@ import (
 )
 
 type Session struct {
-	Id        int
-	Uuid      string
-	Email     string
-	UserId    int
+	Code      string
+	UserCode  string
 	CreatedAt time.Time
 }
 
 type User struct {
-	Id             int
 	Code           string
 	Email          string
 	UserName       string
@@ -32,38 +29,29 @@ type User struct {
 }
 
 func (user *User) CreateSession() (session Session, err error) {
-	if user.Email == "" {
-		err = errors.New("Empty email")
-		return
-	}
-
 	uuid, err := CreateUUID()
 	if err != nil {
 		return
 	}
 
 	session_sql := `
-		INSERT INTO sessions (uuid, email, userid, createdat)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, uuid, email, userid, createdat;`
+		INSERT INTO sessions (code, usercode, createdat)
+		VALUES ($1, $2, $3)
+		RETURNING code, usercode, createdat;`
 
 	err = Db.QueryRow(
 		session_sql,
 		uuid,
-		user.Email,
-		user.Id,
+		user.Code,
 		time.Now()).Scan(
-		&session.Id,
-		&session.Uuid,
-		&session.Email,
-		&session.UserId,
+		&session.Code,
+		&session.UserCode,
 		&session.CreatedAt,
 	)
 	if err != nil {
 		err = errors.New("Error inserting new session in db")
 		return
 	}
-
 	return
 }
 
@@ -96,7 +84,7 @@ func (session *Session) ExtractFromHeader(r *http.Request) (err error) {
 	if len(r.Header["Authorization"]) > 0 {
 		split_auth := strings.Split(r.Header["Authorization"][0], "sessionId=")
 		if len(split_auth) >= 1 {
-			session.Uuid = split_auth[1]
+			session.Code = split_auth[1]
 			return
 		} else {
 			err = errors.New("Could not find sessionId in header")
@@ -111,10 +99,10 @@ func (session *Session) ExtractFromHeader(r *http.Request) (err error) {
 func (session *Session) ExtractFromCookie(r *http.Request) (err error) {
 	for _, cookie := range r.Cookies() {
 		if cookie.Name == "sessionId" {
-			session.Uuid = cookie.Value
+			session.Code = cookie.Value
 		}
 	}
-	if session.Uuid == "" {
+	if session.Code == "" {
 		err = errors.New("Empty sessionId in cookie")
 	}
 	return
@@ -123,12 +111,10 @@ func (session *Session) ExtractFromCookie(r *http.Request) (err error) {
 func (session *Session) Select() (err error) {
 	err = Db.QueryRow(`
 			SELECT
-				email,
-				userid
+				usercode
 			FROM sessions
-			WHERE uuid = $1;`, session.Uuid).Scan(
-		&session.Email,
-		&session.UserId,
+			WHERE code = $1;`, session.Code).Scan(
+		&session.UserCode,
 	)
 	return
 }
@@ -136,7 +122,6 @@ func (session *Session) Select() (err error) {
 func SelectUser(by string, value string) (user User, err error) {
 	user_sql := fmt.Sprintf(`
 		SELECT
-			id,
 			code,
 			email,
 			password,
@@ -149,7 +134,6 @@ func SelectUser(by string, value string) (user User, err error) {
 		FROM users
 		WHERE %s = $1;`, by)
 	err = Db.QueryRow(user_sql, value).Scan(
-		&user.Id,
 		&user.Code,
 		&user.Email,
 		&user.Password,

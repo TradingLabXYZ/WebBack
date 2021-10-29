@@ -13,6 +13,7 @@ type UserDetails struct {
 
 type Subtrade struct {
 	Code      string
+	TradeCode string
 	CreatedAt string
 	Type      string
 	Reason    string
@@ -252,6 +253,7 @@ func (trade Trade) SelectTradeSubtrades() (subtrades []Subtrade) {
 	subtrades_sql := `
 			SELECT
 				code,
+				tradecode,
 				CASE WHEN type IS NULL THEN '' ELSE type END AS type,
 				CASE WHEN reason IS NULL THEN '' ELSE reason END AS reason,
 				TO_CHAR(createdat, 'YYYY-MM-DD"T"HH24:MI'),
@@ -260,7 +262,7 @@ func (trade Trade) SelectTradeSubtrades() (subtrades []Subtrade) {
 				total
 			FROM subtrades
 			WHERE tradecode = $1
-			ORDER BY 4;`
+			ORDER BY 5;`
 
 	subtrades_rows, err := Db.Query(
 		subtrades_sql,
@@ -278,6 +280,7 @@ func (trade Trade) SelectTradeSubtrades() (subtrades []Subtrade) {
 		subtrade := Subtrade{}
 		if err = subtrades_rows.Scan(
 			&subtrade.Code,
+			&subtrade.TradeCode,
 			&subtrade.Type,
 			&subtrade.Reason,
 			&subtrade.CreatedAt,

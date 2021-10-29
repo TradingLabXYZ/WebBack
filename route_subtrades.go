@@ -10,7 +10,6 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
-	. "github.com/logrusorgru/aurora"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -25,7 +24,6 @@ func (new_trade *NewTrade) InsertSubTrades() (err error) {
 	valueStrings := []string{}
 	valueArgs := []interface{}{}
 	timeNow := time.Now()
-
 	for i, subtrade := range new_trade.Subtrades {
 		rand_subtrade_code := RandStringBytes(12)
 		str1 := "$" + strconv.Itoa(1+i*10) + ","
@@ -66,20 +64,23 @@ func (new_trade *NewTrade) InsertSubTrades() (err error) {
 }
 
 func CreateSubtrade(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting CreateUpdate..."))
-
-	tradecode := mux.Vars(r)["tradecode"]
 
 	session, err := GetSession(r, "header")
 	if err != nil {
-		log.Warn("User not log in")
-		w.WriteHeader(http.StatusNotFound)
+		log.WithFields(log.Fields{
+			"customMsg": "Failed creating subtrade, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	user, err := SelectUser("email", session.Email)
-	if err != nil {
-		log.Warn("User not found")
-		w.WriteHeader(http.StatusNotFound)
+
+	tradecode := mux.Vars(r)["tradecode"]
+	if tradecode == "" {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed creating subtrade, empty tradecode",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -91,30 +92,39 @@ func CreateSubtrade(w http.ResponseWriter, r *http.Request) {
 		VALUES (
 			SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2,
 			current_timestamp, 'BUY', '', 0, 0,
-			0, current_timestamp)`
-	Db.Exec(
+			0, current_timestamp)
+		RETURNING code;`
+	var subtrade_code string
+	err = Db.QueryRow(
 		subtrade_sql,
 		tradecode,
-		user.Code,
-	)
-	if err != nil {
-		log.Error(err)
+		session.UserCode,
+	).Scan(&subtrade_code)
+	if err != nil || subtrade_code == "" {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed creating subtrade, wrong query",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
 	}
-	return
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func UpdateSubtrade(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting UpdateSubtrade..."))
 
-	_, err := GetSession(r, "header")
+	session, err := GetSession(r, "header")
 	if err != nil {
-		log.Warn("User not log in")
-		w.WriteHeader(http.StatusNotFound)
+		log.WithFields(log.Fields{
+			"customMsg": "Failed updating subtrade, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	subtrade := struct {
 		Code      string      `json:"Code"`
+		TradeCode string      `json:"TradeCode"`
 		CreatedAt string      `json:"CreatedAt"`
 		Type      string      `json:"Type"`
 		Reason    string      `json:"Reason"`
@@ -126,10 +136,16 @@ func UpdateSubtrade(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err = decoder.Decode(&subtrade)
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed creating subtrade, empty payload",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
-	Db.Exec(`
+	var subtrade_code string
+	err = Db.QueryRow(`
 		UPDATE subtrades
 		SET
 			createdat = $1,
@@ -138,35 +154,51 @@ func UpdateSubtrade(w http.ResponseWriter, r *http.Request) {
 			quantity = $4,
 			avgprice = $5,
 			total = $6
-		WHERE code = $7;`,
+		WHERE code = $7
+		RETURNING code;`,
 		subtrade.CreatedAt,
 		subtrade.Type,
 		subtrade.Reason,
 		subtrade.Quantity,
 		subtrade.AvgPrice,
 		subtrade.Total,
-		subtrade.Code,
-	)
+		subtrade.Code).Scan(&subtrade_code)
+	if err != nil || subtrade_code == "" {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed creating subtrade, wrong query",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+	}
 
-	json.NewEncoder(w).Encode("OK")
+	w.WriteHeader(http.StatusOK)
 }
 
 func DeleteSubtrade(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting DeleteSubTrade..."))
 
-	_, err := GetSession(r, "header")
+	session, err := GetSession(r, "header")
 	if err != nil {
-		log.Warn("User not log in")
-		w.WriteHeader(http.StatusNotFound)
+		log.WithFields(log.Fields{
+			"customMsg": "Failed deleting subtrade, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	subtrade_code := mux.Vars(r)["subtradecode"]
+	if subtrade_code == "" {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed deleting subtrade, empty subtradecode",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	Db.Exec(`
 		DELETE FROM subtrades
 		WHERE code = $1;
 		`, subtrade_code)
 
-	json.NewEncoder(w).Encode("OK")
+	w.WriteHeader(http.StatusOK)
 }

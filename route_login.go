@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	validator "github.com/go-playground/validator/v10"
 	log "github.com/sirupsen/logrus"
@@ -55,7 +54,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Info("Log in valid user " + strconv.Itoa(user.Id))
+	log.Info("Log in valid user " + user.Code)
 	session, err := user.CreateSession()
 	if err != nil {
 		log.Error(err)
@@ -74,7 +73,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		Privacy        string
 		Plan           string
 	}{
-		session.Uuid,
+		session.Code,
 		user.UserName,
 		user.Email,
 		user.Code,

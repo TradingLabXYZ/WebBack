@@ -34,19 +34,19 @@ func (tx TxBuyPremium) ValidateStellarTransaction() (status string) {
 	res, err := http.Get(stellar_tx_url)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"session":    tx.SessionId,
-			"user":       tx.Userid,
-			"txid":       tx.Id,
-			"custom_msg": "Failed fetching TX from Horizon API",
+			"sessionCode": tx.SessionCode,
+			"userCode":    tx.UserCode,
+			"txid":        tx.Id,
+			"custom_msg":  "Failed fetching TX from Horizon API",
 		}).Error(err)
 	}
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"session":    tx.SessionId,
-			"user":       tx.Userid,
-			"txid":       tx.Id,
-			"custom_msg": "Failed converting TX into struct",
+			"sessionCode": tx.SessionCode,
+			"userCode":    tx.UserCode,
+			"txid":        tx.Id,
+			"custom_msg":  "Failed converting TX into struct",
 		}).Error(err)
 		return "KO"
 	}
@@ -57,10 +57,10 @@ func (tx TxBuyPremium) ValidateStellarTransaction() (status string) {
 	// Check status
 	if !stellar_tx.Successful {
 		log.WithFields(log.Fields{
-			"session":    tx.SessionId,
-			"user":       tx.Userid,
-			"txid":       tx.Id,
-			"custom_msg": "Unsucsessfull TX",
+			"sessionCode": tx.SessionCode,
+			"userCode":    tx.UserCode,
+			"txid":        tx.Id,
+			"custom_msg":  "Unsucsessfull TX",
 		}).Error(err)
 		return "KO"
 	}
@@ -71,10 +71,10 @@ func (tx TxBuyPremium) ValidateStellarTransaction() (status string) {
 	err = xdr.SafeUnmarshalBase64(envelopeXDR, &envelope)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"session":    tx.SessionId,
-			"user":       tx.Userid,
-			"txid":       tx.Id,
-			"custom_msg": "Corrupted EnvelopeXDR",
+			"sessionCode": tx.SessionCode,
+			"userCode":    tx.UserCode,
+			"txid":        tx.Id,
+			"custom_msg":  "Corrupted EnvelopeXDR",
 		}).Error(err)
 		return "KO"
 	}
@@ -84,10 +84,10 @@ func (tx TxBuyPremium) ValidateStellarTransaction() (status string) {
 	createAccountOp := envelope.V1.Tx.Operations[0].Body.CreateAccountOp
 	if paymentOp == nil && createAccountOp == nil {
 		log.WithFields(log.Fields{
-			"session":    tx.SessionId,
-			"user":       tx.Userid,
-			"txid":       tx.Id,
-			"custom_msg": "Not a tx payment type",
+			"sessionCode": tx.SessionCode,
+			"userCode":    tx.UserCode,
+			"txid":        tx.Id,
+			"custom_msg":  "Not a tx payment type",
 		}).Error(err)
 		return "KO"
 	}
@@ -105,10 +105,10 @@ func (tx TxBuyPremium) ValidateStellarTransaction() (status string) {
 	// Check asset
 	if asset != "native" {
 		log.WithFields(log.Fields{
-			"session":    tx.SessionId,
-			"user":       tx.Userid,
-			"txid":       tx.Id,
-			"custom_msg": "No XLM transaction",
+			"sessionCode": tx.SessionCode,
+			"userCode":    tx.UserCode,
+			"txid":        tx.Id,
+			"custom_msg":  "No XLM transaction",
 		}).Error(err)
 		return "KO"
 	}
@@ -116,10 +116,10 @@ func (tx TxBuyPremium) ValidateStellarTransaction() (status string) {
 	// Check memo
 	if tx.Memo != stellar_tx.Memo {
 		log.WithFields(log.Fields{
-			"session":    tx.SessionId,
-			"user":       tx.Userid,
-			"txid":       tx.Id,
-			"custom_msg": "Memos do not match",
+			"sessionCode": tx.SessionCode,
+			"userCode":    tx.UserCode,
+			"txid":        tx.Id,
+			"custom_msg":  "Memos do not match",
 		}).Error(err)
 		return "KO"
 	}
@@ -129,19 +129,19 @@ func (tx TxBuyPremium) ValidateStellarTransaction() (status string) {
 	delta_amounts := tx_amount_xdr - amount
 	if delta_amounts > 10000000 {
 		log.WithFields(log.Fields{
-			"session":    tx.SessionId,
-			"user":       tx.Userid,
-			"txid":       tx.Id,
-			"custom_msg": "TX amount not valid",
+			"sessionCode": tx.SessionCode,
+			"userCode":    tx.UserCode,
+			"txid":        tx.Id,
+			"custom_msg":  "TX amount not valid",
 		}).Error(err)
 		return "KO"
 	}
 
 	// All the checks positive
 	log.WithFields(log.Fields{
-		"session": tx.SessionId,
-		"user":    tx.Userid,
-		"txid":    tx.Id,
+		"sessionCode": tx.SessionCode,
+		"userCode":    tx.UserCode,
+		"txid":        tx.Id,
 	}).Info("Successfully validated XLM transaction")
 	return "OK"
 }

@@ -63,12 +63,12 @@ func CheckPrivacy(request *http.Request, userToSee User) (status string) {
 		return "KO"
 	}
 
-	user, err := SelectUser("email", session.Email)
+	user, err := SelectUser("code", session.UserCode)
 	if err != nil {
 		return "KO"
 	}
 
-	if user.Id == userToSee.Id {
+	if user.Code == userToSee.Code {
 		return "OK"
 	}
 
@@ -81,7 +81,7 @@ func CheckPrivacy(request *http.Request, userToSee User) (status string) {
 					SELECT TRUE
 					FROM followers
 					WHERE followto = $1
-					AND followfrom = $2;`, user.Id, userToSee.Id).Scan(
+					AND followfrom = $2;`, user.Code, userToSee.Code).Scan(
 			&isfollower,
 		)
 		if isfollower {
@@ -95,7 +95,7 @@ func CheckPrivacy(request *http.Request, userToSee User) (status string) {
 					SELECT TRUE
 					FROM subscribers
 					WHERE subscribeto = $1
-					AND subscribefrom = $2;`, user.Id, userToSee.Id).Scan(
+					AND subscribefrom = $2;`, user.Code, userToSee.Code).Scan(
 			&issubscriber,
 		)
 		if issubscriber {
