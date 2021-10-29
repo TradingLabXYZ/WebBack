@@ -24,7 +24,7 @@ type NewTrade struct {
 	Exchange     string        `json:"Exchange"`
 	FirstPairId  int           `json:"FirstPair"`
 	SecondPairId int           `json:"SecondPair"`
-	Subtrades    []NewSubtrade `json:"subtrades"`
+	Subtrades    []NewSubtrade `json:"Subtrades"`
 	Usercode     string
 	Code         string
 }
@@ -34,7 +34,7 @@ func CreateTrade(w http.ResponseWriter, r *http.Request) {
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{
-			"custom_msg": "Failed creating trade, wrong header",
+			"customMsg": "Failed creating trade, wrong header",
 		}).Error(err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -45,8 +45,19 @@ func CreateTrade(w http.ResponseWriter, r *http.Request) {
 	err = decoder.Decode(&new_trade)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"sessionid":  session.Uuid,
-			"custom_msg": "Failed decoding new trade payload",
+			"sessionCode": session.Code,
+			"customMsg":   "Failed decoding new trade payload",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	new_trade.Usercode = session.UserCode
+
+	if len(new_trade.Subtrades) == 0 {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed creating trade, missing subtrades",
 		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -55,7 +66,7 @@ func CreateTrade(w http.ResponseWriter, r *http.Request) {
 	err = new_trade.InsertTrade()
 	if err != nil {
 		log.WithFields(log.Fields{
-			"sessionid": session.Uuid,
+			"sessionCode": session.Code,
 		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -64,8 +75,9 @@ func CreateTrade(w http.ResponseWriter, r *http.Request) {
 	err = new_trade.InsertSubTrades()
 	if err != nil {
 		log.WithFields(log.Fields{
-			"sessionid": session.Uuid,
+			"sessionCode": session.Code,
 		}).Error(err)
+		Db.Exec(`DELETE FROM trades WHERE code = $1`, new_trade.Code)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -91,8 +103,8 @@ func (new_trade *NewTrade) InsertTrade() (err error) {
 	).Scan(&new_trade.Code)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"tradepayload": new_trade,
-			"custom_msg":   "Failed inserting new trade",
+			"tradePayload": new_trade,
+			"customMsg":    "Failed inserting new trade",
 		}).Error(err)
 		return
 	}
@@ -104,7 +116,7 @@ func ChangeTradeStatus(w http.ResponseWriter, r *http.Request) {
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{
-			"custom_msg": "Failed changing trade status, wrong header",
+			"customMsg": "Failed changing trade status, wrong header",
 		}).Error(err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -113,8 +125,8 @@ func ChangeTradeStatus(w http.ResponseWriter, r *http.Request) {
 	tradecode := mux.Vars(r)["tradecode"]
 	if tradecode == "" {
 		log.WithFields(log.Fields{
-			"session":    session.Uuid,
-			"custom_msg": "Failed chainging trade status, empty tradecode",
+			"sessionCode": session.Code,
+			"customMsg":   "Failed changing trade status, empty tradecode",
 		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -124,8 +136,8 @@ func ChangeTradeStatus(w http.ResponseWriter, r *http.Request) {
 	to_status, err := strconv.ParseBool(to_status_string)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"session":    session.Uuid,
-			"custom_msg": "Failed changing trade status, wrong bool",
+			"sessionCode": session.Code,
+			"customMsg":   "Failed changing trade status, wrong bool",
 		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -141,9 +153,9 @@ func ChangeTradeStatus(w http.ResponseWriter, r *http.Request) {
 		RETURNING usercode;`, to_status, tradecode).Scan(&sentinel_1)
 	if err != nil || sentinel_1 == "" {
 		log.WithFields(log.Fields{
-			"session":    session.Uuid,
-			"tradecode":  tradecode,
-			"custom_msg": "Failed chainging trade status, UPDATE trades",
+			"sessionCode": session.Code,
+			"tradeCode":   tradecode,
+			"customMsg":   "Failed changing trade status, UPDATE trades",
 		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -158,9 +170,9 @@ func ChangeTradeStatus(w http.ResponseWriter, r *http.Request) {
 		RETURNING usercode;`, tradecode).Scan(&sentinel_2)
 	if err != nil || sentinel_2 == "" {
 		log.WithFields(log.Fields{
-			"session":    session.Uuid,
-			"tradecode":  tradecode,
-			"custom_msg": "Failed chainging trade status, UPDATE subtrades",
+			"sessionCode": session.Code,
+			"tradeCode":   tradecode,
+			"customMsg":   "Failed changing trade status, UPDATE subtrades",
 		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -174,7 +186,7 @@ func DeleteTrade(w http.ResponseWriter, r *http.Request) {
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{
-			"custom_msg": "Failed deleting trade, wrong header",
+			"customMsg": "Failed deleting trade, wrong header",
 		}).Error(err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -183,27 +195,17 @@ func DeleteTrade(w http.ResponseWriter, r *http.Request) {
 	tradecode := mux.Vars(r)["tradecode"]
 	if tradecode == "" {
 		log.WithFields(log.Fields{
-			"session":    session.Uuid,
-			"custom_msg": "Failed deleting trade, empty tradecode",
+			"sessionCode": session.Code,
+			"customMsg":   "Failed deleting trade, empty tradecode",
 		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	var sentinel_1 string
-	err = Db.QueryRow(`
+	Db.Exec(`
 		DELETE FROM trades
 		WHERE code = $1
-		RETURNING usercode;`, tradecode).Scan(&sentinel_1)
-	if err != nil || sentinel_1 == "" {
-		log.WithFields(log.Fields{
-			"session":    session.Uuid,
-			"tradecode":  tradecode,
-			"custom_msg": "Failed deleting trade",
-		}).Error(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+		RETURNING usercode;`, tradecode)
 
 	w.WriteHeader(http.StatusOK)
 }

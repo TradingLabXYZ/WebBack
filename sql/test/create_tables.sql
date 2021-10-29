@@ -2,7 +2,6 @@ CREATE TYPE privacies AS ENUM ('all', 'private', 'subscribers', 'followers');
 CREATE TYPE plans AS ENUM ('basic', 'premium', 'pro');
 
 CREATE TABLE IF NOT EXISTS users (
-  id SERIAL PRIMARY KEY,
   code VARCHAR(12) NOT NULL UNIQUE,
   email VARCHAR(255) NOT NULL UNIQUE,
   username VARCHAR(255) NOT NULL UNIQUE,
@@ -13,20 +12,18 @@ CREATE TABLE IF NOT EXISTS users (
   website TEXT,
   plan plans NOT NULL,
   createdat TIMESTAMP NOT NULL,
-  updatedat TIMESTAMP NOT NULL,
-  deletedat TIMESTAMP
+  updatedat TIMESTAMP NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
-  id SERIAL PRIMARY KEY,
-  uuid VARCHAR(64) NOT NULL UNIQUE,
-  email VARCHAR(255) NOT NULL,
-  userid INTEGER REFERENCES users(id),
-  createdat TIMESTAMP NOT NULL
+  code VARCHAR(64) NOT NULL UNIQUE,
+  usercode VARCHAR(12) NOT NULL,
+  createdat TIMESTAMP NOT NULL,
+  CONSTRAINT users_code_fkey FOREIGN KEY (usercode)
+    REFERENCES users (code) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS coins (
-  id SERIAL PRIMARY KEY,
   coinid NUMERIC UNIQUE,
   name TEXT,
   symbol TEXT,
@@ -42,19 +39,21 @@ CREATE TABLE IF NOT EXISTS prices (
 
 CREATE TABLE IF NOT EXISTS trades (
   code VARCHAR(12) NOT NULL UNIQUE,
-  usercode VARCHAR(12) REFERENCES users(code),
+  usercode VARCHAR(12) NOT NULL,
   createdat TIMESTAMP NOT NULL,
   updatedat TIMESTAMP NOT NULL,
   exchange VARCHAR(64),
   firstpair NUMERIC NOT NULL REFERENCES coins(coinid),
   secondpair NUMERIC NOT NULL REFERENCES coins(coinid),
-  isopen BOOLEAN
+  isopen BOOLEAN,
+  CONSTRAINT users_code_fkey FOREIGN KEY (usercode)
+    REFERENCES users (code) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS subtrades (
   code VARCHAR(12) NOT NULL UNIQUE,
   tradecode VARCHAR(12) NOT NULL,
-  usercode VARCHAR(12) NOT NULL REFERENCES users(code),
+  usercode VARCHAR(12) NOT NULL,
   createdat TIMESTAMP NOT NULL,
   updatedat TIMESTAMP NOT NULL,
   type VARCHAR(5),
@@ -67,16 +66,14 @@ CREATE TABLE IF NOT EXISTS subtrades (
 );
 
 CREATE TABLE IF NOT EXISTS followers (
-  id SERIAL PRIMARY KEY,
-  followefrom INTEGER REFERENCES users(id) NOT NULL,
-  followto INTEGER references users(id) NOT NULL,
+  followefrom VARCHAR(12) NOT NULL REFERENCES users(code),
+  followto VARCHAR(12) NOT NULL REFERENCES users(code),
   createdat TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS subscribers (
-  id SERIAL PRIMARY KEY,
-  subscribefrom INTEGER REFERENCES users(id) NOT NULL,
-  subscribeto INTEGER REFERENCES users(id) NOT NULL,
+  subscribefrom VARCHAR(12) NOT NULL REFERENCES users(code),
+  subscribeto VARCHAR(12) NOT NULL REFERENCES users(code),
   createdat TIMESTAMP
 );
 
@@ -91,7 +88,7 @@ CREATE TABLE IF NOT EXISTS internalwallets (
 
 CREATE TABLE IF NOT EXISTS memos (
   id SERIAL PRIMARY KEY,
-  userid INTEGER REFERENCES users(id) NOT NULL,
+  usercode VARCHAR(12) NOT NULL REFERENCES users(code),
   blockchain TEXT NOT NULL,
   currency TEXT NOT NULL,
   depositaddress TEXT NOT NULL,
@@ -102,7 +99,7 @@ CREATE TABLE IF NOT EXISTS memos (
 
 CREATE TABLE IF NOT EXISTS payments (
   id SERIAL PRIMARY KEY,
-  userid INTEGER REFERENCES users(id) NOT NULL,
+  usercode VARCHAR(12) NOT NULL REFERENCES users(code),
   type TEXT NOT NULL,
   blockchain TEXT NOT NULL,
   currency TEXT NOT NULL,
