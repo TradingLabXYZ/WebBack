@@ -61,7 +61,7 @@ type Trade struct {
 type TradesSnapshot struct {
 	UserDetails    UserDetails
 	Trades         []Trade
-	CountTrades    float64
+	CountTrades    int
 	TotalReturnUsd float64
 	TotalReturnBtc float64
 	Roi            float64
@@ -75,6 +75,7 @@ func (user User) GetSnapshot() (snapshot TradesSnapshot) {
 	}
 
 	snapshot.Trades = user.SelectUserTrades()
+	snapshot.CountTrades = len(snapshot.Trades)
 	snapshot.CalculateTradesTotals()
 	return
 }
@@ -120,7 +121,7 @@ func (user User) SelectUserTrades() (trades []Trade) {
 				FROM trades t
 				LEFT JOIN subtrades s ON(t.code  = s.tradecode)
 				INNER JOIN users u ON(t.usercode = u.code)
-				WHERE u.username = $1
+				WHERE u.code = $1
 				GROUP BY 1, 2, 3, 4, 5, 6, 7),
 			TRADES_MICRO AS (
 				SELECT
@@ -191,7 +192,7 @@ func (user User) SelectUserTrades() (trades []Trade) {
 
 	trades_rows, err := Db.Query(
 		trades_sql,
-		user.UserName)
+		user.Code)
 	defer trades_rows.Close()
 	if err != nil {
 		log.WithFields(log.Fields{

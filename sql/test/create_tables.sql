@@ -31,10 +31,11 @@ CREATE TABLE IF NOT EXISTS coins (
 );
 
 CREATE TABLE IF NOT EXISTS prices (
-  id SERIAL PRIMARY KEY,
   createdat TIMESTAMP,
-  coinid NUMERIC REFERENCES coins(coinid),
-  price NUMERIC
+  coinid NUMERIC,
+  price NUMERIC,
+  CONSTRAINT coins_id_fkey FOREIGN KEY (coinid)
+    REFERENCES coins (coinid) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS trades (
