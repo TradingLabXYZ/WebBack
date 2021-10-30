@@ -158,7 +158,6 @@ func TestInsertProfilePicture(t *testing.T) {
 			FROM users
 			WHERE code = $1`,
 			session.UserCode).Scan(&file_path)
-		fmt.Println(file_path)
 		if file_path == "" {
 			t.Fatal("Failed uploading file_path into db")
 		}
@@ -176,7 +175,7 @@ func TestInsertProfilePicture(t *testing.T) {
 		}
 		_, _ = svc.DeleteObject(input)
 	}
-	Db.Exec(`DELETE FROM users WHERE 0 = 1;`)
+	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 }
 
 func TestGetUserSettings(t *testing.T) {
@@ -187,11 +186,11 @@ func TestGetUserSettings(t *testing.T) {
 			code, email, username, password, privacy,
 			plan, twitter, website, createdat, updatedat)
 		VALUES (
-			'testusertest', 'jsjsjs@r.r', 'jsjsjsj', 'testpassword',
+			'testuser', 'jsjsjs@r.r', 'jsjsjsj', 'testpassword',
 			'all', 'basic', 'thisistwitter', 'thisiswebsite',
 			current_timestamp, current_timestamp);`)
 
-	user := User{Code: "testusertest"}
+	user := User{Code: "testuser"}
 	session, _ := user.CreateSession()
 
 	// <test code>
@@ -369,7 +368,17 @@ func TestUpdateUserSettings(t *testing.T) {
 		w := httptest.NewRecorder()
 		UpdateUserSettings(w, req)
 		var email_result, twitter_result, website_result string
-		_ = Db.QueryRow(`SELECT email, twitter, website FROM users WHERE code = $1;`, session.UserCode).Scan(&email_result, &twitter_result, &website_result)
+		_ = Db.QueryRow(`
+			SELECT
+				email,
+				twitter,
+				website
+			FROM users
+			WHERE code = $1;`,
+			session.UserCode).Scan(
+			&email_result,
+			&twitter_result,
+			&website_result)
 		if email_result != "emailresult" {
 			t.Fatal("Failed updating user settings, email")
 		}
@@ -386,9 +395,122 @@ func TestUpdateUserSettings(t *testing.T) {
 }
 
 func TestUpdateUserPassword(t *testing.T) {
+
 	// <setup code>
+	Db.Exec(
+		`INSERT INTO users (
+			code, email, username, password, privacy,
+			plan, twitter, website, createdat, updatedat)
+		VALUES (
+			'testusertest', 'jsjsjs@r.r', 'jsjsjsj', '6155bb905fcda91ffd8cc7f0ef465fe48e552ca8',
+			'all', 'basic', 'thisistwitter', 'thisiswebsite',
+			current_timestamp, current_timestamp);`)
+
+	user := User{Code: "testusertest"}
+	session, _ := user.CreateSession()
+
 	// <test code>
+	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/update_password", nil)
+		req.Header.Set("Authorization", "Bearer sessionId=")
+		w := httptest.NewRecorder()
+		UpdateUserPassword(w, req)
+		res := w.Result()
+		if res.StatusCode != 401 {
+			t.Fatal("Failed test update password, wrong header")
+		}
+	})
+
+	t.Run(fmt.Sprintf("Test invalid user"), func(t *testing.T) {
+		params := []byte(`{
+			"OldPassword": "thisisold",
+			"NewPassword": "thisisnew",
+			"RepeatNewPassword": "thisisnew"
+		}`)
+		req := httptest.NewRequest("POST", "/update_password", bytes.NewBuffer(params))
+		req.Header.Set("Authorization", "Bearer sessionId=thisisaninvalid")
+		w := httptest.NewRecorder()
+		UpdateUserPassword(w, req)
+		res := w.Result()
+		if res.StatusCode != 401 {
+			t.Fatal("Failed test update password, invalid user")
+		}
+	})
+
+	t.Run(fmt.Sprintf("Test empty old password"), func(t *testing.T) {
+		params := []byte(`{
+			"OldPassword": "",
+			"NewPassword": "thisisnew",
+			"RepeatNewPassword": "thisisnew"
+		}`)
+		req := httptest.NewRequest("POST", "/update_password", bytes.NewBuffer(params))
+		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
+		w := httptest.NewRecorder()
+		UpdateUserPassword(w, req)
+		res := w.Result()
+		if res.StatusCode != 400 {
+			t.Fatal("Failed test update password, empty oldpassword")
+		}
+	})
+
+	t.Run(fmt.Sprintf("Test unmatching passwords"), func(t *testing.T) {
+		params := []byte(`{
+			"OldPassword": "thisisold",
+			"NewPassword": "thisisnew",
+			"RepeatNewPassword": "thisisnewbut"
+		}`)
+		req := httptest.NewRequest("POST", "/update_password", bytes.NewBuffer(params))
+		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
+		w := httptest.NewRecorder()
+		UpdateUserPassword(w, req)
+		res := w.Result()
+		if res.StatusCode != 400 {
+			t.Fatal("Failed test update password, unmatching passwords")
+		}
+	})
+
+	t.Run(fmt.Sprintf("Test actual password not correct"), func(t *testing.T) {
+		params := []byte(`{
+			"OldPassword": "thisisoldwrong",
+			"NewPassword": "thisisnew",
+			"RepeatNewPassword": "thisisnew"
+		}`)
+		req := httptest.NewRequest("POST", "/update_password", bytes.NewBuffer(params))
+		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
+		w := httptest.NewRecorder()
+		UpdateUserPassword(w, req)
+		res := w.Result()
+		if res.StatusCode != 400 {
+			t.Fatal("Failed test update password, actual password not correct")
+		}
+	})
+
+	t.Run(fmt.Sprintf("Test successfully update password"), func(t *testing.T) {
+		params := []byte(`{
+			"OldPassword": "thisisold",
+			"NewPassword": "thisisnew",
+			"RepeatNewPassword": "thisisnew"
+		}`)
+		req := httptest.NewRequest("POST", "/update_password", bytes.NewBuffer(params))
+		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
+		w := httptest.NewRecorder()
+		UpdateUserPassword(w, req)
+		var changed_password string
+		_ = Db.QueryRow(`
+			SELECT
+				password
+			FROM users
+			WHERE code = $1;`,
+			session.UserCode).Scan(
+			&changed_password)
+		old_password_enc, _ := Encrypt("thisisnew")
+		if changed_password != old_password_enc {
+			t.Fatal("Failed successfully update password")
+		}
+	})
+
 	// <tear-down code>
+	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 }
 
 func TestUpdateUserPrivacy(t *testing.T) {
