@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -14,26 +13,51 @@ import (
 	aws_session "github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	. "github.com/logrusorgru/aurora"
 )
 
 func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting InsertProfilePicture..."))
 
 	session, err := GetSession(r, "header")
 	if err != nil {
-		log.Warn("User not log in")
-		w.WriteHeader(http.StatusNotFound)
+		log.WithFields(log.Fields{
+			"customMsg": "Failed inserting profile picture, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	// PROCESS INPUT FILE
 	file, handler, err := r.FormFile("file")
 	if err != nil {
-		log.Warn("Error Retrieving the File")
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed inserting profile picture, wrong file",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 	defer file.Close()
-	file_extension := strings.Split(handler.Header["Content-Type"][0], "/")[1]
+
+	content_types := handler.Header["Content-Type"]
+	if content_types[0] == "" {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed inserting profile picture, bad content type",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	content_type := content_types[0]
+	temp_file_extension := strings.Split(content_type, "/")
+	if len(temp_file_extension) == 0 {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed inserting profile picture, bad file extension",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	file_extension := temp_file_extension[1]
+
 	filename := session.UserCode + "." + file_extension
 	filepath := "profile_pictures/" + filename
 
@@ -54,7 +78,12 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 		Prefix: aws.String("profile_pictures/" + session.UserCode),
 	})
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed inserting profile picture, error listing user pictures",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 	for _, item := range resp.Contents {
 		input := &s3.DeleteObjectInput{
@@ -63,7 +92,12 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 		}
 		_, err = svc.DeleteObject(input)
 		if err != nil {
-			log.Error(err)
+			log.WithFields(log.Fields{
+				"sessionCode": session.Code,
+				"customMsg":   "Failed inserting profile picture, error deleting old",
+			}).Error(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
 	}
 
@@ -76,7 +110,12 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 		ACL:    aws.String("public-read"),
 	})
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed inserting profile picture, error uploading new",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	// SAVE PICTURE IN DB
@@ -88,14 +127,18 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 		WHERE code = $2;`
 	_, err = Db.Exec(statement, file_cdn_path, session.UserCode)
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed inserting profile picture, error saving picture in db",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	w.Write([]byte(file_cdn_path))
 }
 
 func GetUserSettings(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting GetUserSettings..."))
 
 	session, err := GetSession(r, "header")
 	if err != nil {
@@ -128,7 +171,6 @@ func GetUserSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting UpdateUserSettings..."))
 
 	/** TODOs
 	- Check if Twitter URL is already taken
@@ -175,7 +217,6 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting UpdateUserPassword..."))
 
 	session, err := GetSession(r, "header")
 	if err != nil {
@@ -242,7 +283,6 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Gray(8-1, "Starting UpdateUserPrivacy..."))
 
 	session, err := GetSession(r, "header")
 	if err != nil {

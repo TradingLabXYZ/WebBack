@@ -11,6 +11,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jmoiron/sqlx v1.3.4
+	github.com/kr/pretty v0.3.0 // indirect
 	github.com/lib/pq v1.10.3
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/pkg/errors v0.9.1 // indirect
