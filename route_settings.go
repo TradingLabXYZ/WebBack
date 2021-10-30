@@ -312,7 +312,10 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 	err = decoder.Decode(&passwords)
-	if err != nil {
+	if err != nil ||
+		passwords.NewPassword == "" ||
+		passwords.OldPassword == "" ||
+		passwords.RepeatNewPassword == "" {
 		log.WithFields(log.Fields{
 			"sessionCode": session.Code,
 			"customMsg":   "Failed changing password, wrong payload",
