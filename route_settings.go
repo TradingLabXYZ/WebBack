@@ -6,13 +6,12 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	aws_session "github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	log "github.com/sirupsen/logrus"
 )
 
 func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
@@ -27,9 +26,19 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	}
 
 	file, handler, err := r.FormFile("file")
-	if err != nil {
+	if handler == nil {
+		log.WithFields(log.Fields{
+			"customMsg": "Failed inserting profile picture, wrong file form",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	file_name := handler.Filename
+	if !strings.HasSuffix(file_name, "jpg") && !strings.HasSuffix(file_name, "png") {
 		log.WithFields(log.Fields{
 			"sessionCode": session.Code,
+			"fileName":    file_name,
 			"customMsg":   "Failed inserting profile picture, wrong file",
 		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -37,29 +46,18 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	content_types := handler.Header["Content-Type"]
-	if content_types[0] == "" {
+	file_extensions := strings.Split(file_name, ".")
+	if len(file_extensions) != 2 {
 		log.WithFields(log.Fields{
 			"sessionCode": session.Code,
-			"customMsg":   "Failed inserting profile picture, bad content type",
+			"fileName":    file_name,
+			"customMsg":   "Failed inserting profile picture, invalid file name",
 		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	content_type := content_types[0]
-	temp_file_extension := strings.Split(content_type, "/")
-	if len(temp_file_extension) == 0 {
-		log.WithFields(log.Fields{
-			"sessionCode": session.Code,
-			"customMsg":   "Failed inserting profile picture, bad file extension",
-		}).Error(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	file_extension := temp_file_extension[1]
 
-	filename := session.UserCode + "." + file_extension
-	filepath := "profile_pictures/" + filename
+	file_path := "profile_pictures/" + session.UserCode + "." + file_extensions[1]
 
 	// CONNECT AWS S3
 	do_key := os.Getenv("DO_KEY")
@@ -105,7 +103,7 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	uploader := s3manager.NewUploader(sess)
 	_, err = uploader.Upload(&s3manager.UploadInput{
 		Bucket: aws.String("tradinglab"),
-		Key:    aws.String(filepath),
+		Key:    aws.String(file_path),
 		Body:   file,
 		ACL:    aws.String("public-read"),
 	})
@@ -120,7 +118,7 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 
 	// SAVE PICTURE IN DB
 	cdn_path := os.Getenv("CDN_PATH")
-	file_cdn_path := cdn_path + "/" + filepath
+	file_cdn_path := cdn_path + "/" + file_path
 	statement := `
 		UPDATE users
 		SET profilepicture = $1
@@ -142,14 +140,19 @@ func GetUserSettings(w http.ResponseWriter, r *http.Request) {
 
 	session, err := GetSession(r, "header")
 	if err != nil {
-		log.Warn("User not log in")
-		w.WriteHeader(http.StatusNotFound)
+		log.WithFields(log.Fields{
+			"customMsg": "Failed getting settings, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+
 	user, err := SelectUser("code", session.UserCode)
 	if err != nil {
-		log.Warn("User not found")
-		w.WriteHeader(http.StatusNotFound)
+		log.WithFields(log.Fields{
+			"customMsg": "Failed getting settings, missing user",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
@@ -180,8 +183,10 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 
 	session, err := GetSession(r, "header")
 	if err != nil {
-		log.Warn("User not log in")
-		w.WriteHeader(http.StatusNotFound)
+		log.WithFields(log.Fields{
+			"customMsg": "Failed getting settings, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
@@ -194,14 +199,77 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err = decoder.Decode(&settings)
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed getting settings, wrong payload",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var is_email_already_taken bool
+	err = Db.QueryRow(`
+		SELECT
+			TRUE
+		FROM users
+		WHERE code != $1
+		AND email = $2;`,
+		session.UserCode,
+		settings.Email).Scan(&is_email_already_taken)
+	if is_email_already_taken {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"email":       settings.Email,
+			"customMsg":   "Failed getting settings, email taken",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var is_twitter_already_taken bool
+	err = Db.QueryRow(`
+		SELECT
+			TRUE
+		FROM users
+		WHERE code != $1
+		AND twitter = $2;`,
+		session.UserCode,
+		settings.Twitter).Scan(&is_twitter_already_taken)
+	if is_twitter_already_taken {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"twitter":     settings.Twitter,
+			"customMsg":   "Failed getting settings, twitter taken",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var is_website_already_taken bool
+	err = Db.QueryRow(`
+		SELECT
+			TRUE
+		FROM users
+		WHERE code != $1
+		AND website = $2;`,
+		session.UserCode,
+		settings.Website).Scan(&is_website_already_taken)
+	if is_website_already_taken {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"website":     settings.Website,
+			"customMsg":   "Failed getting settings, website taken",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	statement := `
 		UPDATE users
-		SET email = $1,
-		twitter = $2,
-		website = $3
+		SET
+			email = $1,
+			twitter = $2,
+			website = $3
 		WHERE code = $4;`
 	_, err = Db.Exec(
 		statement,
@@ -213,21 +281,26 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 		log.Error(err)
 	}
 
-	w.Write([]byte("OK"))
+	w.WriteHeader(http.StatusOK)
 }
 
 func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 
 	session, err := GetSession(r, "header")
 	if err != nil {
-		log.Warn("User not log in")
-		w.WriteHeader(http.StatusNotFound)
+		log.WithFields(log.Fields{
+			"customMsg": "Failed changing password, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+
 	user, err := SelectUser("code", session.UserCode)
 	if err != nil {
-		log.Warn("User not found")
-		w.WriteHeader(http.StatusNotFound)
+		log.WithFields(log.Fields{
+			"customMsg": "Failed changing password, missing user",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
@@ -240,30 +313,41 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err = decoder.Decode(&passwords)
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed changing password, wrong payload",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	if passwords.NewPassword != passwords.RepeatNewPassword {
-		w.Write([]byte("KO"))
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	encrypted_old_password, err := Encrypt(passwords.OldPassword)
 	if err != nil {
-		log.Error(err)
-		w.Write([]byte("KO"))
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed changing password, failed encrypting old password",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	if user.Password != encrypted_old_password {
-		w.Write([]byte("KO"))
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	encrypted_new_password, err := Encrypt(passwords.NewPassword)
 	if err != nil {
-		log.Error(err)
-		w.Write([]byte("KO"))
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed changing password, failed encrypting new password",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -276,10 +360,15 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 		encrypted_new_password,
 		user.Code)
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed changing password, failed sql",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
-	w.Write([]byte("OK"))
+	w.WriteHeader(http.StatusOK)
 }
 
 func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
@@ -313,5 +402,5 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 		log.Error(err)
 	}
 
-	w.Write([]byte("OK"))
+	w.WriteHeader(http.StatusOK)
 }
