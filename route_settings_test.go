@@ -514,7 +514,82 @@ func TestUpdateUserPassword(t *testing.T) {
 }
 
 func TestUpdateUserPrivacy(t *testing.T) {
+
 	// <setup code>
+	Db.Exec(
+		`INSERT INTO users (
+			code, email, username, password, privacy,
+			plan, twitter, website, createdat, updatedat)
+		VALUES (
+			'testusertest', 'jsjsjs@r.r', 'jsjsjsj', 'password',
+			'all', 'basic', 'thisistwitter', 'thisiswebsite',
+			current_timestamp, current_timestamp);`)
+
+	user := User{Code: "testusertest"}
+	session, _ := user.CreateSession()
+	_ = session
+
 	// <test code>
+	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/update_privacy", nil)
+		req.Header.Set("Authorization", "Bearer sessionId=")
+		w := httptest.NewRecorder()
+		UpdateUserPrivacy(w, req)
+		res := w.Result()
+		if res.StatusCode != 401 {
+			t.Fatal("Failed test update password, wrong header")
+		}
+	})
+
+	t.Run(fmt.Sprintf("Test empty privacy payload"), func(t *testing.T) {
+		params := []byte(`{
+			"Privacy": ""
+		}`)
+		req := httptest.NewRequest("POST", "/update_privacy", bytes.NewBuffer(params))
+		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
+		w := httptest.NewRecorder()
+		UpdateUserPrivacy(w, req)
+		res := w.Result()
+		if res.StatusCode != 400 {
+			t.Fatal("Failed test update privacy, empty privacy payload")
+		}
+	})
+
+	t.Run(fmt.Sprintf("Test non valid privacy payload"), func(t *testing.T) {
+		params := []byte(`{
+			"Privacy": "non_valid"
+		}`)
+		req := httptest.NewRequest("POST", "/update_privacy", bytes.NewBuffer(params))
+		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
+		w := httptest.NewRecorder()
+		UpdateUserPrivacy(w, req)
+		res := w.Result()
+		if res.StatusCode != 400 {
+			t.Fatal("Failed test update privacy, invalid payload")
+		}
+	})
+
+	t.Run(fmt.Sprintf("Test successfully update password"), func(t *testing.T) {
+		params := []byte(`{
+			"Privacy": "all"
+		}`)
+		req := httptest.NewRequest("POST", "/update_privacy", bytes.NewBuffer(params))
+		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
+		w := httptest.NewRecorder()
+		UpdateUserPrivacy(w, req)
+		var changed_privacy string
+		_ = Db.QueryRow(`
+			SELECT
+				privacy
+			FROM users
+			WHERE code = $1;`,
+			session.UserCode).Scan(
+			&changed_privacy)
+		if changed_privacy != "all" {
+			t.Fatal("Failed successfully update privacy")
+		}
+	})
+
 	// <tear-down code>
+	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 }
