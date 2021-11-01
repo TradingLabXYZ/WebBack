@@ -378,8 +378,10 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 
 	session, err := GetSession(r, "header")
 	if err != nil {
-		log.Warn("User not log in")
-		w.WriteHeader(http.StatusNotFound)
+		log.WithFields(log.Fields{
+			"customMsg": "Failed updating privacy, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
@@ -389,8 +391,26 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 
 	decoder := json.NewDecoder(r.Body)
 	err = decoder.Decode(&privacy)
-	if err != nil {
-		log.Error(err)
+	if err != nil || privacy.Privacy == "" {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed updating privacy, empty payload",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if privacy.Privacy != "all" &&
+		privacy.Privacy != "private" &&
+		privacy.Privacy != "subscribers" &&
+		privacy.Privacy != "followers" {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"payload":     privacy.Privacy,
+			"customMsg":   "Failed updating privacy, wrong payload",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	statement := `
@@ -402,7 +422,11 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 		privacy.Privacy,
 		session.UserCode)
 	if err != nil {
-		log.Error(err)
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed updating privacy, failed sql",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
 	}
 
 	w.WriteHeader(http.StatusOK)
