@@ -22,7 +22,7 @@ func TestMain(m *testing.M) {
 }
 
 func setUpTestDb() (db *sqlx.DB) {
-	WEBAPP_DATABASE_URL := fmt.Sprintf(
+	DbUrl = fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s",
 		os.Getenv("TL_DB_USER"),
 		os.Getenv("TL_DB_PASS"),
@@ -30,7 +30,7 @@ func setUpTestDb() (db *sqlx.DB) {
 		"25060",
 		"testwebapp",
 	)
-	db, _ = sqlx.Connect("postgres", WEBAPP_DATABASE_URL)
+	db, _ = sqlx.Connect("postgres", DbUrl)
 	return
 }
 
@@ -68,6 +68,7 @@ func SetUpTestLog() (file *os.File) {
 	}
 	log.SetLevel(log.TraceLevel)
 	log.SetFormatter(&log.JSONFormatter{})
+	// log.SetOutput(io.MultiWriter(file, os.Stdout))
 	log.SetOutput(io.MultiWriter(file))
 	return
 }

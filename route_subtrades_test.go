@@ -181,6 +181,7 @@ func TestCreateSubTrade(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		w := httptest.NewRecorder()
 		CreateSubtrade(w, req)
+		CreateSubtrade(w, req)
 		var count_subtrades int
 		_ = Db.QueryRow(`
 			SELECT COUNT(code)
