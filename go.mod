@@ -15,7 +15,10 @@ require (
 	github.com/lib/pq v1.10.3
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/posener/wstest v1.2.0 // indirect
+	github.com/rgamba/evtwebsocket v0.0.0-20181029234908-48b8cd9f8616 // indirect
 	github.com/rs/cors v1.8.0
+	github.com/sacOO7/gowebsocket v0.0.0-20210515122958-9396f1a71e23 // indirect
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stellar/go v0.0.0-20211008195307-10c7eda545ed
 	github.com/stellar/go-xdr v0.0.0-20201028102745-f80a23dac78a // indirect

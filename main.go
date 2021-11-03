@@ -133,6 +133,7 @@ func setUpDb() (db *sqlx.DB) {
 }
 
 var Origins = []string{
+	"http://127.0.0.1",
 	"http://localhost:9000",
 	"https://tradinglab.xyz",
 	"https://www.tradinglab.xyz",
