@@ -100,7 +100,7 @@ func TestCheckPrivacy(t *testing.T) {
 		cookie := http.Cookie{Name: "sessionId", Value: session_a.Code, Expires: expiration}
 		req.AddCookie(&cookie)
 		status := CheckPrivacy(req, userToSee)
-		if status.Status != `{"Status": "denied", "Reason": "private"}` {
+		if status.Reason != "private" {
 			t.Fatal("Failed user cannot access other user when PRIVATE")
 		}
 	})
@@ -114,7 +114,7 @@ func TestCheckPrivacy(t *testing.T) {
 		cookie := http.Cookie{Name: "sessionId", Value: session_a.Code, Expires: expiration}
 		req.AddCookie(&cookie)
 		status := CheckPrivacy(req, userToSee)
-		if status.Status != `{"Status": "denied", "Reason": "follow"}` {
+		if status.Reason != "user is not follower" {
 			t.Fatal("Failed user cannot access other user when FOLLOWERS and not following")
 		}
 	})
@@ -145,7 +145,7 @@ func TestCheckPrivacy(t *testing.T) {
 		cookie := http.Cookie{Name: "sessionId", Value: session_a.Code, Expires: expiration}
 		req.AddCookie(&cookie)
 		status := CheckPrivacy(req, userToSee)
-		if status.Status != `{"Status": "denied", "Reason": "subscribe"}` {
+		if status.Reason != "user is not subscriber" {
 			t.Fatal("Failed user cannot access other user when SUBSCRIBERS and not subscribers")
 		}
 	})
@@ -187,7 +187,6 @@ func TestInstanciateTradeWs(t *testing.T) {
 	// <tear-down code>
 }
 
-// Integration test
 func TestStartTradesWs(t *testing.T) {
 
 	// <setup code>
@@ -325,7 +324,158 @@ func TestStartTradesWs(t *testing.T) {
 		}
 	})
 
+	t.Run(fmt.Sprintf("Test terminate ws"), func(t *testing.T) {
+		s := httptest.NewServer(http.HandlerFunc(StartTradesWs))
+		defer s.Close()
+		u := strings.TrimPrefix(s.URL, "http://")
+		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/usera/sadkjfh"}
+		header := http.Header{}
+		header.Set("Origin", "http://127.0.0.1")
+		ws, _, _ := websocket.DefaultDialer.Dial(u_new.String(), header)
+		ws.Close()
+		time.Sleep(time.Second)
+		if len(trades_wss["usera"]) != 0 {
+			t.Fatal("Failed test terminate ws")
+		}
+	})
+
+	t.Run(fmt.Sprintf("Test receive snapshot after change"), func(t *testing.T) {
+		go InstanciateActivityMonitor()
+		s := httptest.NewServer(http.HandlerFunc(StartTradesWs))
+		defer s.Close()
+		u := strings.TrimPrefix(s.URL, "http://")
+		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/usera/sadkjfh"}
+		header := http.Header{}
+		header.Set("Origin", "http://127.0.0.1")
+		ws, _, _ := websocket.DefaultDialer.Dial(u_new.String(), header)
+		_, _, _ = ws.ReadMessage() // initial snapshot
+		go func() {
+			for {
+				_, new_message, _ := ws.ReadMessage()
+				trades_snapshot := TradesSnapshot{}
+				json.Unmarshal([]byte(new_message), &trades_snapshot)
+				if trades_snapshot.Trades[0].QtyBuys != 199 {
+					t.Fatal("Failed test receive snapshot after update")
+				}
+				break
+			}
+		}()
+		time.Sleep(time.Second)
+		Db.Exec(`UPDATE subtrades SET quantity = 199 WHERE tradecode = 'useratr' RETURNING quantity;`)
+		time.Sleep(time.Second)
+	})
+
 	// <tear-down code>
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 	Db.Exec(`DELETE FROM coins WHERE 1 = 1;`)
+}
+
+func TestStartTradesWsIntegration(t *testing.T) {
+
+	// <setup code>
+	Db.Exec(
+		`INSERT INTO users (
+			code, email, username, password, privacy,
+			plan, createdat, updatedat)
+		VALUES
+			('usera', 'usera@r.r', 'usera', 'testpassword',
+			'all', 'basic', current_timestamp, current_timestamp),
+			('userb', 'userb@r.r', 'userb', 'testpassword',
+			'all', 'basic', current_timestamp, current_timestamp),
+			('userc', 'userc@r.r', 'userc', 'testpassword',
+			'all', 'basic', current_timestamp, current_timestamp),
+			('userd', 'userd@r.r', 'userd', 'testpassword',
+			'all', 'basic', current_timestamp, current_timestamp);`)
+
+	Db.Exec(`
+		INSERT INTO coins (
+			coinid, name, symbol, slug)
+		VALUES
+			(1, 'Bitcoin', 'BTC', 'Bitcoin'),
+			(2, 'USDC', 'USDC', 'usdc'),
+			(3, 'ETH', 'ETH', 'ethereum'),
+			(4, 'DOT', 'DOT', 'polkadot'),
+			(5, 'SOL', 'SOL', 'solana');`)
+
+	Db.Exec(`
+		INSERT INTO prices (
+			createdat, coinid, price)
+		VALUES
+			(current_timestamp, 1, 65000),
+			(current_timestamp, 2, 1),
+			(current_timestamp, 3, 4500),
+			(current_timestamp, 4, 50),
+			(current_timestamp, 5, 200);`)
+
+	Db.Exec(`
+		INSERT INTO trades(
+			code, usercode, createdat, updatedat,
+			firstpair, secondpair, isopen)
+		VALUES
+		('usera', 'usera', current_timestamp, current_timestamp, 2, 1, TRUE),
+		('userb', 'userb', current_timestamp, current_timestamp, 2, 4, TRUE),
+		('userc', 'userc', current_timestamp, current_timestamp, 3, 1, TRUE),
+		('userd', 'userd', current_timestamp, current_timestamp, 5, 2, TRUE);`)
+
+	Db.Exec(`
+		INSERT INTO subtrades(
+			code, usercode, tradecode, createdat, updatedat,
+			type, quantity, avgprice, total, reason)
+		VALUES
+		('usera', 'usera', 'usera', current_timestamp, current_timestamp, 'BUY', 1, 10000, 10000, 'TESTART'),
+		('userb', 'userb', 'userb', current_timestamp, current_timestamp, 'BUY', 1, 10000, 10000, 'TESTART'),
+		('userc', 'userc', 'userc', current_timestamp, current_timestamp, 'BUY', 1, 10000, 10000, 'TESTART'),
+		('userd', 'userd', 'userd', current_timestamp, current_timestamp, 'BUY', 1, 10000, 10000, 'TESTART');`)
+
+	// <test code>
+	t.Run(fmt.Sprintf("Test casual interaction without errors"), func(t *testing.T) {
+		go InstanciateActivityMonitor()
+
+		// usera
+		server_a := httptest.NewServer(http.HandlerFunc(StartTradesWs))
+		defer server_a.Close()
+		url_a := strings.TrimPrefix(server_a.URL, "http://")
+		u_new_a := url.URL{Scheme: "ws", Host: url_a, Path: "get_trades/usera/requestusera"}
+		header_a := http.Header{}
+		header_a.Set("Origin", "http://127.0.0.1")
+		ws_a, _, _ := websocket.DefaultDialer.Dial(u_new_a.String(), header_a)
+		_, _, _ = ws_a.ReadMessage()
+
+		// userb
+		server_b := httptest.NewServer(http.HandlerFunc(StartTradesWs))
+		defer server_b.Close()
+		url_b := strings.TrimPrefix(server_b.URL, "http://")
+		u_new_b := url.URL{Scheme: "ws", Host: url_b, Path: "get_trades/usera/requestuserb"}
+		header_b := http.Header{}
+		header_b.Set("Origin", "http://127.0.0.1")
+		ws_b, _, _ := websocket.DefaultDialer.Dial(u_new_b.String(), header_b)
+		_, _, _ = ws_b.ReadMessage()
+
+		// userc
+		server_c := httptest.NewServer(http.HandlerFunc(StartTradesWs))
+		defer server_c.Close()
+		url_c := strings.TrimPrefix(server_c.URL, "http://")
+		u_new_c := url.URL{Scheme: "ws", Host: url_c, Path: "get_trades/usera/requestuserc"}
+		header_c := http.Header{}
+		header_c.Set("Origin", "http://127.0.0.1")
+		ws_c, _, _ := websocket.DefaultDialer.Dial(u_new_c.String(), header_c)
+		_, _, _ = ws_c.ReadMessage()
+
+		// userc
+		server_d := httptest.NewServer(http.HandlerFunc(StartTradesWs))
+		defer server_d.Close()
+		url_d := strings.TrimPrefix(server_d.URL, "http://")
+		u_new_d := url.URL{Scheme: "ws", Host: url_d, Path: "get_trades/usera/requestuserd"}
+		header_d := http.Header{}
+		header_d.Set("Origin", "http://127.0.0.1")
+		ws_d, _, _ := websocket.DefaultDialer.Dial(u_new_d.String(), header_d)
+		_, _, _ = ws_d.ReadMessage()
+
+		fmt.Println(trades_wss["usera"])
+		// WILL CONTINUE FROMHERE
+
+	})
+	// <tear-down code>
+
+	fmt.Println("CIAO")
 }
