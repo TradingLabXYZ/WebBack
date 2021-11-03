@@ -3,8 +3,8 @@ package main
 import (
 	"errors"
 	"net/http"
+	"strings"
 
-	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 )
@@ -16,30 +16,57 @@ type WsTrade struct {
 	Ws        *websocket.Conn
 }
 
+type PrivacyStatus struct {
+	Status string
+	Reason string
+}
+
 func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 
-	request_id := mux.Vars(r)["requestid"]
-	username := mux.Vars(r)["username"]
+	url_split := strings.Split(r.URL.Path, "/")
 
-	userToSee, err := SelectUser("username", username)
-	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		log.Warn("User not found")
+	if len(url_split) < 4 {
+		log.WithFields(log.Fields{
+			"urlPath": r.URL.Path,
+		}).Warn("Failed starting ws, wrong url")
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	status := CheckPrivacy(r, userToSee)
-	if status != "OK" {
-		w.Write([]byte(status))
+	username := url_split[2]
+	request_id := url_split[3]
+
+	userToSee, err := SelectUser("username", username)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"urlPath":   r.URL.Path,
+			"userToSee": userToSee,
+		}).Warn("Failed starting ws, user not found")
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	ws, err := InstanciateTradeWs(w, r)
 	if err != nil {
-		w.WriteHeader(http.StatusNotFound)
 		log.WithFields(log.Fields{
 			"custom_msg": "Failed instanciating TradeWs",
 		}).Error(err)
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	status := CheckPrivacy(r, userToSee)
+	if status.Status != "OK" {
+		err = ws.WriteJSON(status)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"urlPath":    r.URL.Path,
+				"userToSee":  userToSee,
+				"custom_msg": "Failed returning status",
+			}).Error(err)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 		return
 	}
 
@@ -52,63 +79,88 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 	go ws_trade.WaitToSendMessage()
 }
 
-func CheckPrivacy(request *http.Request, userToSee User) (status string) {
+func CheckPrivacy(request *http.Request, userToSee User) (status PrivacyStatus) {
 
 	if userToSee.Privacy == "all" {
-		return "OK"
+		status.Status = "OK"
+		status.Reason = "userToSee ALL"
+		return
 	}
 
 	session, err := GetSession(request, "cookie")
 	if err != nil {
-		return "KO"
+		status.Status = "KO"
+		status.Reason = "cookie"
+		return
 	}
 
 	user, err := SelectUser("code", session.UserCode)
 	if err != nil {
-		return "KO"
+		status.Status = "KO"
+		status.Reason = "invalid user code"
+		return
 	}
 
 	if user.Code == userToSee.Code {
-		return "OK"
+		status.Status = "OK"
+		status.Reason = "user access its own profile"
+		return
 	}
 
 	switch userToSee.Privacy {
 	case "private":
-		return `{"Status": "denied", "Reason": "private"}`
+		status.Status = "KO"
+		status.Reason = "private"
+		return
 	case "followers":
 		var isfollower bool
 		_ = Db.QueryRow(`
 					SELECT TRUE
 					FROM followers
-					WHERE followto = $1
-					AND followfrom = $2;`, user.Code, userToSee.Code).Scan(
+					WHERE followfrom = $1
+					AND followto = $2;`, user.Code, userToSee.Code).Scan(
 			&isfollower,
 		)
 		if isfollower {
-			return "OK"
+			status.Status = "OK"
+			status.Reason = "user is follower"
+			return
 		} else {
-			return `{"Status": "denied", "Reason": "follow"}`
+			status.Status = "KO"
+			status.Reason = "user is not follower"
+			return
 		}
 	case "subscribers":
 		var issubscriber bool
 		_ = Db.QueryRow(`
 					SELECT TRUE
 					FROM subscribers
-					WHERE subscribeto = $1
-					AND subscribefrom = $2;`, user.Code, userToSee.Code).Scan(
+					WHERE subscribefrom = $1
+					AND subscribeto = $2;`, user.Code, userToSee.Code).Scan(
 			&issubscriber,
 		)
 		if issubscriber {
-			return "OK"
+			status.Status = "OK"
+			status.Reason = "user is subscriber"
+			return
 		} else {
-			return `{"Status": "denied", "Reason": "subscribe"}`
+			status.Status = "KO"
+			status.Reason = "user is not subscriber"
+			return
 		}
 	default:
-		return `{"Status": "denied", "Reason": "unknown"}`
+		log.WithFields(log.Fields{
+			"userToSee": userToSee.Code,
+			"user":      user.Code,
+		}).Warn("Not possible to determine user's privacy")
+		status.Status = "KO"
+		status.Reason = "unknown reason"
+		return
 	}
 }
 
 func InstanciateTradeWs(w http.ResponseWriter, r *http.Request) (ws *websocket.Conn, err error) {
+
 	var upgrader = websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,

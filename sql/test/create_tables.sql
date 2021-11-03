@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS subtrades (
 );
 
 CREATE TABLE IF NOT EXISTS followers (
-  followefrom VARCHAR(12) NOT NULL REFERENCES users(code),
+  followfrom VARCHAR(12) NOT NULL REFERENCES users(code),
   followto VARCHAR(12) NOT NULL REFERENCES users(code),
   createdat TIMESTAMP
 );
