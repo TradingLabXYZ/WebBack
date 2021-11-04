@@ -11,14 +11,14 @@ import (
 )
 
 type TxBuyPremium struct {
-	SessionId  int
-	Userid     int
-	Id         string  `json:"Id"`
-	Memo       string  `json:"Memo"`
-	Months     int     `json:"Months"`
-	Amount     float64 `json:"Amount"`
-	Blockchain string  `json:"Blockchain"`
-	Asset      string  `json:"Asset"`
+	SessionCode string
+	UserCode    string
+	Id          string  `json:"Id"`
+	Memo        string  `json:"Memo"`
+	Months      int     `json:"Months"`
+	Amount      float64 `json:"Amount"`
+	Blockchain  string  `json:"Blockchain"`
+	Asset       string  `json:"Asset"`
 }
 
 /**
@@ -32,29 +32,38 @@ SUCCESS --> RETURN OK
 func BuyPremiumMonths(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting BuyPremiumMonths..."))
 
-	session := SelectSession(r)
-	if session.Id == 0 {
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.Warn("User not log in")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user := SelectUser("email", session.Email)
+	if session.Code == "" {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	user, err := SelectUser("code", session.UserCode)
+	if err != nil {
+		log.Warn("User not found")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	var tx TxBuyPremium
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&tx)
+	err = decoder.Decode(&tx)
 	if err != nil {
-		fmt.Println(err)
 		log.WithFields(log.Fields{
-			"session":    session.Id,
-			"user":       user.Id,
-			"custom_msg": "Failed decoding data from user",
+			"sessionCode": session.Code,
+			"userCode":    session.UserCode,
+			"custom_msg":  "Failed decoding data from user",
 		}).Error(err)
 		json.NewEncoder(w).Encode("KO")
 		return
 	}
 
-	tx.Userid = user.Id
-	tx.SessionId = session.Id
+	tx.UserCode = session.UserCode
+	tx.SessionCode = session.Code
 
 	var status string
 	if tx.Blockchain == "Stellar" {
@@ -69,10 +78,10 @@ func BuyPremiumMonths(w http.ResponseWriter, r *http.Request) {
 	user.UpdateUserStatus("premium")
 	if err != nil {
 		log.WithFields(log.Fields{
-			"session":    session.Id,
-			"user":       user.Id,
-			"txid":       tx.Id,
-			"custom_msg": "Update user to premium failed",
+			"sessionCode": session.Code,
+			"userCode":    session.UserCode,
+			"txid":        tx.Id,
+			"custom_msg":  "Update user to premium failed",
 		}).Error(err)
 		json.NewEncoder(w).Encode("KO")
 		return
@@ -81,21 +90,21 @@ func BuyPremiumMonths(w http.ResponseWriter, r *http.Request) {
 	err = tx.InsertPayment("basicToPremium")
 	if err != nil {
 		log.WithFields(log.Fields{
-			"session":    session.Id,
-			"user":       user.Id,
-			"txid":       tx.Id,
-			"custom_msg": "Insert new payment failed",
+			"sessionCode": session.Code,
+			"userCode":    session.UserCode,
+			"txid":        tx.Id,
+			"custom_msg":  "Insert new payment failed",
 		}).Error(err)
 		json.NewEncoder(w).Encode("KO")
 		return
 	}
 
 	log.WithFields(log.Fields{
-		"session":    session.Id,
-		"user":       user.Id,
-		"txid":       tx.Id,
-		"blockchain": tx.Blockchain,
-		"asset":      tx.Asset,
+		"sessionCode": session.Code,
+		"userCode":    session.UserCode,
+		"txid":        tx.Id,
+		"blockchain":  tx.Blockchain,
+		"asset":       tx.Asset,
 	}).Info("Successfully validated transaction")
 	json.NewEncoder(w).Encode("OK")
 }
@@ -104,18 +113,18 @@ func (user User) UpdateUserStatus(new_status string) error {
 	upgrade_sql := `
 		UPDATE users
 		SET plan = $1
-		WHERE id = $2;`
-	_, err := DbWebApp.Exec(upgrade_sql, new_status, user.Id)
+		WHERE code = $2;`
+	_, err := Db.Exec(upgrade_sql, new_status, user.Code)
 	return err
 }
 
 func (tx TxBuyPremium) InsertPayment(reason string) error {
 	payment_sql := `
-		INSERT INTO payments (userid, type, blockchain, currency, transactionid, amount, months, createdat, endat)  
+		INSERT INTO payments (usercode, type, blockchain, currency, transactionid, amount, months, createdat, endat)  
 		VALUES ($1, $2, $3, $4, $5, $6, $7, current_timestamp, current_timestamp + interval '1 month' * $8);`
-	_, err := DbWebApp.Exec(
+	_, err := Db.Exec(
 		payment_sql,
-		tx.Userid,
+		tx.UserCode,
 		reason,
 		tx.Blockchain,
 		tx.Asset,
@@ -129,12 +138,16 @@ func (tx TxBuyPremium) InsertPayment(reason string) error {
 func GetUserPremiumData(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(Gray(8-1, "Starting GetUserPremiumData..."))
 
-	session := SelectSession(r)
-	if session.Id == 0 {
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.Warn("User not log in")
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	user := SelectUser("email", session.Email)
+	if session.Code == "" {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
 	type Payment struct {
 		CreatedAt     string
@@ -159,10 +172,10 @@ func GetUserPremiumData(w http.ResponseWriter, r *http.Request) {
 			months,
 			transactionid
 		FROM payments
-		WHERE userid = $1
+		WHERE usercode = $1
 		ORDER BY 1;`
 
-	rows, err := DbWebApp.Query(payments_sql, user.Id)
+	rows, err := Db.Query(payments_sql, session.UserCode)
 	defer rows.Close()
 	if err != nil {
 		log.Error(err)
@@ -186,15 +199,14 @@ func GetUserPremiumData(w http.ResponseWriter, r *http.Request) {
 		SELECT
 			EXTRACT(DAY FROM MAX(endat)::date - now()) AS remaining_days
 		FROM payments
-		WHERE userid = $1;`
+		WHERE usercode = $1;`
 
-	err = DbWebApp.QueryRow(
+	err = Db.QueryRow(
 		remaining_days_sql,
-		user.Id).Scan(&user_premium_data.RemainingDays)
+		session.UserCode).Scan(&user_premium_data.RemainingDays)
 	if err != nil {
 		log.Error(err)
 	}
 
 	json.NewEncoder(w).Encode(user_premium_data)
-
 }
