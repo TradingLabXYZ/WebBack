@@ -471,11 +471,13 @@ func TestStartTradesWsIntegration(t *testing.T) {
 		ws_d, _, _ := websocket.DefaultDialer.Dial(u_new_d.String(), header_d)
 		_, _, _ = ws_d.ReadMessage()
 
-		fmt.Println(trades_wss["usera"])
-		// WILL CONTINUE FROMHERE
-
+		// This test needs to be expanded way further
+		if len(trades_wss) != 1 {
+			t.Fatal("Test failed casual interaction without errors")
+		}
 	})
-	// <tear-down code>
 
-	fmt.Println("CIAO")
+	// <tear-down code>
+	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
+	Db.Exec(`DELETE FROM coins WHERE 1 = 1;`)
 }
