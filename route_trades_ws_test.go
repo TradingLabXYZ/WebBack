@@ -15,7 +15,6 @@ import (
 )
 
 func TestCheckPrivacy(t *testing.T) {
-
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (code, email, username, password, privacy, plan, createdat, updatedat) VALUES 
@@ -172,7 +171,6 @@ func TestCheckPrivacy(t *testing.T) {
 }
 
 func TestInstanciateTradeWs(t *testing.T) {
-
 	// <test code>
 	t.Run(fmt.Sprintf("Test instanciate ws from unvalid origin"), func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
@@ -188,7 +186,6 @@ func TestInstanciateTradeWs(t *testing.T) {
 }
 
 func TestStartTradesWs(t *testing.T) {
-
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
@@ -242,7 +239,6 @@ func TestStartTradesWs(t *testing.T) {
 		if err == nil {
 			t.Fatal("Failed test instanciate from invalid origin")
 		}
-
 	})
 	t.Run(fmt.Sprintf("Test wrong url path"), func(t *testing.T) {
 		s := httptest.NewServer(http.HandlerFunc(StartTradesWs))
@@ -291,7 +287,6 @@ func TestStartTradesWs(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test access PRIVATE user"), func(t *testing.T) {
-
 		user_a := User{Code: "usera"}
 		session_a, _ := user_a.CreateSession()
 
@@ -371,7 +366,6 @@ func TestStartTradesWs(t *testing.T) {
 }
 
 func TestStartTradesWsIntegration(t *testing.T) {
-
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (

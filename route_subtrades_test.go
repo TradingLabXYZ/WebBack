@@ -36,7 +36,7 @@ func TestInsertSubTrade(t *testing.T) {
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test successfully insert subtrade"), func(t *testing.T) {
-		var new_subtrades = []NewSubtrade{
+		new_subtrades := []NewSubtrade{
 			{
 				CreatedAt: "2021-01-01",
 				Type:      "BUY",
@@ -63,7 +63,7 @@ func TestInsertSubTrade(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test insert subtrade wrong user"), func(t *testing.T) {
-		var new_subtrades = []NewSubtrade{
+		new_subtrades := []NewSubtrade{
 			{
 				CreatedAt: "2021-01-01",
 				Type:      "BUY",
@@ -90,7 +90,7 @@ func TestInsertSubTrade(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test insert subtrade wrong createdat"), func(t *testing.T) {
-		var new_subtrades = []NewSubtrade{
+		new_subtrades := []NewSubtrade{
 			{
 				CreatedAt: "2021-01-01TESTETEST",
 				Type:      "BUY",
@@ -120,8 +120,8 @@ func TestInsertSubTrade(t *testing.T) {
 	Db.Exec(`DELETE FROM coins WHERE 1 = 1;`)
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 }
-func TestCreateSubTrade(t *testing.T) {
 
+func TestCreateSubTrade(t *testing.T) {
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
@@ -196,8 +196,8 @@ func TestCreateSubTrade(t *testing.T) {
 	Db.Exec(`DELETE FROM coins WHERE 1 = 1;`)
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 }
-func TestUpdateSubTrade(t *testing.T) {
 
+func TestUpdateSubTrade(t *testing.T) {
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
@@ -304,8 +304,8 @@ func TestUpdateSubTrade(t *testing.T) {
 	Db.Exec(`DELETE FROM coins WHERE 1 = 1;`)
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 }
-func TestDeleteSubTrade(t *testing.T) {
 
+func TestDeleteSubTrade(t *testing.T) {
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (

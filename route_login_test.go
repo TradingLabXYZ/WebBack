@@ -13,7 +13,6 @@ import (
 )
 
 func TestLogin(t *testing.T) {
-
 	// <test code>
 	t.Run(fmt.Sprintf("Test empty body"), func(t *testing.T) {
 		req := httptest.NewRequest("POST", "/login", nil)

@@ -7,7 +7,6 @@ import (
 )
 
 func TestGetSnapshot(t *testing.T) {
-
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (

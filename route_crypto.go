@@ -14,7 +14,6 @@ import (
 )
 
 func SelectPairs(w http.ResponseWriter, r *http.Request) {
-
 	type PairInfo struct {
 		CoinId int
 		Symbol string

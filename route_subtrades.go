@@ -64,7 +64,6 @@ func (new_trade *NewTrade) InsertSubTrades() (err error) {
 }
 
 func CreateSubtrade(w http.ResponseWriter, r *http.Request) {
-
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -112,7 +111,6 @@ func CreateSubtrade(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateSubtrade(w http.ResponseWriter, r *http.Request) {
-
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -175,7 +173,6 @@ func UpdateSubtrade(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteSubtrade(w http.ResponseWriter, r *http.Request) {
-
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{

@@ -22,7 +22,6 @@ type PrivacyStatus struct {
 }
 
 func StartTradesWs(w http.ResponseWriter, r *http.Request) {
-
 	url_split := strings.Split(r.URL.Path, "/")
 
 	if len(url_split) < 4 {
@@ -80,7 +79,6 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 }
 
 func CheckPrivacy(request *http.Request, userToSee User) (status PrivacyStatus) {
-
 	if userToSee.Privacy == "all" {
 		status.Status = "OK"
 		status.Reason = "userToSee ALL"
@@ -160,8 +158,7 @@ func CheckPrivacy(request *http.Request, userToSee User) (status PrivacyStatus) 
 }
 
 func InstanciateTradeWs(w http.ResponseWriter, r *http.Request) (ws *websocket.Conn, err error) {
-
-	var upgrader = websocket.Upgrader{
+	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
@@ -194,7 +191,6 @@ func (ws_trade *WsTrade) SendInitialSnapshot() {
 			return
 		}
 	}
-
 }
 
 func (ws_trade *WsTrade) WaitToTerminate() {

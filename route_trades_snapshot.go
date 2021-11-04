@@ -68,7 +68,6 @@ type TradesSnapshot struct {
 }
 
 func (user User) GetSnapshot() (snapshot TradesSnapshot) {
-
 	snapshot.UserDetails = UserDetails{
 		user.UserName,
 		user.Twitter,
@@ -81,7 +80,6 @@ func (user User) GetSnapshot() (snapshot TradesSnapshot) {
 }
 
 func (user User) SelectUserTrades() (trades []Trade) {
-
 	trades_sql := `
 		WITH
 			CURRENT_PRICE AS (
@@ -274,7 +272,6 @@ func (trade Trade) SelectTradeSubtrades() (subtrades []Subtrade) {
 			"username":   trade.Username,
 			"custom_msg": "Failed running subtrades_sql",
 		}).Error(err)
-
 	}
 
 	for subtrades_rows.Next() {

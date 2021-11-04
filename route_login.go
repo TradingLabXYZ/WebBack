@@ -14,7 +14,6 @@ type LoginCredentials struct {
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
-
 	if r.Body == nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return

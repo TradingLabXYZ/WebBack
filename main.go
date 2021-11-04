@@ -15,12 +15,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var DbUrl string
-var Db sqlx.DB
-var trades_wss = make(map[string][]WsTrade)
+var (
+	DbUrl      string
+	Db         sqlx.DB
+	trades_wss = make(map[string][]WsTrade)
+)
 
 func main() {
-
 	err := sentry.Init(sentry.ClientOptions{
 		Dsn: "https://99a5eb64ecb041abb66d2809bcd4e101@o1054584.ingest.sentry.io/6040036",
 	})
@@ -80,7 +81,7 @@ func SetUpLog() (file *os.File) {
 	file, err := os.OpenFile(
 		"logs.log",
 		os.O_APPEND|os.O_CREATE|os.O_RDWR,
-		0666,
+		0o666,
 	)
 	if err != nil {
 		log.WithFields(log.Fields{

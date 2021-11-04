@@ -10,7 +10,6 @@ import (
 )
 
 func TestCreateTrade(t *testing.T) {
-
 	// <setup code>
 	Db.Exec(`
 		INSERT INTO coins (coinid, name, symbol, slug)
@@ -128,7 +127,6 @@ func TestCreateTrade(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test insert trade invalid subtrades"), func(t *testing.T) {
-
 		Db.Exec(
 			`INSERT INTO users (
 			code, email, username, password, privacy,
@@ -169,7 +167,6 @@ func TestCreateTrade(t *testing.T) {
 }
 
 func TestInsertTrade(t *testing.T) {
-
 	// <setup code>
 	Db.Exec(`
 		INSERT INTO coins (coinid, name, symbol, slug)
@@ -239,7 +236,6 @@ func TestInsertTrade(t *testing.T) {
 }
 
 func TestChangeTradeStatus(t *testing.T) {
-
 	// <setup code>
 	Db.Exec(`
 		INSERT INTO coins (coinid, name, symbol, slug)
@@ -363,7 +359,6 @@ func TestChangeTradeStatus(t *testing.T) {
 }
 
 func TestDeleteTrade(t *testing.T) {
-
 	// <setup code>
 	Db.Exec(`
 		INSERT INTO coins (coinid, name, symbol, slug)
