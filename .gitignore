@@ -1,4 +1,6 @@
 WebBack
+coverage.out
+WebBack.test
 set_env_variables.sh
 *.log
 go.sum

@@ -5,7 +5,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
+	sentry "github.com/getsentry/sentry-go"
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	. "github.com/logrusorgru/aurora"
@@ -13,37 +15,73 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var DbWebApp sqlx.DB
-
-var Origins = []string{
-	"http://localhost:9000",
-	"https://tradinglab.xyz",
-	"https://www.tradinglab.xyz",
-	"https://staging.tradinglab.xyz",
-	"https://hoofcoffee-wet0e0.stormkit.dev",
-	"https://hoofcoffee-wet0e0--staging.stormkit.dev",
-}
+var (
+	DbUrl      string
+	Db         sqlx.DB
+	trades_wss = make(map[string][]WsTrade)
+)
 
 func main() {
-	log_file := setUpLog()
-	defer log_file.Close()
-	DbWebApp = *setUpDb()
-	defer DbWebApp.Close()
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn: "https://99a5eb64ecb041abb66d2809bcd4e101@o1054584.ingest.sentry.io/6040036",
+	})
+	if err != nil {
+		log.Fatalf("sentry.Init: %s", err)
+	}
+	defer sentry.Flush(2 * time.Second)
 
-	go InstanciateTradesDispatcher()
+	sentry.CaptureMessage("It works!")
 
-	r := setupRoutes()
-	c := setUpCors()
+	r := SetupRoutes()
+	c := SetUpCors()
 	h := c.Handler(r)
+
+	log_file := SetUpLog()
+	defer log_file.Close()
+	Db = *setUpDb()
+	defer Db.Close()
+
+	go InstanciateActivityMonitor()
+
 	fmt.Println(Bold(Green("Application is running on port 8080")))
 	log.Fatal(http.ListenAndServe(":8080", h))
 }
 
-func setUpLog() (file *os.File) {
+func SetupRoutes() (router *mux.Router) {
+	router = mux.NewRouter()
+
+	router.HandleFunc("/login", Login).Methods("POST")
+	router.HandleFunc("/register", Register).Methods("POST")
+
+	router.HandleFunc("/user_settings", GetUserSettings).Methods("GET")
+	router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")
+	router.HandleFunc("/update_password", UpdateUserPassword).Methods("POST")
+	router.HandleFunc("/update_privacy", UpdateUserPrivacy).Methods("POST")
+	router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
+	router.HandleFunc("/user_premium_data", GetUserPremiumData).Methods("GET")
+
+	router.HandleFunc("/get_trades/{username}/{requestid}", StartTradesWs)
+	router.HandleFunc("/insert_trade", CreateTrade).Methods("POST")
+	router.HandleFunc("/change_trade/{tradecode}/{tostatus}", ChangeTradeStatus).Methods("GET")
+	router.HandleFunc("/delete_trade/{tradecode}", DeleteTrade).Methods("GET")
+	router.HandleFunc("/update_subtrade", UpdateSubtrade).Methods("POST")
+	router.HandleFunc("/insert_subtrade/{tradecode}", CreateSubtrade).Methods("GET")
+	router.HandleFunc("/delete_subtrade/{subtradecode}", DeleteSubtrade).Methods("GET")
+
+	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
+	router.HandleFunc("/stellar_price", SelectStellarPrice).Methods("GET")
+	router.HandleFunc("/transaction_credentials", SelectTransactionCredentials).Methods("GET")
+
+	router.HandleFunc("/buy_months", BuyPremiumMonths).Methods("POST")
+
+	return
+}
+
+func SetUpLog() (file *os.File) {
 	file, err := os.OpenFile(
 		"logs.log",
 		os.O_APPEND|os.O_CREATE|os.O_RDWR,
-		0666,
+		0o666,
 	)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -66,7 +104,7 @@ func setUpDb() (db *sqlx.DB) {
 		DB_NAME = "stagingwebappconnectionpool"
 	}
 
-	WEBAPP_DATABASE_URL := fmt.Sprintf(
+	DbUrl = fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s",
 		os.Getenv("TL_DB_USER"),
 		os.Getenv("TL_DB_PASS"),
@@ -75,10 +113,10 @@ func setUpDb() (db *sqlx.DB) {
 		DB_NAME,
 	)
 
-	db, err := sqlx.Connect("postgres", WEBAPP_DATABASE_URL)
+	db, err := sqlx.Connect("postgres", DbUrl)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"dbname":     WEBAPP_DATABASE_URL,
+			"dbname":     DB_NAME,
 			"custom_msg": "Failed setting up database",
 		}).Error(err)
 		return
@@ -86,7 +124,7 @@ func setUpDb() (db *sqlx.DB) {
 
 	if err = db.Ping(); err != nil {
 		log.WithFields(log.Fields{
-			"dbname":     WEBAPP_DATABASE_URL,
+			"dbname":     DB_NAME,
 			"custom_msg": "Unsucessfully connected with db",
 		}).Error(err)
 		return
@@ -95,61 +133,21 @@ func setUpDb() (db *sqlx.DB) {
 	return
 }
 
-func setUpCors() (c *cors.Cors) {
+var Origins = []string{
+	"http://127.0.0.1",
+	"http://localhost:9000",
+	"https://tradinglab.xyz",
+	"https://www.tradinglab.xyz",
+	"https://staging.tradinglab.xyz",
+	"https://hoofcoffee-wet0e0.stormkit.dev",
+	"https://hoofcoffee-wet0e0--staging.stormkit.dev",
+}
+
+func SetUpCors() (c *cors.Cors) {
 	return cors.New(cors.Options{
 		AllowedOrigins:   Origins,
 		AllowedHeaders:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT"},
 		AllowCredentials: true,
 	})
-}
-
-func setUpAuthMiddleware(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session := SelectSession(r)
-		if session.Id == 0 {
-			log.Warn("Attempted open url without sessionid")
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		h.ServeHTTP(w, r)
-	})
-}
-
-func setupRoutes() (router *mux.Router) {
-	router = mux.NewRouter()
-
-	// Define subrouter middlewares
-	auth_router := router.PathPrefix("/").Subrouter()
-	auth_router.Use(setUpAuthMiddleware)
-
-	trades_router := router.PathPrefix("/get_trades/{username}/{requestid}").Subrouter()
-	trades_router.Use(CheckUserPrivacy)
-
-	// API endpoints
-	router.HandleFunc("/login", Login).Methods("POST")
-	router.HandleFunc("/register", Register).Methods("POST")
-
-	auth_router.HandleFunc("/user_settings", GetUserSettings).Methods("GET")
-	auth_router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")
-	auth_router.HandleFunc("/update_password", UpdateUserPassword).Methods("POST")
-	auth_router.HandleFunc("/update_privacy", UpdateUserPrivacy).Methods("POST")
-	auth_router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
-	auth_router.HandleFunc("/user_premium_data", GetUserPremiumData).Methods("GET")
-
-	trades_router.HandleFunc("", GetTrades)
-	auth_router.HandleFunc("/insert_trade", InsertTrade).Methods("POST")
-	auth_router.HandleFunc("/close_trade/{tradeid}", CloseTrade).Methods("GET")
-	auth_router.HandleFunc("/open_trade/{tradeid}", OpenTrade).Methods("GET")
-	auth_router.HandleFunc("/delete_trade/{tradeid}", DeleteTrade).Methods("GET")
-	auth_router.HandleFunc("/update_trade", UpdateTrade).Methods("POST")
-
-	router.HandleFunc("/get_prices/{usercode}", GetPrices)
-	auth_router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
-	auth_router.HandleFunc("/stellar_price", SelectStellarPrice).Methods("GET")
-	auth_router.HandleFunc("/transaction_credentials", SelectTransactionCredentials).Methods("GET")
-
-	auth_router.HandleFunc("/buy_months", BuyPremiumMonths).Methods("POST")
-
-	return
 }
