@@ -209,5 +209,4 @@ func GetUserPremiumData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(user_premium_data)
-
 }

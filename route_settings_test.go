@@ -179,7 +179,6 @@ func TestInsertProfilePicture(t *testing.T) {
 }
 
 func TestGetUserSettings(t *testing.T) {
-
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
@@ -242,7 +241,6 @@ func TestGetUserSettings(t *testing.T) {
 }
 
 func TestUpdateUserSettings(t *testing.T) {
-
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
@@ -395,7 +393,6 @@ func TestUpdateUserSettings(t *testing.T) {
 }
 
 func TestUpdateUserPassword(t *testing.T) {
-
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
@@ -514,7 +511,6 @@ func TestUpdateUserPassword(t *testing.T) {
 }
 
 func TestUpdateUserPrivacy(t *testing.T) {
-
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (

@@ -15,7 +15,6 @@ import (
 )
 
 func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
-
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -137,7 +136,6 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserSettings(w http.ResponseWriter, r *http.Request) {
-
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -174,7 +172,6 @@ func GetUserSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
-
 	/** TODOs
 	- Check if Twitter URL is already taken
 	- Check if Website is already taken
@@ -285,7 +282,6 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
-
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -375,7 +371,6 @@ func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
-
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{

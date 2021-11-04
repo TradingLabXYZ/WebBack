@@ -6,7 +6,6 @@ import (
 )
 
 func TestCreateSession(t *testing.T) {
-
 	// <setup code>
 	Db.Exec(`
 		INSERT INTO users (

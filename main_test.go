@@ -35,7 +35,7 @@ func setUpTestDb() (db *sqlx.DB) {
 }
 
 func createTestTables() {
-	query, err := ioutil.ReadFile("sql/test/create_tables.sql")
+	query, err := ioutil.ReadFile("db/sql/test/create_tables.sql")
 	if err != nil {
 		panic(err)
 	}
@@ -45,7 +45,7 @@ func createTestTables() {
 }
 
 func destroyTestTables() {
-	query, err := ioutil.ReadFile("sql/test/destroy_tables.sql")
+	query, err := ioutil.ReadFile("db/sql/test/destroy_tables.sql")
 	if err != nil {
 		panic(err)
 	}
@@ -58,7 +58,7 @@ func SetUpTestLog() (file *os.File) {
 	file, err := os.OpenFile(
 		"logs_test.log",
 		os.O_APPEND|os.O_CREATE|os.O_RDWR,
-		0666,
+		0o666,
 	)
 	if err != nil {
 		log.WithFields(log.Fields{

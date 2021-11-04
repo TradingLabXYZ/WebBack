@@ -30,7 +30,6 @@ type NewTrade struct {
 }
 
 func CreateTrade(w http.ResponseWriter, r *http.Request) {
-
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -112,7 +111,6 @@ func (new_trade *NewTrade) InsertTrade() (err error) {
 }
 
 func ChangeTradeStatus(w http.ResponseWriter, r *http.Request) {
-
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -182,7 +180,6 @@ func ChangeTradeStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteTrade(w http.ResponseWriter, r *http.Request) {
-
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{

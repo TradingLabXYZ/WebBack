@@ -5,7 +5,6 @@ import (
 )
 
 func TestEncrypt(t *testing.T) {
-
 	// Test
 	have, _ := Encrypt("r")
 	want := "4dc7c9ec434ed06502767136789763ec11d2c4b7"
