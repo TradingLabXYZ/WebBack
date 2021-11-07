@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	validator "github.com/go-playground/validator/v10"
@@ -33,11 +32,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := SelectUser("wallet", user_wallet.Wallet)
 	if err == sql.ErrNoRows {
-		fmt.Println("OK SONO QUI")
 		InsertUser(wallet)
 		user, err = SelectUser("wallet", user_wallet.Wallet)
 		if err != nil {
-			fmt.Println(err)
+			log.Error(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
 	}
 

@@ -16,8 +16,9 @@ import (
 )
 
 var (
-	DbUrl string
-	Db    sqlx.DB
+	DbUrl      string
+	Db         sqlx.DB
+	trades_wss = make(map[string][]WsTrade)
 )
 
 func main() {
@@ -40,6 +41,8 @@ func main() {
 	Db = *setUpDb()
 	defer Db.Close()
 
+	go InstanciateActivityMonitor()
+
 	fmt.Println(Bold(Green("Application is running on port 8080")))
 	log.Fatal(http.ListenAndServe(":8080", h))
 }
@@ -48,6 +51,15 @@ func SetupRoutes() (router *mux.Router) {
 	router = mux.NewRouter()
 
 	router.HandleFunc("/login/{wallet}", Login).Methods("GET")
+	router.HandleFunc("/get_trades/{username}/{requestid}", StartTradesWs)
+	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
+
+	router.HandleFunc("/insert_trade", CreateTrade).Methods("POST")
+	router.HandleFunc("/change_trade/{tradecode}/{tostatus}", ChangeTradeStatus).Methods("GET")
+	router.HandleFunc("/delete_trade/{tradecode}", DeleteTrade).Methods("GET")
+	router.HandleFunc("/update_subtrade", UpdateSubtrade).Methods("POST")
+	router.HandleFunc("/insert_subtrade/{tradecode}", CreateSubtrade).Methods("GET")
+	router.HandleFunc("/delete_subtrade/{subtradecode}", DeleteSubtrade).Methods("GET")
 
 	return
 }

@@ -9,19 +9,15 @@ func TestCreateSession(t *testing.T) {
 	// <setup code>
 	Db.Exec(`
 		INSERT INTO users (
-			code,
-			email,
+			wallet,
 			username,
-			password,
 			privacy,
 			plan,
 			createdat,
 			updatedat)
 		VALUES (
-			'HAHAHAH',
-			'r@r.r',
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A',
 			'r',
-			'rrrr',
 			'all',
 			'basic',
 			current_timestamp,
@@ -29,17 +25,17 @@ func TestCreateSession(t *testing.T) {
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test not existing user code"), func(t *testing.T) {
-		user := User{Code: "ABABABAB"}
-		_, err := user.CreateSession()
+		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B"}
+		_, err := user.InsertSession()
 		if err == nil {
 			t.Fatal("Failed test not existing user code")
 		}
 	})
 
 	t.Run(fmt.Sprintf("Test successfully creation of session"), func(t *testing.T) {
-		user := User{Code: "HAHAHAH"}
-		session, _ := user.CreateSession()
-		if session.UserCode == "" {
+		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
+		session, _ := user.InsertSession()
+		if session.UserWallet == "" {
 			t.Fatal("Failed successfully create session")
 		}
 	})
