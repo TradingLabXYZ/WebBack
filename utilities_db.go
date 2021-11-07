@@ -49,7 +49,6 @@ func (user *User) InsertSession() (session Session, err error) {
 		&session.CreatedAt,
 	)
 	if err != nil {
-		fmt.Println(err)
 		err = errors.New("Error inserting new session in db")
 		return
 	}

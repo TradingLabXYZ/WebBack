@@ -60,20 +60,30 @@ CREATE TABLE IF NOT EXISTS subtrades (
   quantity NUMERIC,
   avgprice NUMERIC,
   total NUMERIC,
+  CONSTRAINT users_wallet_fkey FOREIGN KEY (userwallet)
+    REFERENCES users (wallet) ON DELETE CASCADE,
   CONSTRAINT trades_code_fkey FOREIGN KEY (tradecode)
     REFERENCES trades (code) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS followers (
-  followfrom VARCHAR(42) NOT NULL REFERENCES users(wallet),
-  followto VARCHAR(42) NOT NULL REFERENCES users(wallet),
-  createdat TIMESTAMP
+  followfrom VARCHAR(42) NOT NULL,
+  followto VARCHAR(42) NOT NULL,
+  createdat TIMESTAMP,
+  CONSTRAINT users_userwallet_followfrom_fkey FOREIGN KEY (followfrom)
+    REFERENCES users (wallet) ON DELETE CASCADE,
+  CONSTRAINT users_userwallet_followto_fkey FOREIGN KEY (followto)
+    REFERENCES users (wallet) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS subscribers (
-  subscribefrom VARCHAR(42) NOT NULL REFERENCES users(wallet),
-  subscribeto VARCHAR(42) NOT NULL REFERENCES users(wallet),
-  createdat TIMESTAMP
+  subscribefrom VARCHAR(42) NOT NULL,
+  subscribeto VARCHAR(42) NOT NULL,
+  createdat TIMESTAMP,
+  CONSTRAINT users_userwallet_subscribefrom_fkey FOREIGN KEY (subscribefrom)
+    REFERENCES users (wallet) ON DELETE CASCADE,
+  CONSTRAINT users_userwallet_subscribeto_fkey FOREIGN KEY (subscribeto)
+    REFERENCES users (wallet) ON DELETE CASCADE
 );
 
 CREATE OR REPLACE FUNCTION notify_changes()
