@@ -1,33 +1,29 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	validator "github.com/go-playground/validator/v10"
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
 
-type LoginCredentials struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8,containsany=!?*()_$,containsany=1234567890"`
+type UserWallet struct {
+	Wallet string `validate="eth_addr"`
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
-	if r.Body == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	wallet := mux.Vars(r)["wallet"]
 
-	credentials := LoginCredentials{}
-	err := json.NewDecoder(r.Body).Decode(&credentials)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+	user_wallet := UserWallet{
+		Wallet: wallet,
 	}
 
 	validate := validator.New()
-	err = validate.Struct(credentials)
+	err := validate.Struct(user_wallet)
 	if err != nil {
 		validationErrors := err.(validator.ValidationErrors)
 		first_error := validationErrors[0].Tag()
@@ -35,26 +31,17 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := SelectUser("email", credentials.Email)
-	if err != nil {
-		w.Write([]byte("User not found"))
-		return
+	user, err := SelectUser("wallet", user_wallet.Wallet)
+	if err == sql.ErrNoRows {
+		fmt.Println("OK SONO QUI")
+		InsertUser(wallet)
+		user, err = SelectUser("wallet", user_wallet.Wallet)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 
-	encrypted_password, err := Encrypt(credentials.Password)
-	if err != nil {
-		log.Error(err)
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-
-	if user.Password != encrypted_password {
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-
-	log.Info("Log in valid user " + user.Code)
-	session, err := user.CreateSession()
+	session, err := user.InsertSession()
 	if err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusForbidden)
@@ -64,8 +51,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	user_data := struct {
 		SessionId      string
 		Username       string
-		Email          string
-		Code           string
+		Wallet         string
 		ProfilePicture string
 		Twitter        string
 		Website        string
@@ -74,8 +60,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}{
 		session.Code,
 		user.UserName,
-		user.Email,
-		user.Code,
+		user.Wallet,
 		user.ProfilePicture,
 		user.Twitter,
 		user.Website,

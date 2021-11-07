@@ -16,9 +16,8 @@ import (
 )
 
 var (
-	DbUrl      string
-	Db         sqlx.DB
-	trades_wss = make(map[string][]WsTrade)
+	DbUrl string
+	Db    sqlx.DB
 )
 
 func main() {
@@ -41,8 +40,6 @@ func main() {
 	Db = *setUpDb()
 	defer Db.Close()
 
-	go InstanciateActivityMonitor()
-
 	fmt.Println(Bold(Green("Application is running on port 8080")))
 	log.Fatal(http.ListenAndServe(":8080", h))
 }
@@ -50,29 +47,7 @@ func main() {
 func SetupRoutes() (router *mux.Router) {
 	router = mux.NewRouter()
 
-	router.HandleFunc("/login", Login).Methods("POST")
-	router.HandleFunc("/register", Register).Methods("POST")
-
-	router.HandleFunc("/user_settings", GetUserSettings).Methods("GET")
-	router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")
-	router.HandleFunc("/update_password", UpdateUserPassword).Methods("POST")
-	router.HandleFunc("/update_privacy", UpdateUserPrivacy).Methods("POST")
-	router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
-	router.HandleFunc("/user_premium_data", GetUserPremiumData).Methods("GET")
-
-	router.HandleFunc("/get_trades/{username}/{requestid}", StartTradesWs)
-	router.HandleFunc("/insert_trade", CreateTrade).Methods("POST")
-	router.HandleFunc("/change_trade/{tradecode}/{tostatus}", ChangeTradeStatus).Methods("GET")
-	router.HandleFunc("/delete_trade/{tradecode}", DeleteTrade).Methods("GET")
-	router.HandleFunc("/update_subtrade", UpdateSubtrade).Methods("POST")
-	router.HandleFunc("/insert_subtrade/{tradecode}", CreateSubtrade).Methods("GET")
-	router.HandleFunc("/delete_subtrade/{subtradecode}", DeleteSubtrade).Methods("GET")
-
-	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
-	router.HandleFunc("/stellar_price", SelectStellarPrice).Methods("GET")
-	router.HandleFunc("/transaction_credentials", SelectTransactionCredentials).Methods("GET")
-
-	router.HandleFunc("/buy_months", BuyPremiumMonths).Methods("POST")
+	router.HandleFunc("/login/{wallet}", Login).Methods("GET")
 
 	return
 }
@@ -102,6 +77,8 @@ func setUpDb() (db *sqlx.DB) {
 		DB_NAME = "webappconnectionpool"
 	} else if env == "staging" {
 		DB_NAME = "stagingwebappconnectionpool"
+	} else if env == "test" {
+		DB_NAME = "testwebapp"
 	}
 
 	DbUrl = fmt.Sprintf(

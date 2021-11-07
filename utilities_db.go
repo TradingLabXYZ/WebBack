@@ -4,21 +4,22 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Session struct {
-	Code      string
-	UserCode  string
-	CreatedAt time.Time
+	Code       string
+	UserWallet string
+	CreatedAt  time.Time
 }
 
 type User struct {
-	Code           string
-	Email          string
+	Wallet         string
 	UserName       string
-	LoginPassword  string
 	Password       string
 	Privacy        string
 	Plan           string
@@ -27,27 +28,28 @@ type User struct {
 	Website        string
 }
 
-func (user *User) CreateSession() (session Session, err error) {
+func (user *User) InsertSession() (session Session, err error) {
 	uuid, err := CreateUUID()
 	if err != nil {
 		return
 	}
 
 	session_sql := `
-		INSERT INTO sessions (code, usercode, createdat)
+		INSERT INTO sessions (code, userwallet, createdat)
 		VALUES ($1, $2, $3)
-		RETURNING code, usercode, createdat;`
+		RETURNING code, userwallet, createdat;`
 
 	err = Db.QueryRow(
 		session_sql,
 		uuid,
-		user.Code,
+		user.Wallet,
 		time.Now()).Scan(
 		&session.Code,
-		&session.UserCode,
+		&session.UserWallet,
 		&session.CreatedAt,
 	)
 	if err != nil {
+		fmt.Println(err)
 		err = errors.New("Error inserting new session in db")
 		return
 	}
@@ -110,20 +112,34 @@ func (session *Session) ExtractFromCookie(r *http.Request) (err error) {
 func (session *Session) Select() (err error) {
 	err = Db.QueryRow(`
 			SELECT
-				usercode
+				userwallet
 			FROM sessions
 			WHERE code = $1;`, session.Code).Scan(
-		&session.UserCode,
+		&session.UserWallet,
 	)
 	return
+}
+
+func InsertUser(wallet string) {
+	default_profile_picture := os.Getenv("CDN_PATH") + "/profile_pictures/default_picture.png"
+	statement := `
+		INSERT INTO users (
+			wallet, profilepicture, username, privacy,
+			plan, createdat, updatedat)
+		VALUES (
+			$1, $2, '', 'all', 'basic',
+			current_timestamp, current_timestamp);`
+	_, err := Db.Exec(statement, wallet, default_profile_picture)
+	if err != nil {
+		log.Error(err)
+		return
+	}
 }
 
 func SelectUser(by string, value string) (user User, err error) {
 	user_sql := fmt.Sprintf(`
 		SELECT
-			code,
-			email,
-			password,
+			wallet,
 			username,
 			privacy,
 			plan,
@@ -133,9 +149,7 @@ func SelectUser(by string, value string) (user User, err error) {
 		FROM users
 		WHERE %s = $1;`, by)
 	err = Db.QueryRow(user_sql, value).Scan(
-		&user.Code,
-		&user.Email,
-		&user.Password,
+		&user.Wallet,
 		&user.UserName,
 		&user.Privacy,
 		&user.Plan,
