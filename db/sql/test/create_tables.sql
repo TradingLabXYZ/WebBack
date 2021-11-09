@@ -3,7 +3,7 @@ CREATE TYPE plans AS ENUM ('basic', 'premium', 'pro');
 
 CREATE TABLE IF NOT EXISTS users (
   wallet VARCHAR(42) NOT NULL UNIQUE,
-  username VARCHAR(255) NOT NULL UNIQUE,
+  username VARCHAR(255),
   privacy privacies NOT NULL,
   profilepicture TEXT,
   twitter TEXT,

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"net/http"
 
@@ -31,7 +30,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := SelectUser("wallet", user_wallet.Wallet)
-	if err == sql.ErrNoRows {
+	if user == (User{}) {
 		InsertUser(wallet)
 		user, err = SelectUser("wallet", user_wallet.Wallet)
 		if err != nil {
