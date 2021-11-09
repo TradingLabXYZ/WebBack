@@ -61,6 +61,10 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/insert_subtrade/{tradecode}", CreateSubtrade).Methods("GET")
 	router.HandleFunc("/delete_subtrade/{subtradecode}", DeleteSubtrade).Methods("GET")
 
+	router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")
+	router.HandleFunc("/update_privacy", UpdateUserPrivacy).Methods("POST")
+	router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
+
 	return
 }
 
