@@ -258,7 +258,7 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 	statement := `
 		UPDATE users
 		SET privacy = $1
-		WHERE code = $2;`
+		WHERE wallet = $2;`
 	_, err = Db.Exec(
 		statement,
 		privacy.Privacy,
