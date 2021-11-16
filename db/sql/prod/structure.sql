@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS users (
   code VARCHAR(12) NOT NULL UNIQUE,
   email VARCHAR(255) NOT NULL UNIQUE,
   username VARCHAR(255) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL,
   privacy privacies NOT NULL,
   profilepicture TEXT,
   twitter TEXT,

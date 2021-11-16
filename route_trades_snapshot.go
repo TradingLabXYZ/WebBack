@@ -69,7 +69,7 @@ type TradesSnapshot struct {
 
 func (user User) GetSnapshot() (snapshot TradesSnapshot) {
 	snapshot.UserDetails = UserDetails{
-		user.UserName,
+		user.Wallet,
 		user.Twitter,
 	}
 
@@ -194,7 +194,7 @@ func (user User) SelectUserTrades() (trades []Trade) {
 	defer trades_rows.Close()
 	if err != nil {
 		log.WithFields(log.Fields{
-			"username":   user.UserName,
+			"wallet":     user.Wallet,
 			"custom_msg": "Failed running trades_sql",
 		}).Error(err)
 	}
@@ -235,7 +235,7 @@ func (user User) SelectUserTrades() (trades []Trade) {
 			&trade.BtcPrice,
 		); err != nil {
 			log.WithFields(log.Fields{
-				"username":   user.UserName,
+				"wallet":     user.Wallet,
 				"custom_msg": "Failed parsing trades_sql",
 			}).Error(err)
 		}
