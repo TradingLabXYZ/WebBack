@@ -20,7 +20,6 @@ type Session struct {
 type User struct {
 	Wallet         string
 	UserName       string
-	Password       string
 	Privacy        string
 	Plan           string
 	ProfilePicture string
