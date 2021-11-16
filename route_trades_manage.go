@@ -11,13 +11,13 @@ import (
 )
 
 type NewSubtrade struct {
-	CreatedAt string      `json:"CreatedAt"`
-	Type      string      `json:"Type"`
-	Reason    string      `json:"Reason"`
-	Quantity  json.Number `json:"Quantity"`
-	AvgPrice  json.Number `json:"AvgPrice"`
-	Total     json.Number `json:"Total"`
-	Usercode  string
+	CreatedAt  string      `json:"CreatedAt"`
+	Type       string      `json:"Type"`
+	Reason     string      `json:"Reason"`
+	Quantity   json.Number `json:"Quantity"`
+	AvgPrice   json.Number `json:"AvgPrice"`
+	Total      json.Number `json:"Total"`
+	UserWallet string
 }
 
 type NewTrade struct {
@@ -25,7 +25,7 @@ type NewTrade struct {
 	FirstPairId  int           `json:"FirstPair"`
 	SecondPairId int           `json:"SecondPair"`
 	Subtrades    []NewSubtrade `json:"Subtrades"`
-	Usercode     string
+	UserWallet   string
 	Code         string
 }
 
@@ -51,7 +51,7 @@ func CreateTrade(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	new_trade.Usercode = session.UserCode
+	new_trade.UserWallet = session.UserWallet
 
 	if len(new_trade.Subtrades) == 0 {
 		log.WithFields(log.Fields{
@@ -87,7 +87,7 @@ func CreateTrade(w http.ResponseWriter, r *http.Request) {
 func (new_trade *NewTrade) InsertTrade() (err error) {
 	trade_sql := `
 		INSERT INTO trades (
-			code, usercode, exchange, firstpair,
+			code, userwallet, exchange, firstpair,
 			secondpair, createdat, updatedat, isopen)
 		VALUES (
 			SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2, $3, $4,
@@ -95,7 +95,7 @@ func (new_trade *NewTrade) InsertTrade() (err error) {
 		RETURNING code;`
 	err = Db.QueryRow(
 		trade_sql,
-		new_trade.Usercode,
+		new_trade.UserWallet,
 		new_trade.Exchange,
 		new_trade.FirstPairId,
 		new_trade.SecondPairId,
@@ -148,7 +148,7 @@ func ChangeTradeStatus(w http.ResponseWriter, r *http.Request) {
 			isopen = $1,
 			updatedat = current_timestamp
 		WHERE code = $2
-		RETURNING usercode;`, to_status, tradecode).Scan(&sentinel_1)
+		RETURNING userwallet;`, to_status, tradecode).Scan(&sentinel_1)
 	if err != nil || sentinel_1 == "" {
 		log.WithFields(log.Fields{
 			"sessionCode": session.Code,
@@ -165,7 +165,7 @@ func ChangeTradeStatus(w http.ResponseWriter, r *http.Request) {
 		SET
 			updatedat = current_timestamp
 		WHERE tradecode = $1
-		RETURNING usercode;`, tradecode).Scan(&sentinel_2)
+		RETURNING userwallet;`, tradecode).Scan(&sentinel_2)
 	if err != nil || sentinel_2 == "" {
 		log.WithFields(log.Fields{
 			"sessionCode": session.Code,
@@ -202,7 +202,7 @@ func DeleteTrade(w http.ResponseWriter, r *http.Request) {
 	Db.Exec(`
 		DELETE FROM trades
 		WHERE code = $1
-		RETURNING usercode;`, tradecode)
+		RETURNING userwallet;`, tradecode)
 
 	w.WriteHeader(http.StatusOK)
 }

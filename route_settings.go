@@ -56,7 +56,7 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file_path := "profile_pictures/" + session.UserCode + "." + file_extensions[1]
+	file_path := "profile_pictures/" + session.UserWallet + "." + file_extensions[1]
 
 	// CONNECT AWS S3
 	do_key := os.Getenv("DO_KEY")
@@ -72,7 +72,7 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	svc := s3.New(sess)
 	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{
 		Bucket: aws.String("tradinglab"),
-		Prefix: aws.String("profile_pictures/" + session.UserCode),
+		Prefix: aws.String("profile_pictures/" + session.UserWallet),
 	})
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -121,8 +121,8 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	statement := `
 		UPDATE users
 		SET profilepicture = $1
-		WHERE code = $2;`
-	_, err = Db.Exec(statement, file_cdn_path, session.UserCode)
+		WHERE wallet = $2;`
+	_, err = Db.Exec(statement, file_cdn_path, session.UserWallet)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"sessionCode": session.Code,
@@ -135,49 +135,7 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(file_cdn_path))
 }
 
-func GetUserSettings(w http.ResponseWriter, r *http.Request) {
-	session, err := GetSession(r, "header")
-	if err != nil {
-		log.WithFields(log.Fields{
-			"customMsg": "Failed getting settings, wrong header",
-		}).Error(err)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	user, err := SelectUser("code", session.UserCode)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"customMsg": "Failed getting settings, missing user",
-		}).Error(err)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	settings := struct {
-		Email   string `json:"Email"`
-		Twitter string `json:"Twitter"`
-		Website string `json:"Website"`
-		Privacy string `json:"Privacy"`
-		Plan    string `json:"Plan"`
-	}{
-		user.Email,
-		user.Twitter,
-		user.Website,
-		user.Privacy,
-		user.Plan,
-	}
-
-	json.NewEncoder(w).Encode(settings)
-}
-
 func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
-	/** TODOs
-	- Check if Twitter URL is already taken
-	- Check if Website is already taken
-	- Check if email is already taken
-	*/
-
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -188,7 +146,6 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	settings := struct {
-		Email   string `json:"Email"`
 		Twitter string `json:"Twitter"`
 		Website string `json:"Website"`
 	}{}
@@ -204,33 +161,14 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var is_email_already_taken bool
-	err = Db.QueryRow(`
-		SELECT
-			TRUE
-		FROM users
-		WHERE code != $1
-		AND email = $2;`,
-		session.UserCode,
-		settings.Email).Scan(&is_email_already_taken)
-	if is_email_already_taken {
-		log.WithFields(log.Fields{
-			"sessionCode": session.Code,
-			"email":       settings.Email,
-			"customMsg":   "Failed getting settings, email taken",
-		}).Error(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
 	var is_twitter_already_taken bool
 	err = Db.QueryRow(`
 		SELECT
 			TRUE
 		FROM users
-		WHERE code != $1
+		WHERE wallet != $1
 		AND twitter = $2;`,
-		session.UserCode,
+		session.UserWallet,
 		settings.Twitter).Scan(&is_twitter_already_taken)
 	if is_twitter_already_taken {
 		log.WithFields(log.Fields{
@@ -247,9 +185,9 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 		SELECT
 			TRUE
 		FROM users
-		WHERE code != $1
+		WHERE wallet != $1
 		AND website = $2;`,
-		session.UserCode,
+		session.UserWallet,
 		settings.Website).Scan(&is_website_already_taken)
 	if is_website_already_taken {
 		log.WithFields(log.Fields{
@@ -264,107 +202,16 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	statement := `
 		UPDATE users
 		SET
-			email = $1,
-			twitter = $2,
-			website = $3
-		WHERE code = $4;`
+			twitter = $1,
+			website = $2
+		WHERE wallet = $3;`
 	_, err = Db.Exec(
 		statement,
-		settings.Email,
 		settings.Twitter,
 		settings.Website,
-		session.UserCode)
+		session.UserWallet)
 	if err != nil {
 		log.Error(err)
-	}
-
-	w.WriteHeader(http.StatusOK)
-}
-
-func UpdateUserPassword(w http.ResponseWriter, r *http.Request) {
-	session, err := GetSession(r, "header")
-	if err != nil {
-		log.WithFields(log.Fields{
-			"customMsg": "Failed changing password, wrong header",
-		}).Error(err)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	user, err := SelectUser("code", session.UserCode)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"customMsg": "Failed changing password, missing user",
-		}).Error(err)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
-	passwords := struct {
-		OldPassword       string `json:"OldPassword"`
-		NewPassword       string `json:"NewPassword"`
-		RepeatNewPassword string `json:"RepeatNewPassword"`
-	}{}
-
-	decoder := json.NewDecoder(r.Body)
-	err = decoder.Decode(&passwords)
-	if err != nil ||
-		passwords.NewPassword == "" ||
-		passwords.OldPassword == "" ||
-		passwords.RepeatNewPassword == "" {
-		log.WithFields(log.Fields{
-			"sessionCode": session.Code,
-			"customMsg":   "Failed changing password, wrong payload",
-		}).Error(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if passwords.NewPassword != passwords.RepeatNewPassword {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	encrypted_old_password, err := Encrypt(passwords.OldPassword)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"sessionCode": session.Code,
-			"customMsg":   "Failed changing password, failed encrypting old password",
-		}).Error(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if user.Password != encrypted_old_password {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	encrypted_new_password, err := Encrypt(passwords.NewPassword)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"sessionCode": session.Code,
-			"customMsg":   "Failed changing password, failed encrypting new password",
-		}).Error(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	statement := `
-		UPDATE users
-		SET password = $1
-		WHERE code = $2;`
-	_, err = Db.Exec(
-		statement,
-		encrypted_new_password,
-		user.Code)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"sessionCode": session.Code,
-			"customMsg":   "Failed changing password, failed sql",
-		}).Error(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -411,11 +258,11 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 	statement := `
 		UPDATE users
 		SET privacy = $1
-		WHERE code = $2;`
+		WHERE wallet = $2;`
 	_, err = Db.Exec(
 		statement,
 		privacy.Privacy,
-		session.UserCode)
+		session.UserWallet)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"sessionCode": session.Code,

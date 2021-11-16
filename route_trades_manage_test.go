@@ -19,14 +19,14 @@ func TestCreateTrade(t *testing.T) {
 
 	Db.Exec(
 		`INSERT INTO users (
-			code, email, username, password, privacy,
+			wallet, username, privacy,
 			plan, createdat, updatedat)
 		VALUES (
-			'ABABAB', 'r@r.r', 'r', 'testpassword',
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'r',
 			'all', 'basic', current_timestamp, current_timestamp);`)
 
-	user := User{Code: "ABABAB"}
-	session, _ := user.CreateSession()
+	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
+	session, _ := user.InsertSession()
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test insert trade with subtrade"), func(t *testing.T) {
@@ -70,7 +70,8 @@ func TestCreateTrade(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test insert trade not present cookie"), func(t *testing.T) {
-		params := []byte(`{ "Usercode": "ABABAB",
+		params := []byte(`{
+				"Usercode": "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X",
 				"Exchange": "Binance",
 				"FirstPair": 1,
 				"SecondPair": 1027,
@@ -129,13 +130,13 @@ func TestCreateTrade(t *testing.T) {
 	t.Run(fmt.Sprintf("Test insert trade invalid subtrades"), func(t *testing.T) {
 		Db.Exec(
 			`INSERT INTO users (
-			code, email, username, password, privacy,
+			wallet, username, privacy,
 			plan, createdat, updatedat)
 		VALUES (
-			'ZTZTZT', 'ZTZTZT@r.r', 'ZTZTZT', 'testpassword',
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86T', 'ZTZTZT',
 			'all', 'basic', current_timestamp, current_timestamp);`)
-		user := User{Code: "ZTZTZT", Email: "ZTZTZT@r.r"}
-		session, _ := user.CreateSession()
+		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86T"}
+		session, _ := user.InsertSession()
 
 		params := []byte(`{
 			"Exchange": "Binance",
@@ -155,7 +156,7 @@ func TestCreateTrade(t *testing.T) {
 		w := httptest.NewRecorder()
 		CreateTrade(w, req)
 		var count_trades int
-		err := Db.QueryRow(`SELECT COUNT(code) FROM trades WHERE usercode = 'ZTZTZT'`).Scan(&count_trades)
+		err := Db.QueryRow(`SELECT COUNT(code) FROM trades WHERE userwallet = '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86T'`).Scan(&count_trades)
 		if err != nil || count_trades > 0 {
 			t.Fatal("Failed insert trade invalid subtrades")
 		}
@@ -176,10 +177,10 @@ func TestInsertTrade(t *testing.T) {
 
 	Db.Exec(
 		`INSERT INTO users (
-			code, email, username, password, privacy,
+			wallet, username, privacy,
 			plan, createdat, updatedat)
 		VALUES (
-			'JFJFJF', 'jsjsjs@r.r', 'jsjsjsj', 'testpassword',
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'jsjsjsj',
 			'all', 'basic', current_timestamp, current_timestamp);`)
 
 	// <test code>
@@ -188,7 +189,7 @@ func TestInsertTrade(t *testing.T) {
 			Exchange:     "Binance",
 			FirstPairId:  1000,
 			SecondPairId: 1001,
-			Usercode:     "JFJFJF",
+			UserWallet:   "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X",
 		}
 		err := new_trade.InsertTrade()
 		if err != nil {
@@ -201,7 +202,7 @@ func TestInsertTrade(t *testing.T) {
 			Exchange:     "Binance",
 			FirstPairId:  1000,
 			SecondPairId: 1001,
-			Usercode:     "JFJFJFJSJSJSJ",
+			UserWallet:   "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86T",
 		}
 		err := new_trade.InsertTrade()
 		if err == nil {
@@ -214,7 +215,7 @@ func TestInsertTrade(t *testing.T) {
 			Exchange:     "Binance",
 			FirstPairId:  1000,
 			SecondPairId: 1001191,
-			Usercode:     "JFJFJF",
+			UserWallet:   "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X",
 		}
 		err := new_trade.InsertTrade()
 		if err == nil {
@@ -245,22 +246,22 @@ func TestChangeTradeStatus(t *testing.T) {
 
 	Db.Exec(
 		`INSERT INTO users (
-			code, email, username, password,
-			privacy, plan, createdat, updatedat)
+			wallet, username, privacy,
+			plan, createdat, updatedat)
 		VALUES (
-			'QPQPQPQ', 'pqpqpq@r.r', 'pqpqpqp', 'testpassword',
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'pqpqpqp',
 			'all', 'basic', current_timestamp, current_timestamp);`)
 
 	Db.Exec(`
 		INSERT INTO trades(
-			code, usercode, createdat, updatedat,
+			code, userwallet, createdat, updatedat,
 			firstpair, secondpair, isopen
 		) VALUES (
-			'PQPQP', 'QPQPQPQ', current_timestamp,
+			'PQPQP', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
 			current_timestamp, 9999, 8888, TRUE);`)
 
-	user := User{Code: "QPQPQPQ"}
-	session, _ := user.CreateSession()
+	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
+	session, _ := user.InsertSession()
 
 	// <test-code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
@@ -304,15 +305,15 @@ func TestChangeTradeStatus(t *testing.T) {
 	t.Run(fmt.Sprintf("Test change trade status to false"), func(t *testing.T) {
 		Db.Exec(`
 			INSERT INTO trades(
-				code, usercode, createdat, updatedat,
+				code, userwallet, createdat, updatedat,
 				firstpair, secondpair, isopen
 			) VALUES (
-				'XYXYXY', 'QPQPQPQ', current_timestamp,
+				'XYXYXY', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
 				current_timestamp, 9999, 8888, TRUE);`)
 		Db.Exec(`
 			INSERT INTO subtrades(
-				code, tradecode, usercode, createdat, updatedat)
-				VALUES ('PPPPPP', 'XYXYXY', 'QPQPQPQ',
+				code, tradecode, userwallet, createdat, updatedat)
+				VALUES ('PPPPPP', 'XYXYXY', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X',
 				current_timestamp, current_timestamp);`)
 		req := httptest.NewRequest("GET", "/change_trade", nil)
 		vars := map[string]string{"tradecode": "XYXYXY", "tostatus": "false"}
@@ -330,15 +331,15 @@ func TestChangeTradeStatus(t *testing.T) {
 	t.Run(fmt.Sprintf("Test change trade status to true"), func(t *testing.T) {
 		Db.Exec(`
 			INSERT INTO trades(
-				code, usercode, createdat, updatedat,
+				code, userwallet, createdat, updatedat,
 				firstpair, secondpair, isopen
 			) VALUES (
-				'YXYXYXY', 'QPQPQPQ', current_timestamp,
+				'YXYXYXY', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
 				current_timestamp, 9999, 8888, FALSE);`)
 		Db.Exec(`
 			INSERT INTO subtrades(
-				code, tradecode, usercode, createdat, updatedat)
-				VALUES ('OOOOOO', 'YXYXYXY', 'QPQPQPQ',
+				code, tradecode, userwallet, createdat, updatedat)
+				VALUES ('OOOOOO', 'YXYXYXY', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X',
 				current_timestamp, current_timestamp);`)
 		req := httptest.NewRequest("GET", "/change_trade", nil)
 		vars := map[string]string{"tradecode": "YXYXYXY", "tostatus": "true"}
@@ -368,14 +369,13 @@ func TestDeleteTrade(t *testing.T) {
 
 	Db.Exec(
 		`INSERT INTO users (
-			code, email, username, password,
-			privacy, plan, createdat, updatedat)
+			wallet, username, privacy, plan, createdat, updatedat)
 		VALUES (
-			'MBMBMBM', 'MBMBMBM@r.r', 'MBMBMBM', 'testpassword',
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM',
 			'all', 'basic',current_timestamp, current_timestamp);`)
 
-	user := User{Code: "MBMBMBM"}
-	session, _ := user.CreateSession()
+	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
+	session, _ := user.InsertSession()
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
@@ -403,15 +403,15 @@ func TestDeleteTrade(t *testing.T) {
 	t.Run(fmt.Sprintf("Test successfully delete trade"), func(t *testing.T) {
 		Db.Exec(`
 			INSERT INTO trades(
-				code, usercode, createdat, updatedat,
+				code, userwallet, createdat, updatedat,
 				firstpair, secondpair, isopen
 			) VALUES (
-				'IUIUIUIU', 'MBMBMBM', current_timestamp,
+				'IUIUIUIU', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
 				current_timestamp, 9999, 8888, TRUE);`)
 		Db.Exec(`
 			INSERT INTO subtrades(
-				code, tradecode, usercode, createdat, updatedat)
-				VALUES ('fjhfdjsa', 'IUIUIUIU', 'MBMBMBM',
+				code, tradecode, userwallet, createdat, updatedat)
+				VALUES ('fjhfdjsa', 'IUIUIUIU', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X',
 				current_timestamp, current_timestamp);`)
 
 		req := httptest.NewRequest("GET", "/delete_trade", nil)
