@@ -10,10 +10,10 @@ func TestGetSnapshot(t *testing.T) {
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
-			code, email, username, password, privacy,
+			wallet, username, privacy,
 			plan, createdat, updatedat)
 		VALUES (
-			'JFJFJF', 'jsjsjs@r.r', 'jsjsjsj', 'testpassword',
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'jsjsjsj',
 			'all', 'basic', current_timestamp, current_timestamp);`)
 
 	Db.Exec(`
@@ -34,19 +34,19 @@ func TestGetSnapshot(t *testing.T) {
 	t.Run(fmt.Sprintf("Test snapshot single buy"), func(t *testing.T) {
 		Db.Exec(`
 		INSERT INTO trades(
-			code, usercode, createdat, updatedat,
+			code, userwallet, createdat, updatedat,
 			firstpair, secondpair, isopen)
 		VALUES (
-			'MBMBMBM', 'JFJFJF', current_timestamp,
+			'MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
 			current_timestamp, 1001, 1, TRUE);`)
 		Db.Exec(`
 		INSERT INTO subtrades(
-			code, usercode, tradecode, createdat, updatedat,
+			code, userwallet, tradecode, createdat, updatedat,
 			type, quantity, avgprice, total, reason)
 		VALUES (
-			'SISISIS', 'JFJFJF', 'MBMBMBM', current_timestamp,
+			'SISISIS', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM', current_timestamp,
 			current_timestamp, 'BUY', 1, 50000, 50000, 'TESTART');`)
-		user := User{Code: "JFJFJF"}
+		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
 		snapshot := TradesSnapshot{}
 		snapshot.Trades = user.SelectUserTrades()
 		snapshot.CountTrades = len(snapshot.Trades)
@@ -87,21 +87,21 @@ func TestGetSnapshot(t *testing.T) {
 	t.Run(fmt.Sprintf("Test snapshot buy and sell"), func(t *testing.T) {
 		Db.Exec(`
 		INSERT INTO trades(
-			code, usercode, createdat, updatedat,
+			code, userwallet, createdat, updatedat,
 			firstpair, secondpair, isopen)
 		VALUES (
-			'MBMBMBM', 'JFJFJF', current_timestamp,
+			'MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
 			current_timestamp, 1001, 1, TRUE);`)
 		Db.Exec(`
 		INSERT INTO subtrades(
-			code, usercode, tradecode, createdat, updatedat,
+			code, userwallet, tradecode, createdat, updatedat,
 			type, quantity, avgprice, total, reason)
 		VALUES
-			('SISISIS', 'JFJFJF', 'MBMBMBM', current_timestamp,
+			('SISISIS', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM', current_timestamp,
 			current_timestamp, 'BUY', 1, 50000, 50000, 'TESTART'),
-			('SISISIS2', 'JFJFJF', 'MBMBMBM', current_timestamp,
+			('SISISIS2', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM', current_timestamp,
 			current_timestamp, 'SELL', 0.5, 80000, 40000, 'TESTART');`)
-		user := User{Code: "JFJFJF"}
+		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
 		snapshot := TradesSnapshot{}
 		snapshot.Trades = user.SelectUserTrades()
 		snapshot.CountTrades = len(snapshot.Trades)
@@ -142,25 +142,25 @@ func TestGetSnapshot(t *testing.T) {
 	t.Run(fmt.Sprintf("Test snapshot multiple buy and sell"), func(t *testing.T) {
 		Db.Exec(`
 		INSERT INTO trades(
-			code, usercode, createdat, updatedat,
+			code, userwallet, createdat, updatedat,
 			firstpair, secondpair, isopen)
 		VALUES (
-			'MBMBMBM', 'JFJFJF', current_timestamp,
+			'MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
 			current_timestamp, 1001, 1, TRUE);`)
 		Db.Exec(`
 		INSERT INTO subtrades(
-			code, usercode, tradecode, createdat, updatedat,
+			code, userwallet, tradecode, createdat, updatedat,
 			type, quantity, avgprice, total, reason)
 		VALUES
-			('SISISIS', 'JFJFJF', 'MBMBMBM', current_timestamp,
+			('SISISIS', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM', current_timestamp,
 			current_timestamp, 'BUY', 1, 50000, 50000, 'TESTART'),
-			('SISISIS2', 'JFJFJF', 'MBMBMBM', current_timestamp,
+			('SISISIS2', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM', current_timestamp,
 			current_timestamp, 'BUY', 2, 70000, 140000, 'TESTART'),
-			('SISISIS3', 'JFJFJF', 'MBMBMBM', current_timestamp,
+			('SISISIS3', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM', current_timestamp,
 			current_timestamp, 'SELL', 1.5, 100000, 150000, 'TESTART'),
-			('SISISIS4', 'JFJFJF', 'MBMBMBM', current_timestamp,
+			('SISISIS4', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM', current_timestamp,
 			current_timestamp, 'SELL', 0.5, 80000, 40000, 'TESTART');`)
-		snapshot := User{Code: "JFJFJF"}.GetSnapshot()
+		snapshot := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}.GetSnapshot()
 		if snapshot.Trades[0].QtyBuys != 3 {
 			t.Fatal("Failed test snapshot multiple buy and sell, trade[0].QtyBuys")
 		}
@@ -197,27 +197,27 @@ func TestGetSnapshot(t *testing.T) {
 	t.Run(fmt.Sprintf("Test snapshot multiple trades"), func(t *testing.T) {
 		Db.Exec(`
 		INSERT INTO trades(
-			code, usercode, createdat, updatedat,
+			code, userwallet, createdat, updatedat,
 			firstpair, secondpair, isopen)
 		VALUES
-			('MBMBMBM', 'JFJFJF', current_timestamp,
+			('MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
 			current_timestamp, 1001, 1, TRUE),
-			('MBMBMBM2', 'JFJFJF', current_timestamp,
+			('MBMBMBM2', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
 			current_timestamp, 1001, 1, TRUE);`)
 		Db.Exec(`
 		INSERT INTO subtrades(
-			code, usercode, tradecode, createdat, updatedat,
+			code, userwallet, tradecode, createdat, updatedat,
 			type, quantity, avgprice, total, reason)
 		VALUES
-			('SISISIS', 'JFJFJF', 'MBMBMBM', current_timestamp,
+			('SISISIS', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM', current_timestamp,
 			current_timestamp, 'BUY', 1, 50000, 50000, 'TESTART'),
-			('SISISIS2', 'JFJFJF', 'MBMBMBM', current_timestamp,
+			('SISISIS2', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM', current_timestamp,
 			current_timestamp, 'SELL', 1, 80000, 80000, 'TESTART'),
-			('SISISIS3', 'JFJFJF', 'MBMBMBM2', current_timestamp,
+			('SISISIS3', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM2', current_timestamp,
 			current_timestamp, 'BUY', 1, 50000, 50000, 'TESTART'),
-			('SISISIS4', 'JFJFJF', 'MBMBMBM2', current_timestamp,
+			('SISISIS4', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM2', current_timestamp,
 			current_timestamp, 'SELL', 1, 80000, 80000, 'TESTART');`)
-		user := User{Code: "JFJFJF"}
+		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
 		snapshot := TradesSnapshot{}
 		snapshot.Trades = user.SelectUserTrades()
 		snapshot.CountTrades = len(snapshot.Trades)
@@ -257,27 +257,27 @@ func TestGetSnapshot(t *testing.T) {
 			(current_timestamp, 5, 400);`)
 		Db.Exec(`
 		INSERT INTO trades(
-			code, usercode, createdat, updatedat,
+			code, userwallet, createdat, updatedat,
 			firstpair, secondpair, isopen)
 		VALUES
-			('MBMBMBM', 'JFJFJF', current_timestamp,
+			('MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
 			current_timestamp, 2, 3, TRUE),
-			('MBMBMBM2', 'JFJFJF', current_timestamp,
+			('MBMBMBM2', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
 			current_timestamp, 4, 5, TRUE);`)
 		Db.Exec(`
 		INSERT INTO subtrades(
-			code, usercode, tradecode, createdat, updatedat,
+			code, userwallet, tradecode, createdat, updatedat,
 			type, quantity, avgprice, total, reason)
 		VALUES
-			('SISISIS', 'JFJFJF', 'MBMBMBM', current_timestamp,
+			('SISISIS', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM', current_timestamp,
 			current_timestamp, 'BUY', 1, 5, 5, 'TESTART'),
-			('SISISIS2', 'JFJFJF', 'MBMBMBM', current_timestamp,
+			('SISISIS2', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM', current_timestamp,
 			current_timestamp, 'SELL', 1, 10, 10, 'TESTART'),
-			('SISISIS3', 'JFJFJF', 'MBMBMBM2', current_timestamp,
+			('SISISIS3', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM2', current_timestamp,
 			current_timestamp, 'BUY', 1, 1, 1, 'TESTART'),
-			('SISISIS4', 'JFJFJF', 'MBMBMBM2', current_timestamp,
+			('SISISIS4', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM2', current_timestamp,
 			current_timestamp, 'SELL', 1, 2, 2, 'TESTART');`)
-		user := User{Code: "JFJFJF"}
+		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
 		snapshot := TradesSnapshot{}
 		snapshot.Trades = user.SelectUserTrades()
 		snapshot.CountTrades = len(snapshot.Trades)

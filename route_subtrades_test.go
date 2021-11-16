@@ -13,10 +13,10 @@ func TestInsertSubTrade(t *testing.T) {
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
-			code, email, username, password, privacy,
+			wallet, username, privacy,
 			plan, createdat, updatedat)
 		VALUES (
-			'JFJFJF', 'jsjsjs@r.r', 'jsjsjsj', 'testpassword',
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'jsjsjsj',
 			'all', 'basic', current_timestamp, current_timestamp);`)
 
 	Db.Exec(`
@@ -28,10 +28,10 @@ func TestInsertSubTrade(t *testing.T) {
 
 	Db.Exec(`
 		INSERT INTO trades(
-			code, usercode, createdat, updatedat,
+			code, userwallet, createdat, updatedat,
 			firstpair, secondpair, isopen)
 		VALUES (
-			'MBMBMBM', 'JFJFJF', current_timestamp,
+			'MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
 			current_timestamp, 1000, 1001, TRUE);`)
 
 	// <test code>
@@ -53,7 +53,7 @@ func TestInsertSubTrade(t *testing.T) {
 			SecondPairId: 1001,
 			Subtrades:    new_subtrades,
 			Code:         "MBMBMBM",
-			Usercode:     "JFJFJGF",
+			UserWallet:   "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X",
 		}
 
 		err := new_trade.InsertSubTrades()
@@ -80,7 +80,7 @@ func TestInsertSubTrade(t *testing.T) {
 			SecondPairId: 1001,
 			Subtrades:    new_subtrades,
 			Code:         "MBMBMBM",
-			Usercode:     "JFJFJGFTETETETET",
+			UserWallet:   "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86T",
 		}
 
 		err := new_trade.InsertSubTrades()
@@ -107,7 +107,7 @@ func TestInsertSubTrade(t *testing.T) {
 			SecondPairId: 1001,
 			Subtrades:    new_subtrades,
 			Code:         "MBMBMBM",
-			Usercode:     "JFJFJGF",
+			UserWallet:   "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X",
 		}
 
 		err := new_trade.InsertSubTrades()
@@ -125,10 +125,10 @@ func TestCreateSubTrade(t *testing.T) {
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
-			code, email, username, password, privacy,
+			wallet, username, privacy,
 			plan, createdat, updatedat)
 		VALUES (
-			'JFJFJF', 'jsjsjs@r.r', 'jsjsjsj', 'testpassword',
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'jsjsjsj',
 			'all', 'basic', current_timestamp, current_timestamp);`)
 
 	Db.Exec(`
@@ -140,14 +140,14 @@ func TestCreateSubTrade(t *testing.T) {
 
 	Db.Exec(`
 		INSERT INTO trades(
-			code, usercode, createdat, updatedat,
+			code, userwallet, createdat, updatedat,
 			firstpair, secondpair, isopen)
 		VALUES (
-			'MBMBMBM', 'JFJFJF', current_timestamp,
+			'MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
 			current_timestamp, 1000, 1001, TRUE);`)
 
-	user := User{Code: "JFJFJF"}
-	session, _ := user.CreateSession()
+	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
+	session, _ := user.InsertSession()
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
@@ -201,10 +201,10 @@ func TestUpdateSubTrade(t *testing.T) {
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
-			code, email, username, password, privacy,
+			wallet, username, privacy,
 			plan, createdat, updatedat)
 		VALUES (
-			'JFJFJF', 'jsjsjs@r.r', 'jsjsjsj', 'testpassword',
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'jsjsjsj',
 			'all', 'basic', current_timestamp, current_timestamp);`)
 
 	Db.Exec(`
@@ -216,22 +216,22 @@ func TestUpdateSubTrade(t *testing.T) {
 
 	Db.Exec(`
 		INSERT INTO trades(
-			code, usercode, createdat, updatedat,
+			code, userwallet, createdat, updatedat,
 			firstpair, secondpair, isopen)
 		VALUES (
-			'MBMBMBM', 'JFJFJF', current_timestamp,
+			'MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
 			current_timestamp, 1000, 1001, TRUE);`)
 
 	Db.Exec(`
 		INSERT INTO subtrades(
-			code, usercode, tradecode, createdat, updatedat,
+			code, userwallet, tradecode, createdat, updatedat,
 			quantity, avgprice, total, reason)
 		VALUES (
-			'SISISIS', 'JFJFJF', 'MBMBMBM', current_timestamp,
+			'SISISIS', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM', current_timestamp,
 			current_timestamp, 1, 1, 1, 'TESTART');`)
 
-	user := User{Code: "JFJFJF"}
-	session, _ := user.CreateSession()
+	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
+	session, _ := user.InsertSession()
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
@@ -309,10 +309,10 @@ func TestDeleteSubTrade(t *testing.T) {
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
-			code, email, username, password, privacy,
+			wallet, username, privacy,
 			plan, createdat, updatedat)
 		VALUES (
-			'JFJFJF', 'jsjsjs@r.r', 'jsjsjsj', 'testpassword',
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'jsjsjsj',
 			'all', 'basic', current_timestamp, current_timestamp);`)
 
 	Db.Exec(`
@@ -324,22 +324,22 @@ func TestDeleteSubTrade(t *testing.T) {
 
 	Db.Exec(`
 		INSERT INTO trades(
-			code, usercode, createdat, updatedat,
+			code, userwallet, createdat, updatedat,
 			firstpair, secondpair, isopen)
 		VALUES (
-			'MBMBMBM', 'JFJFJF', current_timestamp,
+			'MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
 			current_timestamp, 1000, 1001, TRUE);`)
 
 	Db.Exec(`
 		INSERT INTO subtrades(
-			code, usercode, tradecode, createdat, updatedat,
+			code, userwallet, tradecode, createdat, updatedat,
 			quantity, avgprice, total, reason)
 		VALUES (
-			'SISISIS', 'JFJFJF', 'MBMBMBM', current_timestamp,
+			'SISISIS', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM', current_timestamp,
 			current_timestamp, 1, 1, 1, 'TESTART');`)
 
-	user := User{Code: "JFJFJF"}
-	session, _ := user.CreateSession()
+	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
+	session, _ := user.InsertSession()
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
