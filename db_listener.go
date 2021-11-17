@@ -37,15 +37,15 @@ func (l *DbListener) Instanciate() {
 func (db_listener *DbListener) Listen() {
 	for {
 		n := <-db_listener.Listener.Notify
-		user_code := n.Extra
-		DistpachSnapshots(user_code)
+		user_wallet := n.Extra
+		DistpachSnapshots(user_wallet)
 	}
 }
 
-func DistpachSnapshots(user_code string) {
-	user, _ := SelectUser("code", user_code)
+func DistpachSnapshots(user_wallet string) {
+	user, _ := SelectUser("wallet", user_wallet)
 	user_snapshot := user.GetSnapshot()
-	for _, q := range trades_wss[user.UserName] {
+	for _, q := range trades_wss[user.Wallet] {
 		q.Channel <- user_snapshot
 	}
 }
