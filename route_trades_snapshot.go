@@ -25,7 +25,7 @@ type Subtrade struct {
 type Trade struct {
 	Code             string
 	Username         string
-	Usercode         string
+	Userwallet       string
 	IsOpen           string
 	Exchange         string
 	FirstPairId      int
@@ -69,7 +69,7 @@ type TradesSnapshot struct {
 
 func (user User) GetSnapshot() (snapshot TradesSnapshot) {
 	snapshot.UserDetails = UserDetails{
-		user.UserName,
+		user.Wallet,
 		user.Twitter,
 	}
 
@@ -95,7 +95,7 @@ func (user User) SelectUserTrades() (trades []Trade) {
 				SELECT
 					t.code,
 					u.username,
-					u.code AS usercode,
+					u.wallet AS userwallet,
 					t.isopen,
 					CASE WHEN t.exchange IS NULL THEN '' ELSE t.exchange END AS exchange,
 					t.firstpair,
@@ -118,14 +118,14 @@ func (user User) SelectUserTrades() (trades []Trade) {
 					END AS totalsells
 				FROM trades t
 				LEFT JOIN subtrades s ON(t.code  = s.tradecode)
-				INNER JOIN users u ON(t.usercode = u.code)
-				WHERE u.code = $1
+				INNER JOIN users u ON(t.userwallet = u.wallet)
+				WHERE u.wallet = $1
 				GROUP BY 1, 2, 3, 4, 5, 6, 7),
 			TRADES_MICRO AS (
 				SELECT
 					t.code,
 					t.username,
-					t.usercode,
+					t.userwallet,
 					t.isopen,
 					t.exchange,
 					t.firstpair AS firstpairid,
@@ -155,7 +155,7 @@ func (user User) SelectUserTrades() (trades []Trade) {
 		SELECT
 			t.code,
 			t.username,
-			t.usercode,
+			t.userwallet,
 			t.isopen,
 			t.exchange,
 			t.firstpairid,
@@ -190,11 +190,11 @@ func (user User) SelectUserTrades() (trades []Trade) {
 
 	trades_rows, err := Db.Query(
 		trades_sql,
-		user.Code)
+		user.Wallet)
 	defer trades_rows.Close()
 	if err != nil {
 		log.WithFields(log.Fields{
-			"username":   user.UserName,
+			"wallet":     user.Wallet,
 			"custom_msg": "Failed running trades_sql",
 		}).Error(err)
 	}
@@ -203,7 +203,7 @@ func (user User) SelectUserTrades() (trades []Trade) {
 		if err = trades_rows.Scan(
 			&trade.Code,
 			&trade.Username,
-			&trade.Usercode,
+			&trade.Userwallet,
 			&trade.IsOpen,
 			&trade.Exchange,
 			&trade.FirstPairId,
@@ -235,7 +235,7 @@ func (user User) SelectUserTrades() (trades []Trade) {
 			&trade.BtcPrice,
 		); err != nil {
 			log.WithFields(log.Fields{
-				"username":   user.UserName,
+				"wallet":     user.Wallet,
 				"custom_msg": "Failed parsing trades_sql",
 			}).Error(err)
 		}

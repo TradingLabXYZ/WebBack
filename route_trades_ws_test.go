@@ -17,17 +17,17 @@ import (
 func TestCheckPrivacy(t *testing.T) {
 	// <setup code>
 	Db.Exec(
-		`INSERT INTO users (code, email, username, password, privacy, plan, createdat, updatedat) VALUES 
-		('usera', 'usera@mail.com', 'usera', 'testpassword', 'all', 'basic', current_timestamp, current_timestamp), 
-		('userb', 'userb@mail.com', 'userb', 'testpassword', 'private', 'basic', current_timestamp, current_timestamp),
-		('userc', 'userc@mail.com', 'userc', 'testpassword', 'followers', 'basic', current_timestamp, current_timestamp), 
-		('userd', 'userd@mail.com', 'userd', 'testpassword', 'subscribers', 'basic', current_timestamp, current_timestamp);`)
+		`INSERT INTO users (wallet, username, privacy, plan, createdat, updatedat) VALUES 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', 'all', 'basic', current_timestamp, current_timestamp), 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'private', 'basic', current_timestamp, current_timestamp),
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', 'userc', 'followers', 'basic', current_timestamp, current_timestamp), 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', 'userd', 'subscribers', 'basic', current_timestamp, current_timestamp);`)
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test user with privacy ALL is fully visibile"), func(t *testing.T) {
-		userToSee, _ := SelectUser("username", "usera")
-		user_b := User{Code: "userb"}
-		session_b, _ := user_b.CreateSession()
+		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A")
+		user_b := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B"}
+		session_b, _ := user_b.InsertSession()
 		req := httptest.NewRequest("GET", "/", nil)
 		expiration := time.Now().Add(365 * 24 * time.Hour)
 		cookie := http.Cookie{Name: "sessionId", Value: session_b.Code, Expires: expiration}
@@ -39,7 +39,7 @@ func TestCheckPrivacy(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test user not authenticated try to access not ALL users"), func(t *testing.T) {
-		userToSee, _ := SelectUser("username", "userb")
+		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B")
 		req := httptest.NewRequest("GET", "/", nil)
 		req.Header.Set("Authorization", "Bearer sessionId=NOTVALUD")
 		status := CheckPrivacy(req, userToSee)
@@ -49,9 +49,9 @@ func TestCheckPrivacy(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test user PRIVATE always able to see its profile if authenticated"), func(t *testing.T) {
-		userToSee, _ := SelectUser("username", "userb")
-		user_b := User{Code: "userb"}
-		session_b, _ := user_b.CreateSession()
+		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B")
+		user_b := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B"}
+		session_b, _ := user_b.InsertSession()
 		req := httptest.NewRequest("GET", "/", nil)
 		expiration := time.Now().Add(365 * 24 * time.Hour)
 		cookie := http.Cookie{Name: "sessionId", Value: session_b.Code, Expires: expiration}
@@ -63,9 +63,9 @@ func TestCheckPrivacy(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test user FOLLOWERS always able to see its profile if authenticated"), func(t *testing.T) {
-		userToSee, _ := SelectUser("username", "userc")
-		user_c := User{Code: "userc"}
-		session_c, _ := user_c.CreateSession()
+		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C")
+		user_c := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C"}
+		session_c, _ := user_c.InsertSession()
 		req := httptest.NewRequest("GET", "/", nil)
 		expiration := time.Now().Add(365 * 24 * time.Hour)
 		cookie := http.Cookie{Name: "sessionId", Value: session_c.Code, Expires: expiration}
@@ -77,9 +77,9 @@ func TestCheckPrivacy(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test user SUBSCRIBERS always able to see its profile if authenticated"), func(t *testing.T) {
-		userToSee, _ := SelectUser("username", "userd")
-		user_d := User{Code: "userd"}
-		session_d, _ := user_d.CreateSession()
+		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D")
+		user_d := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D"}
+		session_d, _ := user_d.InsertSession()
 		req := httptest.NewRequest("GET", "/", nil)
 		expiration := time.Now().Add(365 * 24 * time.Hour)
 		cookie := http.Cookie{Name: "sessionId", Value: session_d.Code, Expires: expiration}
@@ -91,9 +91,9 @@ func TestCheckPrivacy(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test user cannot access other user when PRIVATE"), func(t *testing.T) {
-		userToSee, _ := SelectUser("username", "userb")
-		user_a := User{Code: "usera"}
-		session_a, _ := user_a.CreateSession()
+		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B")
+		user_a := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
+		session_a, _ := user_a.InsertSession()
 		req := httptest.NewRequest("GET", "/", nil)
 		expiration := time.Now().Add(365 * 24 * time.Hour)
 		cookie := http.Cookie{Name: "sessionId", Value: session_a.Code, Expires: expiration}
@@ -105,9 +105,9 @@ func TestCheckPrivacy(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test user cannot access other user when FOLLOWERS and not following"), func(t *testing.T) {
-		userToSee, _ := SelectUser("username", "userc")
-		user_a := User{Code: "usera"}
-		session_a, _ := user_a.CreateSession()
+		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C")
+		user_a := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
+		session_a, _ := user_a.InsertSession()
 		req := httptest.NewRequest("GET", "/", nil)
 		expiration := time.Now().Add(365 * 24 * time.Hour)
 		cookie := http.Cookie{Name: "sessionId", Value: session_a.Code, Expires: expiration}
@@ -119,12 +119,12 @@ func TestCheckPrivacy(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test user can access other user when FOLLOWERS and yes following"), func(t *testing.T) {
-		userToSee, _ := SelectUser("username", "userc")
+		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C")
 		Db.Exec(`
 			INSERT INTO followers (followfrom, followto, createdat)
-			VALUES ('usera', 'userc', current_timestamp);`)
-		user_a := User{Code: "usera"}
-		session_a, _ := user_a.CreateSession()
+			VALUES ('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', current_timestamp);`)
+		user_a := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
+		session_a, _ := user_a.InsertSession()
 		req := httptest.NewRequest("GET", "/", nil)
 		expiration := time.Now().Add(365 * 24 * time.Hour)
 		cookie := http.Cookie{Name: "sessionId", Value: session_a.Code, Expires: expiration}
@@ -136,9 +136,9 @@ func TestCheckPrivacy(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test user cannot access other user when SUBSCRIBERS and not subscribers"), func(t *testing.T) {
-		userToSee, _ := SelectUser("username", "userd")
-		user_a := User{Code: "usera"}
-		session_a, _ := user_a.CreateSession()
+		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D")
+		user_a := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
+		session_a, _ := user_a.InsertSession()
 		req := httptest.NewRequest("GET", "/", nil)
 		expiration := time.Now().Add(365 * 24 * time.Hour)
 		cookie := http.Cookie{Name: "sessionId", Value: session_a.Code, Expires: expiration}
@@ -150,12 +150,12 @@ func TestCheckPrivacy(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test user can access other user when SUBSCRIBERS and yes subscriber"), func(t *testing.T) {
-		userToSee, _ := SelectUser("username", "userd")
+		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D")
 		Db.Exec(`
 			INSERT INTO subscribers (subscribefrom, subscribeto, createdat)
-			VALUES ('usera', 'userd', current_timestamp);`)
-		user_a := User{Code: "usera"}
-		session_a, _ := user_a.CreateSession()
+			VALUES ('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', current_timestamp);`)
+		user_a := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
+		session_a, _ := user_a.InsertSession()
 		req := httptest.NewRequest("GET", "/", nil)
 		expiration := time.Now().Add(365 * 24 * time.Hour)
 		cookie := http.Cookie{Name: "sessionId", Value: session_a.Code, Expires: expiration}
@@ -189,12 +189,12 @@ func TestStartTradesWs(t *testing.T) {
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
-			code, email, username, password, privacy,
+			wallet, username, privacy,
 			plan, createdat, updatedat)
 		VALUES
-			('usera', 'usera@r.r', 'usera', 'testpassword',
+			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera',
 			'all', 'basic', current_timestamp, current_timestamp),
-			('userb', 'userb@r.r', 'userb', 'testpassword',
+			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb',
 			'private', 'basic', current_timestamp, current_timestamp);`)
 
 	Db.Exec(`
@@ -213,26 +213,26 @@ func TestStartTradesWs(t *testing.T) {
 
 	Db.Exec(`
 		INSERT INTO trades(
-			code, usercode, createdat, updatedat,
+			code, userwallet, createdat, updatedat,
 			firstpair, secondpair, isopen)
 		VALUES
-		('useratr', 'usera', current_timestamp, current_timestamp, 1000, 1, TRUE),
-		('userbtr', 'userb', current_timestamp,current_timestamp, 1000, 1, TRUE);`)
+		('useratr', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', current_timestamp, current_timestamp, 1000, 1, TRUE),
+		('userbtr', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', current_timestamp,current_timestamp, 1000, 1, TRUE);`)
 
 	Db.Exec(`
 		INSERT INTO subtrades(
-			code, usercode, tradecode, createdat, updatedat,
+			code, userwallet, tradecode, createdat, updatedat,
 			type, quantity, avgprice, total, reason)
 		VALUES
-		('userasub', 'usera', 'useratr', current_timestamp, current_timestamp, 'BUY', 1, 65000, 65000, 'TESTART'),
-		('userbsub', 'userb', 'userbtr', current_timestamp, current_timestamp, 'BUY', 1, 65000, 65000, 'TESTART');`)
+		('userasub', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'useratr', current_timestamp, current_timestamp, 'BUY', 1, 65000, 65000, 'TESTART'),
+		('userbsub', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userbtr', current_timestamp, current_timestamp, 'BUY', 1, 65000, 65000, 'TESTART');`)
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test instanciate from invalid origin"), func(t *testing.T) {
 		s := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer s.Close()
 		u := strings.TrimPrefix(s.URL, "http://")
-		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/usera/abc"}
+		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/abc"}
 		header := http.Header{}
 		header.Set("Origin", "http://totallyinvalidorigin")
 		_, _, err := websocket.DefaultDialer.Dial(u_new.String(), header)
@@ -270,7 +270,7 @@ func TestStartTradesWs(t *testing.T) {
 		s := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer s.Close()
 		u := strings.TrimPrefix(s.URL, "http://")
-		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/usera/sadkjfh"}
+		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/sadkjfh"}
 		header := http.Header{}
 		header.Set("Origin", "http://127.0.0.1")
 		ws, _, _ := websocket.DefaultDialer.Dial(u_new.String(), header)
@@ -287,13 +287,13 @@ func TestStartTradesWs(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test access PRIVATE user"), func(t *testing.T) {
-		user_a := User{Code: "usera"}
-		session_a, _ := user_a.CreateSession()
+		user_a := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
+		session_a, _ := user_a.InsertSession()
 
 		s := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer s.Close()
 		u := strings.TrimPrefix(s.URL, "http://")
-		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/userb/sadkjfh"}
+		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B/sadkjfh"}
 		header := http.Header{}
 		header.Set("Origin", "http://127.0.0.1")
 
@@ -323,7 +323,7 @@ func TestStartTradesWs(t *testing.T) {
 		s := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer s.Close()
 		u := strings.TrimPrefix(s.URL, "http://")
-		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/usera/sadkjfh"}
+		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/sadkjfh"}
 		header := http.Header{}
 		header.Set("Origin", "http://127.0.0.1")
 		ws, _, _ := websocket.DefaultDialer.Dial(u_new.String(), header)
@@ -339,7 +339,7 @@ func TestStartTradesWs(t *testing.T) {
 		s := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer s.Close()
 		u := strings.TrimPrefix(s.URL, "http://")
-		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/usera/sadkjfh"}
+		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/sadkjfh"}
 		header := http.Header{}
 		header.Set("Origin", "http://127.0.0.1")
 		ws, _, _ := websocket.DefaultDialer.Dial(u_new.String(), header)
@@ -369,16 +369,16 @@ func TestStartTradesWsIntegration(t *testing.T) {
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
-			code, email, username, password, privacy,
+			wallet, username, privacy,
 			plan, createdat, updatedat)
 		VALUES
-			('usera', 'usera@r.r', 'usera', 'testpassword',
+			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera',
 			'all', 'basic', current_timestamp, current_timestamp),
-			('userb', 'userb@r.r', 'userb', 'testpassword',
+			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb',
 			'all', 'basic', current_timestamp, current_timestamp),
-			('userc', 'userc@r.r', 'userc', 'testpassword',
+			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', 'userc',
 			'all', 'basic', current_timestamp, current_timestamp),
-			('userd', 'userd@r.r', 'userd', 'testpassword',
+			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', 'userd',
 			'all', 'basic', current_timestamp, current_timestamp);`)
 
 	Db.Exec(`
@@ -403,23 +403,23 @@ func TestStartTradesWsIntegration(t *testing.T) {
 
 	Db.Exec(`
 		INSERT INTO trades(
-			code, usercode, createdat, updatedat,
+			code, userwallet, createdat, updatedat,
 			firstpair, secondpair, isopen)
 		VALUES
-		('usera', 'usera', current_timestamp, current_timestamp, 2, 1, TRUE),
-		('userb', 'userb', current_timestamp, current_timestamp, 2, 4, TRUE),
-		('userc', 'userc', current_timestamp, current_timestamp, 3, 1, TRUE),
-		('userd', 'userd', current_timestamp, current_timestamp, 5, 2, TRUE);`)
+		('usera', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', current_timestamp, current_timestamp, 2, 1, TRUE),
+		('userb', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', current_timestamp, current_timestamp, 2, 4, TRUE),
+		('userc', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', current_timestamp, current_timestamp, 3, 1, TRUE),
+		('userd', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', current_timestamp, current_timestamp, 5, 2, TRUE);`)
 
 	Db.Exec(`
 		INSERT INTO subtrades(
-			code, usercode, tradecode, createdat, updatedat,
+			code, userwallet, tradecode, createdat, updatedat,
 			type, quantity, avgprice, total, reason)
 		VALUES
-		('usera', 'usera', 'usera', current_timestamp, current_timestamp, 'BUY', 1, 10000, 10000, 'TESTART'),
-		('userb', 'userb', 'userb', current_timestamp, current_timestamp, 'BUY', 1, 10000, 10000, 'TESTART'),
-		('userc', 'userc', 'userc', current_timestamp, current_timestamp, 'BUY', 1, 10000, 10000, 'TESTART'),
-		('userd', 'userd', 'userd', current_timestamp, current_timestamp, 'BUY', 1, 10000, 10000, 'TESTART');`)
+		('usera', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', current_timestamp, current_timestamp, 'BUY', 1, 10000, 10000, 'TESTART'),
+		('userb', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', current_timestamp, current_timestamp, 'BUY', 1, 10000, 10000, 'TESTART'),
+		('userc', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', 'userc', current_timestamp, current_timestamp, 'BUY', 1, 10000, 10000, 'TESTART'),
+		('userd', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', 'userd', current_timestamp, current_timestamp, 'BUY', 1, 10000, 10000, 'TESTART');`)
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test casual interaction without errors"), func(t *testing.T) {
@@ -429,7 +429,7 @@ func TestStartTradesWsIntegration(t *testing.T) {
 		server_a := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer server_a.Close()
 		url_a := strings.TrimPrefix(server_a.URL, "http://")
-		u_new_a := url.URL{Scheme: "ws", Host: url_a, Path: "get_trades/usera/requestusera"}
+		u_new_a := url.URL{Scheme: "ws", Host: url_a, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/requestusera"}
 		header_a := http.Header{}
 		header_a.Set("Origin", "http://127.0.0.1")
 		ws_a, _, _ := websocket.DefaultDialer.Dial(u_new_a.String(), header_a)
@@ -439,7 +439,7 @@ func TestStartTradesWsIntegration(t *testing.T) {
 		server_b := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer server_b.Close()
 		url_b := strings.TrimPrefix(server_b.URL, "http://")
-		u_new_b := url.URL{Scheme: "ws", Host: url_b, Path: "get_trades/usera/requestuserb"}
+		u_new_b := url.URL{Scheme: "ws", Host: url_b, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/requestuserb"}
 		header_b := http.Header{}
 		header_b.Set("Origin", "http://127.0.0.1")
 		ws_b, _, _ := websocket.DefaultDialer.Dial(u_new_b.String(), header_b)
@@ -449,7 +449,7 @@ func TestStartTradesWsIntegration(t *testing.T) {
 		server_c := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer server_c.Close()
 		url_c := strings.TrimPrefix(server_c.URL, "http://")
-		u_new_c := url.URL{Scheme: "ws", Host: url_c, Path: "get_trades/usera/requestuserc"}
+		u_new_c := url.URL{Scheme: "ws", Host: url_c, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/requestuserc"}
 		header_c := http.Header{}
 		header_c.Set("Origin", "http://127.0.0.1")
 		ws_c, _, _ := websocket.DefaultDialer.Dial(u_new_c.String(), header_c)
@@ -459,7 +459,7 @@ func TestStartTradesWsIntegration(t *testing.T) {
 		server_d := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer server_d.Close()
 		url_d := strings.TrimPrefix(server_d.URL, "http://")
-		u_new_d := url.URL{Scheme: "ws", Host: url_d, Path: "get_trades/usera/requestuserd"}
+		u_new_d := url.URL{Scheme: "ws", Host: url_d, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/requestuserd"}
 		header_d := http.Header{}
 		header_d.Set("Origin", "http://127.0.0.1")
 		ws_d, _, _ := websocket.DefaultDialer.Dial(u_new_d.String(), header_d)

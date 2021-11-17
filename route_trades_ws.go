@@ -32,10 +32,10 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	username := url_split[2]
+	wallet := url_split[2]
 	request_id := url_split[3]
 
-	userToSee, err := SelectUser("username", username)
+	userToSee, err := SelectUser("wallet", wallet)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"urlPath":   r.URL.Path,
@@ -71,7 +71,7 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 
 	c := make(chan TradesSnapshot)
 	ws_trade := WsTrade{userToSee, request_id, c, ws}
-	trades_wss[username] = append(trades_wss[username], ws_trade)
+	trades_wss[wallet] = append(trades_wss[wallet], ws_trade)
 
 	go ws_trade.SendInitialSnapshot()
 	go ws_trade.WaitToTerminate()
@@ -92,14 +92,14 @@ func CheckPrivacy(request *http.Request, userToSee User) (status PrivacyStatus) 
 		return
 	}
 
-	user, err := SelectUser("code", session.UserCode)
+	user, err := SelectUser("wallet", session.UserWallet)
 	if err != nil {
 		status.Status = "KO"
-		status.Reason = "invalid user code"
+		status.Reason = "invalid user wallet"
 		return
 	}
 
-	if user.Code == userToSee.Code {
+	if user.Wallet == userToSee.Wallet {
 		status.Status = "OK"
 		status.Reason = "user access its own profile"
 		return
@@ -116,7 +116,7 @@ func CheckPrivacy(request *http.Request, userToSee User) (status PrivacyStatus) 
 					SELECT TRUE
 					FROM followers
 					WHERE followfrom = $1
-					AND followto = $2;`, user.Code, userToSee.Code).Scan(
+					AND followto = $2;`, user.Wallet, userToSee.Wallet).Scan(
 			&isfollower,
 		)
 		if isfollower {
@@ -134,7 +134,7 @@ func CheckPrivacy(request *http.Request, userToSee User) (status PrivacyStatus) 
 					SELECT TRUE
 					FROM subscribers
 					WHERE subscribefrom = $1
-					AND subscribeto = $2;`, user.Code, userToSee.Code).Scan(
+					AND subscribeto = $2;`, user.Wallet, userToSee.Wallet).Scan(
 			&issubscriber,
 		)
 		if issubscriber {
@@ -148,8 +148,8 @@ func CheckPrivacy(request *http.Request, userToSee User) (status PrivacyStatus) 
 		}
 	default:
 		log.WithFields(log.Fields{
-			"userToSee": userToSee.Code,
-			"user":      user.Code,
+			"userToSee": userToSee.Wallet,
+			"user":      user.Wallet,
 		}).Warn("Not possible to determine user's privacy")
 		status.Status = "KO"
 		status.Reason = "unknown reason"
@@ -185,7 +185,7 @@ func (ws_trade *WsTrade) SendInitialSnapshot() {
 		if err != nil {
 			ws_trade.Ws.Close()
 			log.WithFields(log.Fields{
-				"username":   ws_trade.UserToSee.UserName,
+				"wallet":     ws_trade.UserToSee.Wallet,
 				"custom_msg": "Failed running sending initial snapshot",
 			}).Error(err)
 			return
@@ -197,11 +197,11 @@ func (ws_trade *WsTrade) WaitToTerminate() {
 	for {
 		_, _, err := ws_trade.Ws.ReadMessage()
 		if err != nil {
-			for i, v := range trades_wss[ws_trade.UserToSee.UserName] {
+			for i, v := range trades_wss[ws_trade.UserToSee.Wallet] {
 				if v.RequestId == ws_trade.RequestId {
-					trades_wss[ws_trade.UserToSee.UserName] = append(
-						trades_wss[ws_trade.UserToSee.UserName][:i],
-						trades_wss[ws_trade.UserToSee.UserName][i+1:]...)
+					trades_wss[ws_trade.UserToSee.Wallet] = append(
+						trades_wss[ws_trade.UserToSee.Wallet][:i],
+						trades_wss[ws_trade.UserToSee.Wallet][i+1:]...)
 				}
 			}
 			ws_trade.Ws.Close()
@@ -209,7 +209,7 @@ func (ws_trade *WsTrade) WaitToTerminate() {
 		} else {
 			ws_trade.Ws.Close()
 			log.WithFields(log.Fields{
-				"username":   ws_trade.UserToSee.UserName,
+				"wallet":     ws_trade.UserToSee.Wallet,
 				"custom_msg": "Failed terminating trade ws",
 			}).Error(err)
 			return
@@ -220,12 +220,12 @@ func (ws_trade *WsTrade) WaitToTerminate() {
 func (ws_trade *WsTrade) WaitToSendMessage() {
 	for {
 		s1 := <-ws_trade.Channel
-		if s1.UserDetails.Username == ws_trade.UserToSee.UserName {
+		if s1.UserDetails.Username == ws_trade.UserToSee.Wallet {
 			err := ws_trade.Ws.WriteJSON(s1)
 			if err != nil {
 				ws_trade.Ws.Close()
 				log.WithFields(log.Fields{
-					"username":   ws_trade.UserToSee.UserName,
+					"wallet":     ws_trade.UserToSee.Wallet,
 					"custom_msg": "Failed running sending snapshot",
 				}).Error(err)
 				return

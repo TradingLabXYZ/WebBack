@@ -3,18 +3,15 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	aws_session "github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	log "github.com/sirupsen/logrus"
 )
 
 func TestInsertProfilePicture(t *testing.T) {
@@ -31,14 +28,14 @@ func TestInsertProfilePicture(t *testing.T) {
 
 	Db.Exec(
 		`INSERT INTO users (
-			code, email, username, password, privacy,
+			wallet, username, privacy,
 			plan, createdat, updatedat)
 		VALUES (
-			'testusertest', 'jsjsjs@r.r', 'jsjsjsj', 'testpassword',
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'jsjsjsj',
 			'all', 'basic', current_timestamp, current_timestamp);`)
 
-	user := User{Code: "testusertest"}
-	session, _ := user.CreateSession()
+	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
+	session, _ := user.InsertSession()
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
@@ -120,7 +117,7 @@ func TestInsertProfilePicture(t *testing.T) {
 		InsertProfilePicture(x, req)
 		resp, _ := svc.ListObjectsV2(&s3.ListObjectsV2Input{
 			Bucket: aws.String("tradinglab"),
-			Prefix: aws.String("profile_pictures/" + session.UserCode),
+			Prefix: aws.String("profile_pictures/" + session.UserWallet),
 		})
 		count_files := len(resp.Contents)
 		if count_files != 1 {
@@ -142,7 +139,7 @@ func TestInsertProfilePicture(t *testing.T) {
 		InsertProfilePicture(x, req)
 		resp, _ := svc.ListObjectsV2(&s3.ListObjectsV2Input{
 			Bucket: aws.String("tradinglab"),
-			Prefix: aws.String("profile_pictures/" + session.UserCode),
+			Prefix: aws.String("profile_pictures/" + session.UserWallet),
 		})
 		count_files := len(resp.Contents)
 		if count_files > 1 {
@@ -156,8 +153,8 @@ func TestInsertProfilePicture(t *testing.T) {
 			SELECT
 				profilepicture
 			FROM users
-			WHERE code = $1`,
-			session.UserCode).Scan(&file_path)
+			WHERE wallet = $1`,
+			session.UserWallet).Scan(&file_path)
 		if file_path == "" {
 			t.Fatal("Failed uploading file_path into db")
 		}
@@ -166,7 +163,7 @@ func TestInsertProfilePicture(t *testing.T) {
 	// <tear-down code>
 	resp, _ := svc.ListObjectsV2(&s3.ListObjectsV2Input{
 		Bucket: aws.String("tradinglab"),
-		Prefix: aws.String("profile_pictures/" + session.UserCode),
+		Prefix: aws.String("profile_pictures/" + session.UserWallet),
 	})
 	for _, item := range resp.Contents {
 		input := &s3.DeleteObjectInput{
@@ -178,81 +175,19 @@ func TestInsertProfilePicture(t *testing.T) {
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 }
 
-func TestGetUserSettings(t *testing.T) {
-	// <setup code>
-	Db.Exec(
-		`INSERT INTO users (
-			code, email, username, password, privacy,
-			plan, twitter, website, createdat, updatedat)
-		VALUES (
-			'testuser', 'jsjsjs@r.r', 'jsjsjsj', 'testpassword',
-			'all', 'basic', 'thisistwitter', 'thisiswebsite',
-			current_timestamp, current_timestamp);`)
-
-	user := User{Code: "testuser"}
-	session, _ := user.CreateSession()
-
-	// <test code>
-	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/user_settings", nil)
-		req.Header.Set("Authorization", "Bearer sessionId=")
-		w := httptest.NewRecorder()
-		GetUserSettings(w, req)
-		res := w.Result()
-		if res.StatusCode != 401 {
-			t.Fatal("Failed test get users settings, wrong header")
-		}
-	})
-
-	t.Run(fmt.Sprintf("Test invalid user"), func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/user_settings", nil)
-		req.Header.Set("Authorization", "Bearer sessionId=thisisaninvalid")
-		w := httptest.NewRecorder()
-		GetUserSettings(w, req)
-		res := w.Result()
-		if res.StatusCode != 401 {
-			t.Fatal("Failed test get users settings, invalid user")
-		}
-	})
-
-	t.Run(fmt.Sprintf("Test successfully get user settings"), func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/user_settings", nil)
-		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
-		w := httptest.NewRecorder()
-		GetUserSettings(w, req)
-		res := w.Result()
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if !strings.Contains(string(body), "thisistwitter") {
-			t.Fatal("Failed successfully get user settings")
-		}
-		if !strings.Contains(string(body), "thisiswebsite") {
-			t.Fatal("Failed successfully get user settings")
-		}
-		if !strings.Contains(string(body), "jsjsjs@r.r") {
-			t.Fatal("Failed successfully get user settings")
-		}
-	})
-
-	// <tear-down code>
-	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
-}
-
 func TestUpdateUserSettings(t *testing.T) {
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
-			code, email, username, password, privacy,
-			plan, twitter, website, createdat, updatedat)
+			wallet, username, privacy, plan,
+			twitter, website, createdat, updatedat)
 		VALUES (
-			'testusertest', 'jsjsjs@r.r', 'jsjsjsj', 'testpassword',
-			'all', 'basic', 'thisistwitter', 'thisiswebsite',
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'jsjsjsj', 'all',
+			'basic', 'thisistwitter', 'thisiswebsite',
 			current_timestamp, current_timestamp);`)
 
-	user := User{Code: "testusertest"}
-	session, _ := user.CreateSession()
+	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
+	session, _ := user.InsertSession()
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
@@ -268,7 +203,6 @@ func TestUpdateUserSettings(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test invalid user"), func(t *testing.T) {
 		params := []byte(`{
-			"Email": "new_email",
 			"Twitter": "new_twitter",
 			"Website": "new_website",
 		}`)
@@ -282,42 +216,16 @@ func TestUpdateUserSettings(t *testing.T) {
 		}
 	})
 
-	t.Run(fmt.Sprintf("Test already present email"), func(t *testing.T) {
-		Db.Exec(
-			`INSERT INTO users (
-					code, email, username, password, privacy,
-					plan, twitter, website, createdat, updatedat)
-				VALUES (
-					'test2', 'emailalreadytaken', 'jsjsjsj2', 'testpassword',
-					'all', 'basic', 'thisistwitter', 'thisiswebsite',
-					current_timestamp, current_timestamp);`)
-
-		params := []byte(`{
-			"Email": "emailalreadytaken",
-			"Twitter": "new_twitter",
-			"Website": "new_website"
-		}`)
-		req := httptest.NewRequest("POST", "/user_settings", bytes.NewBuffer(params))
-		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
-		w := httptest.NewRecorder()
-		UpdateUserSettings(w, req)
-		res := w.Result()
-		if res.StatusCode != 400 {
-			t.Fatal("Failed test update users settings, email already presents")
-		}
-	})
-
 	t.Run(fmt.Sprintf("Test already present website"), func(t *testing.T) {
 		Db.Exec(
 			`INSERT INTO users (
-			code, email, username, password, privacy,
-			plan, twitter, website, createdat, updatedat)
-		VALUES (
-			'test3', 'jdjadew', 'dqdjwq', 'testpassword',
-			'all', 'basic', 'thisistwitter', 'websitealreadytaken',
+				wallet, username, privacy, plan, 
+				twitter, website, createdat, updatedat)
+			VALUES (
+				'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'jdjadew',
+				'all', 'basic', 'thisistwitter', 'websitealreadytaken',
 			current_timestamp, current_timestamp);`)
 		params := []byte(`{
-			"Email": "ajsdhkad",
 			"Twitter": "new_twitter",
 			"Website": "websitealreadytaken"
 		}`)
@@ -334,14 +242,13 @@ func TestUpdateUserSettings(t *testing.T) {
 	t.Run(fmt.Sprintf("Test already present twitter"), func(t *testing.T) {
 		Db.Exec(
 			`INSERT INTO users (
-			code, email, username, password, privacy,
-			plan, twitter, website, createdat, updatedat)
+			wallet, username, privacy, plan,
+			twitter, website, createdat, updatedat)
 		VALUES (
-			'test4', 'wpskdhj', 'q2jdj', 'testpassword',
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', 'wpskdhj',
 			'all', 'basic', 'twitteralreadytaken', 'thisiswebsite',
 			current_timestamp, current_timestamp);`)
 		params := []byte(`{
-			"Email": "emailrandom",
 			"Twitter": "twitteralreadytaken",
 			"Website": "werbsiterandom"
 		}`)
@@ -357,7 +264,6 @@ func TestUpdateUserSettings(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test successfully update user settings"), func(t *testing.T) {
 		params := []byte(`{
-			"Email": "emailresult",
 			"Twitter": "twitterresult",
 			"Website": "websiteresult"
 		}`)
@@ -365,21 +271,16 @@ func TestUpdateUserSettings(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		w := httptest.NewRecorder()
 		UpdateUserSettings(w, req)
-		var email_result, twitter_result, website_result string
+		var twitter_result, website_result string
 		_ = Db.QueryRow(`
 			SELECT
-				email,
 				twitter,
 				website
 			FROM users
-			WHERE code = $1;`,
-			session.UserCode).Scan(
-			&email_result,
+			WHERE wallet = $1;`,
+			session.UserWallet).Scan(
 			&twitter_result,
 			&website_result)
-		if email_result != "emailresult" {
-			t.Fatal("Failed updating user settings, email")
-		}
 		if website_result != "websiteresult" {
 			t.Fatal("Failed updating user settings, website")
 		}
@@ -392,137 +293,19 @@ func TestUpdateUserSettings(t *testing.T) {
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 }
 
-func TestUpdateUserPassword(t *testing.T) {
-	// <setup code>
-	Db.Exec(
-		`INSERT INTO users (
-			code, email, username, password, privacy,
-			plan, twitter, website, createdat, updatedat)
-		VALUES (
-			'testusertest', 'jsjsjs@r.r', 'jsjsjsj', '6155bb905fcda91ffd8cc7f0ef465fe48e552ca8',
-			'all', 'basic', 'thisistwitter', 'thisiswebsite',
-			current_timestamp, current_timestamp);`)
-
-	user := User{Code: "testusertest"}
-	session, _ := user.CreateSession()
-
-	// <test code>
-	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
-		req := httptest.NewRequest("POST", "/update_password", nil)
-		req.Header.Set("Authorization", "Bearer sessionId=")
-		w := httptest.NewRecorder()
-		UpdateUserPassword(w, req)
-		res := w.Result()
-		if res.StatusCode != 401 {
-			t.Fatal("Failed test update password, wrong header")
-		}
-	})
-
-	t.Run(fmt.Sprintf("Test invalid user"), func(t *testing.T) {
-		params := []byte(`{
-			"OldPassword": "thisisold",
-			"NewPassword": "thisisnew",
-			"RepeatNewPassword": "thisisnew"
-		}`)
-		req := httptest.NewRequest("POST", "/update_password", bytes.NewBuffer(params))
-		req.Header.Set("Authorization", "Bearer sessionId=thisisaninvalid")
-		w := httptest.NewRecorder()
-		UpdateUserPassword(w, req)
-		res := w.Result()
-		if res.StatusCode != 401 {
-			t.Fatal("Failed test update password, invalid user")
-		}
-	})
-
-	t.Run(fmt.Sprintf("Test empty old password"), func(t *testing.T) {
-		params := []byte(`{
-			"OldPassword": "",
-			"NewPassword": "thisisnew",
-			"RepeatNewPassword": "thisisnew"
-		}`)
-		req := httptest.NewRequest("POST", "/update_password", bytes.NewBuffer(params))
-		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
-		w := httptest.NewRecorder()
-		UpdateUserPassword(w, req)
-		res := w.Result()
-		if res.StatusCode != 400 {
-			t.Fatal("Failed test update password, empty oldpassword")
-		}
-	})
-
-	t.Run(fmt.Sprintf("Test unmatching passwords"), func(t *testing.T) {
-		params := []byte(`{
-			"OldPassword": "thisisold",
-			"NewPassword": "thisisnew",
-			"RepeatNewPassword": "thisisnewbut"
-		}`)
-		req := httptest.NewRequest("POST", "/update_password", bytes.NewBuffer(params))
-		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
-		w := httptest.NewRecorder()
-		UpdateUserPassword(w, req)
-		res := w.Result()
-		if res.StatusCode != 400 {
-			t.Fatal("Failed test update password, unmatching passwords")
-		}
-	})
-
-	t.Run(fmt.Sprintf("Test actual password not correct"), func(t *testing.T) {
-		params := []byte(`{
-			"OldPassword": "thisisoldwrong",
-			"NewPassword": "thisisnew",
-			"RepeatNewPassword": "thisisnew"
-		}`)
-		req := httptest.NewRequest("POST", "/update_password", bytes.NewBuffer(params))
-		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
-		w := httptest.NewRecorder()
-		UpdateUserPassword(w, req)
-		res := w.Result()
-		if res.StatusCode != 400 {
-			t.Fatal("Failed test update password, actual password not correct")
-		}
-	})
-
-	t.Run(fmt.Sprintf("Test successfully update password"), func(t *testing.T) {
-		params := []byte(`{
-			"OldPassword": "thisisold",
-			"NewPassword": "thisisnew",
-			"RepeatNewPassword": "thisisnew"
-		}`)
-		req := httptest.NewRequest("POST", "/update_password", bytes.NewBuffer(params))
-		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
-		w := httptest.NewRecorder()
-		UpdateUserPassword(w, req)
-		var changed_password string
-		_ = Db.QueryRow(`
-			SELECT
-				password
-			FROM users
-			WHERE code = $1;`,
-			session.UserCode).Scan(
-			&changed_password)
-		old_password_enc, _ := Encrypt("thisisnew")
-		if changed_password != old_password_enc {
-			t.Fatal("Failed successfully update password")
-		}
-	})
-
-	// <tear-down code>
-	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
-}
-
 func TestUpdateUserPrivacy(t *testing.T) {
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
-			code, email, username, password, privacy,
-			plan, twitter, website, createdat, updatedat)
+			wallet, username, privacy, plan,
+			twitter, website, createdat, updatedat)
 		VALUES (
-			'testusertest', 'jsjsjs@r.r', 'jsjsjsj', 'password',
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'jsjsjsj',
 			'all', 'basic', 'thisistwitter', 'thisiswebsite',
 			current_timestamp, current_timestamp);`)
 
-	user := User{Code: "testusertest"}
-	session, _ := user.CreateSession()
+	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
+	session, _ := user.InsertSession()
 	_ = session
 
 	// <test code>
@@ -533,7 +316,7 @@ func TestUpdateUserPrivacy(t *testing.T) {
 		UpdateUserPrivacy(w, req)
 		res := w.Result()
 		if res.StatusCode != 401 {
-			t.Fatal("Failed test update password, wrong header")
+			t.Fatal("Failed test update privacy, wrong header")
 		}
 	})
 
@@ -578,8 +361,8 @@ func TestUpdateUserPrivacy(t *testing.T) {
 			SELECT
 				privacy
 			FROM users
-			WHERE code = $1;`,
-			session.UserCode).Scan(
+			WHERE wallet = $1;`,
+			session.UserWallet).Scan(
 			&changed_privacy)
 		if changed_privacy != "all" {
 			t.Fatal("Failed successfully update privacy")

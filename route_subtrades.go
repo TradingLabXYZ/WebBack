@@ -16,7 +16,7 @@ import (
 func (new_trade *NewTrade) InsertSubTrades() (err error) {
 	subtrade_sql := `
 		INSERT INTO subtrades (
-			code, tradecode, usercode, 
+			code, tradecode, userwallet, 
 			createdat, type, reason, 
 			quantity, avgprice, total, updatedat)
 		VALUES %s;`
@@ -40,7 +40,7 @@ func (new_trade *NewTrade) InsertSubTrades() (err error) {
 		valueStrings = append(valueStrings, str_n)
 		valueArgs = append(valueArgs, rand_subtrade_code)
 		valueArgs = append(valueArgs, new_trade.Code)
-		valueArgs = append(valueArgs, new_trade.Usercode)
+		valueArgs = append(valueArgs, new_trade.UserWallet)
 		valueArgs = append(valueArgs, subtrade.CreatedAt)
 		valueArgs = append(valueArgs, subtrade.Type)
 		valueArgs = append(valueArgs, subtrade.Reason)
@@ -85,7 +85,7 @@ func CreateSubtrade(w http.ResponseWriter, r *http.Request) {
 
 	subtrade_sql := `
 		INSERT INTO subtrades (
-			code, tradecode, usercode, 
+			code, tradecode, userwallet, 
 			createdat, type, reason, 
 			quantity, avgprice, total, updatedat)
 		VALUES (
@@ -97,7 +97,7 @@ func CreateSubtrade(w http.ResponseWriter, r *http.Request) {
 	err = Db.QueryRow(
 		subtrade_sql,
 		tradecode,
-		session.UserCode,
+		session.UserWallet,
 	).Scan(&subtrade_code)
 	if err != nil || subtrade_code == "" {
 		log.WithFields(log.Fields{
