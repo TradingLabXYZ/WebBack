@@ -1,7 +1,11 @@
 # Purpose
 This repository contains the backend of TradingLab.
 
-It connects with the database mainly as API endpoint dispatcher.
+It is written in Golang using Postgresql as database.
+
+The code is hosted on DigitalOceans.
+
+There are two main branches: production and staging.
 
 ## Architecture
 
