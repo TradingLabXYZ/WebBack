@@ -23,39 +23,41 @@ type Subtrade struct {
 }
 
 type Trade struct {
-	Code             string
-	Username         string
-	Userwallet       string
-	IsOpen           string
-	Exchange         string
-	FirstPairId      int
-	SecondPairId     int
-	FirstPairName    string
-	SecondPairName   string
-	FirstPairSymbol  string
-	SecondPairSymbol string
-	FirstPairPrice   float64
-	SecondPairPrice  float64
-	CurrentPrice     float64
-	QtyBuys          float64
-	QtySells         float64
-	QtyAvailable     float64
-	TotalBuys        float64
-	TotalBuysBtc     float64
-	TotalBuysUsd     float64
-	TotalSells       float64
-	TotalSellsBtc    float64
-	TotalSellsUsd    float64
-	ActualReturn     float64
-	FutureReturn     float64
-	FutureReturnBtc  float64
-	FutureReturnUsd  float64
-	TotalReturn      float64
-	TotalReturnBtc   float64
-	TotalReturnUsd   float64
-	Roi              float64
-	BtcPrice         float64
-	Subtrades        []Subtrade
+	Code              string
+	Username          string
+	Userwallet        string
+	IsOpen            string
+	Exchange          string
+	FirstPairId       int
+	SecondPairId      int
+	FirstPairName     string
+	SecondPairName    string
+	FirstPairSymbol   string
+	SecondPairSymbol  string
+	FirstPairPrice    float64
+	SecondPairPrice   float64
+	FirstPairUrlIcon  string
+	SecondPairUrlIcon string
+	CurrentPrice      float64
+	QtyBuys           float64
+	QtySells          float64
+	QtyAvailable      float64
+	TotalBuys         float64
+	TotalBuysBtc      float64
+	TotalBuysUsd      float64
+	TotalSells        float64
+	TotalSellsBtc     float64
+	TotalSellsUsd     float64
+	ActualReturn      float64
+	FutureReturn      float64
+	FutureReturnBtc   float64
+	FutureReturnUsd   float64
+	TotalReturn       float64
+	TotalReturnBtc    float64
+	TotalReturnUsd    float64
+	Roi               float64
+	BtcPrice          float64
+	Subtrades         []Subtrade
 }
 
 type TradesSnapshot struct {
@@ -132,10 +134,12 @@ func (user User) SelectUserTrades() (trades []Trade) {
 					c1.name AS firstpairname,
 					c1.symbol AS firstpairsymbol,
 					c1.price AS firstpairprice,
+					'https://s2.coinmarketcap.com/static/img/coins/32x32/' || t.firstpair::TEXT || '.png' AS firstpairurlicon,
 					t.secondpair AS secondpairid,
 					c2.name AS secondpairname,
 					c2.symbol AS secondpairsymbol,
 					c2.price AS secondpairprice,
+					'https://s2.coinmarketcap.com/static/img/coins/32x32/' || t.secondpair::TEXT || '.png' AS secondpairurlicon,
 					(c2.price / c1.price) AS currentprice,
 					t.qtybuys,
 					t.qtysells,
@@ -162,10 +166,12 @@ func (user User) SelectUserTrades() (trades []Trade) {
 			t.firstpairname,
 			t.firstpairsymbol,
 			t.firstpairprice,
+			t.firstpairurlicon,
 			t.secondpairid,
 			t.secondpairname,
 			t.secondpairsymbol,
 			t.secondpairprice,
+			t.secondpairurlicon,
 			t.currentprice,
 			t.qtybuys,
 			t.qtysells,
@@ -210,10 +216,12 @@ func (user User) SelectUserTrades() (trades []Trade) {
 			&trade.FirstPairName,
 			&trade.FirstPairSymbol,
 			&trade.FirstPairPrice,
+			&trade.FirstPairUrlIcon,
 			&trade.SecondPairId,
 			&trade.SecondPairName,
 			&trade.SecondPairSymbol,
 			&trade.SecondPairPrice,
+			&trade.SecondPairUrlIcon,
 			&trade.CurrentPrice,
 			&trade.QtyBuys,
 			&trade.QtySells,
