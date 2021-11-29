@@ -172,10 +172,10 @@ func (user User) SelectUserTrades() (trades []Trade) {
 			t.secondpairsymbol,
 			t.secondpairprice,
 			t.secondpairurlicon,
-			t.currentprice,
+			CASE WHEN t.currentprice > 1 THEN ROUND(t.currentprice, 2) ELSE ROUND(t.currentprice, 5) END as currentprice,
 			t.qtybuys,
 			t.qtysells,
-			t.qtyavailable,
+			ROUND(t.qtyavailable, 2) as qtyavailable,
 			t.totalbuys,
 			t.totalbuys * t.firstpairprice / c3.price AS totalbuysbtc,
 			t.totalbuys * t.firstpairprice AS totalbuysusd,
@@ -186,10 +186,10 @@ func (user User) SelectUserTrades() (trades []Trade) {
 			t.futurereturn,
 			t.futurereturn * t.firstpairprice / c3.price AS futurereturnbtc,
 			t.futurereturn * t.firstpairprice AS futurereturnusd,
-			t.totalreturn,
+			CASE WHEN t.totalreturn > 1 THEN ROUND(t.totalreturn, 2) ELSE ROUND(t.totalreturn, 5) END as totalreturn,
 			t.totalreturn * t.firstpairprice / c3.price AS returnbtc,
 			t.totalreturn * t.firstpairprice AS returnusd,
-			t.roi,
+			ROUND(t.roi, 2) AS roi,
 			c3.price AS btcprice
 		FROM TRADES_MICRO t
 		LEFT JOIN CURRENT_PRICE c3 ON(c3.coinid = 1);`
@@ -319,9 +319,9 @@ func (snapshot *TradesSnapshot) CalculateTradesTotals() {
 		totalSellBtc = totalSellBtc + trade.TotalSellsBtc
 		futureReturnBtc = futureReturnBtc + trade.FutureReturnBtc
 	}
-	snapshot.TotalReturnBtc = totalReturnBtc
-	snapshot.TotalReturnUsd = totalReturnUsd
-	snapshot.Roi = ((futureReturnBtc+totalSellBtc)/totalBuysBtc - 1) * 100
+	snapshot.TotalReturnBtc = math.Round(totalReturnBtc*100) / 100
+	snapshot.TotalReturnUsd = math.Round(totalReturnUsd*100) / 100
+	snapshot.Roi = math.Round(((futureReturnBtc+totalSellBtc)/totalBuysBtc-1)*100*100) / 100
 	if math.IsNaN(snapshot.Roi) || math.IsInf(snapshot.Roi, 0) {
 		snapshot.Roi = 0
 	}
