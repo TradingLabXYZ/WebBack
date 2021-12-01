@@ -16,12 +16,20 @@ type WsTrade struct {
 	Ws        *websocket.Conn
 }
 
-type PrivacyStatus struct {
-	Status string
-	Reason string
-}
-
 func StartTradesWs(w http.ResponseWriter, r *http.Request) {
+	user := User{}
+	session, err := GetSession(r, "cookie")
+	if err == nil {
+		user, err = SelectUser("wallet", session.UserWallet)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"urlPath": r.URL.Path,
+			}).Warn("Failed starting ws, user has cookie but not found")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+	}
+
 	url_split := strings.Split(r.URL.Path, "/")
 
 	if len(url_split) < 4 {
@@ -54,61 +62,46 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status := CheckPrivacy(r, userToSee)
-	if status.Status != "OK" {
-		err = ws.WriteJSON(status)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"urlPath":    r.URL.Path,
-				"userToSee":  userToSee,
-				"custom_msg": "Failed returning status",
-			}).Error(err)
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
-		return
-	}
-
 	c := make(chan TradesSnapshot)
 	ws_trade := WsTrade{userToSee, request_id, c, ws}
-	trades_wss[wallet] = append(trades_wss[wallet], ws_trade)
+	ws_trade_output := ws_trade.UserToSee.GetSnapshot()
 
-	go ws_trade.SendInitialSnapshot()
+	ws_trade_output.CheckPrivacy(user, userToSee)
+
+	if ws_trade_output.PrivacyStatus.Status == "KO" {
+		ws_trade_output.Trades = nil
+		ws_trade.SendInitialSnapshot(ws_trade_output)
+		return
+	}
+	ws_trade.SendInitialSnapshot(ws_trade_output)
+	trades_wss[wallet] = append(trades_wss[wallet], ws_trade)
 	go ws_trade.WaitToTerminate()
 	go ws_trade.WaitToSendMessage()
 }
 
-func CheckPrivacy(request *http.Request, userToSee User) (status PrivacyStatus) {
+func (snapshot *TradesSnapshot) CheckPrivacy(user User, userToSee User) {
 	if userToSee.Privacy == "all" {
-		status.Status = "OK"
-		status.Reason = "userToSee ALL"
+		snapshot.PrivacyStatus.Status = "OK"
+		snapshot.PrivacyStatus.Reason = "userToSee ALL"
 		return
 	}
 
-	session, err := GetSession(request, "cookie")
-	if err != nil {
-		status.Status = "KO"
-		status.Reason = "cookie"
-		return
-	}
-
-	user, err := SelectUser("wallet", session.UserWallet)
-	if err != nil {
-		status.Status = "KO"
-		status.Reason = "invalid user wallet"
+	if user.Wallet == "" {
+		snapshot.PrivacyStatus.Status = "KO"
+		snapshot.PrivacyStatus.Reason = "user is not logged in"
 		return
 	}
 
 	if user.Wallet == userToSee.Wallet {
-		status.Status = "OK"
-		status.Reason = "user access its own profile"
+		snapshot.PrivacyStatus.Status = "OK"
+		snapshot.PrivacyStatus.Reason = "user access its own profile"
 		return
 	}
 
 	switch userToSee.Privacy {
 	case "private":
-		status.Status = "KO"
-		status.Reason = "private"
+		snapshot.PrivacyStatus.Status = "KO"
+		snapshot.PrivacyStatus.Reason = "private"
 		return
 	case "followers":
 		var isfollower bool
@@ -120,12 +113,12 @@ func CheckPrivacy(request *http.Request, userToSee User) (status PrivacyStatus) 
 			&isfollower,
 		)
 		if isfollower {
-			status.Status = "OK"
-			status.Reason = "user is follower"
+			snapshot.PrivacyStatus.Status = "OK"
+			snapshot.PrivacyStatus.Reason = "user is follower"
 			return
 		} else {
-			status.Status = "KO"
-			status.Reason = "user is not follower"
+			snapshot.PrivacyStatus.Status = "KO"
+			snapshot.PrivacyStatus.Reason = "user is not follower"
 			return
 		}
 	case "subscribers":
@@ -138,12 +131,12 @@ func CheckPrivacy(request *http.Request, userToSee User) (status PrivacyStatus) 
 			&issubscriber,
 		)
 		if issubscriber {
-			status.Status = "OK"
-			status.Reason = "user is subscriber"
+			snapshot.PrivacyStatus.Status = "OK"
+			snapshot.PrivacyStatus.Reason = "user is subscriber"
 			return
 		} else {
-			status.Status = "KO"
-			status.Reason = "user is not subscriber"
+			snapshot.PrivacyStatus.Status = "KO"
+			snapshot.PrivacyStatus.Reason = "user is not subscriber"
 			return
 		}
 	default:
@@ -151,8 +144,8 @@ func CheckPrivacy(request *http.Request, userToSee User) (status PrivacyStatus) 
 			"userToSee": userToSee.Wallet,
 			"user":      user.Wallet,
 		}).Warn("Not possible to determine user's privacy")
-		status.Status = "KO"
-		status.Reason = "unknown reason"
+		snapshot.PrivacyStatus.Status = "KO"
+		snapshot.PrivacyStatus.Reason = "unknown reason"
 		return
 	}
 }
@@ -178,18 +171,15 @@ func InstanciateTradeWs(w http.ResponseWriter, r *http.Request) (ws *websocket.C
 	return
 }
 
-func (ws_trade *WsTrade) SendInitialSnapshot() {
-	ws_trade_output := ws_trade.UserToSee.GetSnapshot()
-	if len(ws_trade_output.Trades) > 0 {
-		err := ws_trade.Ws.WriteJSON(ws_trade_output)
-		if err != nil {
-			ws_trade.Ws.Close()
-			log.WithFields(log.Fields{
-				"wallet":     ws_trade.UserToSee.Wallet,
-				"custom_msg": "Failed running sending initial snapshot",
-			}).Error(err)
-			return
-		}
+func (ws_trade *WsTrade) SendInitialSnapshot(snapshot TradesSnapshot) {
+	err := ws_trade.Ws.WriteJSON(snapshot)
+	if err != nil {
+		ws_trade.Ws.Close()
+		log.WithFields(log.Fields{
+			"wallet":     ws_trade.UserToSee.Wallet,
+			"custom_msg": "Failed running sending initial snapshot",
+		}).Error(err)
+		return
 	}
 }
 
