@@ -60,8 +60,14 @@ type Trade struct {
 	Subtrades         []Subtrade
 }
 
+type PrivacyStatus struct {
+	Status string
+	Reason string
+}
+
 type TradesSnapshot struct {
 	UserDetails    UserDetails
+	PrivacyStatus  PrivacyStatus
 	Trades         []Trade
 	CountTrades    int
 	TotalReturnUsd float64

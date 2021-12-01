@@ -5,9 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"time"
 
-	sentry "github.com/getsentry/sentry-go"
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	. "github.com/logrusorgru/aurora"
@@ -22,16 +20,6 @@ var (
 )
 
 func main() {
-	err := sentry.Init(sentry.ClientOptions{
-		Dsn: "https://99a5eb64ecb041abb66d2809bcd4e101@o1054584.ingest.sentry.io/6040036",
-	})
-	if err != nil {
-		log.Fatalf("sentry.Init: %s", err)
-	}
-	defer sentry.Flush(2 * time.Second)
-
-	sentry.CaptureMessage("It works!")
-
 	r := SetupRoutes()
 	c := SetUpCors()
 	h := c.Handler(r)
@@ -64,6 +52,8 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")
 	router.HandleFunc("/update_privacy", UpdateUserPrivacy).Methods("POST")
 	router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
+
+	router.HandleFunc("/admin/abc", SelectActivity).Methods("GET")
 
 	return
 }
