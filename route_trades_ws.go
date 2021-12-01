@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 )
@@ -18,24 +17,6 @@ type WsTrade struct {
 }
 
 func StartTradesWs(w http.ResponseWriter, r *http.Request) {
-	wallet := mux.Vars(r)["wallet"]
-	session_id := mux.Vars(r)["sessionid"]
-
-	session := Session{}
-	user := User{}
-	if session_id != "undefined" {
-		session.Code = session_id
-		session.Select()
-		user, _ = SelectUser("wallet", session.UserWallet)
-		/* if err != nil {
-			log.WithFields(log.Fields{
-				"urlPath": r.URL.Path,
-			}).Warn("Failed starting ws, user has cookie but not found")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		} */
-	}
-
 	url_split := strings.Split(r.URL.Path, "/")
 
 	if len(url_split) < 4 {
@@ -45,8 +26,24 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+	wallet := url_split[2]
+	session_id := url_split[3]
 
-	wallet = url_split[2]
+	session := Session{}
+	user := User{}
+	err := errors.New("")
+	if session_id != "undefined" {
+		session.Code = session_id
+		session.Select()
+		user, err = SelectUser("wallet", session.UserWallet)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"urlPath": r.URL.Path,
+			}).Error("Failed starting ws, user has cookie but not found")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+	}
 
 	userToSee, err := SelectUser("wallet", wallet)
 	if err != nil {

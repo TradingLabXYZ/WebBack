@@ -270,7 +270,7 @@ func TestStartTradesWs(t *testing.T) {
 		s := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer s.Close()
 		u := strings.TrimPrefix(s.URL, "http://")
-		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/sadkjfh"}
+		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/undefined"}
 		header := http.Header{}
 		header.Set("Origin", "http://127.0.0.1")
 		ws, _, _ := websocket.DefaultDialer.Dial(u_new.String(), header)
@@ -286,17 +286,15 @@ func TestStartTradesWs(t *testing.T) {
 		}
 	})
 
-	t.Run(fmt.Sprintf("Test access PRIVATE user"), func(t *testing.T) {
+	t.Run(fmt.Sprintf("Test access PRIVATE user not logged in"), func(t *testing.T) {
 		user_a := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
 		session_a, _ := user_a.InsertSession()
-
 		s := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer s.Close()
 		u := strings.TrimPrefix(s.URL, "http://")
-		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B/sadkjfh"}
+		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B/" + session_a.Code}
 		header := http.Header{}
 		header.Set("Origin", "http://127.0.0.1")
-
 		var cookies []*http.Cookie
 		cookie := &http.Cookie{Name: "sessionId", Value: session_a.Code, MaxAge: 300}
 		cookies = append(cookies, cookie)
@@ -323,7 +321,7 @@ func TestStartTradesWs(t *testing.T) {
 		s := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer s.Close()
 		u := strings.TrimPrefix(s.URL, "http://")
-		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/sadkjfh"}
+		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/undefined"}
 		header := http.Header{}
 		header.Set("Origin", "http://127.0.0.1")
 		ws, _, _ := websocket.DefaultDialer.Dial(u_new.String(), header)
@@ -335,11 +333,13 @@ func TestStartTradesWs(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test receive snapshot after change"), func(t *testing.T) {
+		user_a := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B"}
+		session_a, _ := user_a.InsertSession()
 		go InstanciateActivityMonitor()
 		s := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer s.Close()
 		u := strings.TrimPrefix(s.URL, "http://")
-		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/sadkjfh"}
+		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/" + session_a.Code}
 		header := http.Header{}
 		header.Set("Origin", "http://127.0.0.1")
 		ws, _, _ := websocket.DefaultDialer.Dial(u_new.String(), header)
@@ -425,41 +425,45 @@ func TestStartTradesWsIntegration(t *testing.T) {
 	t.Run(fmt.Sprintf("Test casual interaction without errors"), func(t *testing.T) {
 		go InstanciateActivityMonitor()
 
-		// usera
+		// test 1
 		server_a := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer server_a.Close()
 		url_a := strings.TrimPrefix(server_a.URL, "http://")
-		u_new_a := url.URL{Scheme: "ws", Host: url_a, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/requestusera"}
+		u_new_a := url.URL{Scheme: "ws", Host: url_a, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/undefined"}
 		header_a := http.Header{}
 		header_a.Set("Origin", "http://127.0.0.1")
 		ws_a, _, _ := websocket.DefaultDialer.Dial(u_new_a.String(), header_a)
 		_, _, _ = ws_a.ReadMessage()
 
-		// userb
+		// test 2
 		server_b := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer server_b.Close()
 		url_b := strings.TrimPrefix(server_b.URL, "http://")
-		u_new_b := url.URL{Scheme: "ws", Host: url_b, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/requestuserb"}
+		u_new_b := url.URL{Scheme: "ws", Host: url_b, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/undefined"}
 		header_b := http.Header{}
 		header_b.Set("Origin", "http://127.0.0.1")
 		ws_b, _, _ := websocket.DefaultDialer.Dial(u_new_b.String(), header_b)
 		_, _, _ = ws_b.ReadMessage()
 
-		// userc
+		// test 3
+		user_c := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C"}
+		session_c, _ := user_c.InsertSession()
 		server_c := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer server_c.Close()
 		url_c := strings.TrimPrefix(server_c.URL, "http://")
-		u_new_c := url.URL{Scheme: "ws", Host: url_c, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/requestuserc"}
+		u_new_c := url.URL{Scheme: "ws", Host: url_c, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/" + session_c.Code}
 		header_c := http.Header{}
 		header_c.Set("Origin", "http://127.0.0.1")
 		ws_c, _, _ := websocket.DefaultDialer.Dial(u_new_c.String(), header_c)
 		_, _, _ = ws_c.ReadMessage()
 
-		// userc
+		// test 4
+		user_d := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D"}
+		session_d, _ := user_d.InsertSession()
 		server_d := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer server_d.Close()
 		url_d := strings.TrimPrefix(server_d.URL, "http://")
-		u_new_d := url.URL{Scheme: "ws", Host: url_d, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/requestuserd"}
+		u_new_d := url.URL{Scheme: "ws", Host: url_d, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/" + session_d.Code}
 		header_d := http.Header{}
 		header_d.Set("Origin", "http://127.0.0.1")
 		ws_d, _, _ := websocket.DefaultDialer.Dial(u_new_d.String(), header_d)
