@@ -14,6 +14,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type WebsocketServer struct {
+	upgrader websocket.Upgrader
+	addr     *string
+	conn     *websocket.Conn
+}
+
 func TestCheckPrivacy(t *testing.T) {
 	// <setup code>
 	Db.Exec(
@@ -27,23 +33,25 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user with privacy ALL is fully visibile"), func(t *testing.T) {
 		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A")
 		user_b := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B"}
-		session_b, _ := user_b.InsertSession()
-		req := httptest.NewRequest("GET", "/", nil)
-		expiration := time.Now().Add(365 * 24 * time.Hour)
-		cookie := http.Cookie{Name: "sessionId", Value: session_b.Code, Expires: expiration}
-		req.AddCookie(&cookie)
-		status := CheckPrivacy(req, userToSee)
-		if status.Status != "OK" {
+		c := make(chan TradesSnapshot)
+		ws := WebsocketServer{}
+		ws_trade := WsTrade{userToSee, "testRequest", c, ws.conn}
+		ws_trade_output := ws_trade.UserToSee.GetSnapshot()
+		ws_trade_output.CheckPrivacy(user_b, userToSee)
+		if ws_trade_output.PrivacyStatus.Status != "OK" {
 			t.Fatal("Failed test user with privacy ALL is fully visibile")
 		}
 	})
 
 	t.Run(fmt.Sprintf("Test user not authenticated try to access not ALL users"), func(t *testing.T) {
 		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B")
-		req := httptest.NewRequest("GET", "/", nil)
-		req.Header.Set("Authorization", "Bearer sessionId=NOTVALUD")
-		status := CheckPrivacy(req, userToSee)
-		if status.Status != "KO" {
+		user_b := User{Wallet: ""}
+		c := make(chan TradesSnapshot)
+		ws := WebsocketServer{}
+		ws_trade := WsTrade{userToSee, "testRequest", c, ws.conn}
+		ws_trade_output := ws_trade.UserToSee.GetSnapshot()
+		ws_trade_output.CheckPrivacy(user_b, userToSee)
+		if ws_trade_output.PrivacyStatus.Status != "KO" {
 			t.Fatal("Failed user not authenticated try to access not ALL users")
 		}
 	})
@@ -51,13 +59,12 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user PRIVATE always able to see its profile if authenticated"), func(t *testing.T) {
 		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B")
 		user_b := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B"}
-		session_b, _ := user_b.InsertSession()
-		req := httptest.NewRequest("GET", "/", nil)
-		expiration := time.Now().Add(365 * 24 * time.Hour)
-		cookie := http.Cookie{Name: "sessionId", Value: session_b.Code, Expires: expiration}
-		req.AddCookie(&cookie)
-		status := CheckPrivacy(req, userToSee)
-		if status.Status != "OK" {
+		c := make(chan TradesSnapshot)
+		ws := WebsocketServer{}
+		ws_trade := WsTrade{userToSee, "testRequest", c, ws.conn}
+		ws_trade_output := ws_trade.UserToSee.GetSnapshot()
+		ws_trade_output.CheckPrivacy(user_b, userToSee)
+		if ws_trade_output.PrivacyStatus.Status != "OK" {
 			t.Fatal("Failed user PRIVATE always able to see its profile if authenticated")
 		}
 	})
@@ -65,13 +72,12 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user FOLLOWERS always able to see its profile if authenticated"), func(t *testing.T) {
 		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C")
 		user_c := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C"}
-		session_c, _ := user_c.InsertSession()
-		req := httptest.NewRequest("GET", "/", nil)
-		expiration := time.Now().Add(365 * 24 * time.Hour)
-		cookie := http.Cookie{Name: "sessionId", Value: session_c.Code, Expires: expiration}
-		req.AddCookie(&cookie)
-		status := CheckPrivacy(req, userToSee)
-		if status.Status != "OK" {
+		c := make(chan TradesSnapshot)
+		ws := WebsocketServer{}
+		ws_trade := WsTrade{userToSee, "testRequest", c, ws.conn}
+		ws_trade_output := ws_trade.UserToSee.GetSnapshot()
+		ws_trade_output.CheckPrivacy(user_c, userToSee)
+		if ws_trade_output.PrivacyStatus.Status != "OK" {
 			t.Fatal("Failed user FOLLOWERS always able to see its profile if authenticated")
 		}
 	})
@@ -79,13 +85,12 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user SUBSCRIBERS always able to see its profile if authenticated"), func(t *testing.T) {
 		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D")
 		user_d := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D"}
-		session_d, _ := user_d.InsertSession()
-		req := httptest.NewRequest("GET", "/", nil)
-		expiration := time.Now().Add(365 * 24 * time.Hour)
-		cookie := http.Cookie{Name: "sessionId", Value: session_d.Code, Expires: expiration}
-		req.AddCookie(&cookie)
-		status := CheckPrivacy(req, userToSee)
-		if status.Status != "OK" {
+		c := make(chan TradesSnapshot)
+		ws := WebsocketServer{}
+		ws_trade := WsTrade{userToSee, "testRequest", c, ws.conn}
+		ws_trade_output := ws_trade.UserToSee.GetSnapshot()
+		ws_trade_output.CheckPrivacy(user_d, userToSee)
+		if ws_trade_output.PrivacyStatus.Status != "OK" {
 			t.Fatal("Failed user SUBSCRIBERS always able to see its profile if authenticated")
 		}
 	})
@@ -93,13 +98,12 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user cannot access other user when PRIVATE"), func(t *testing.T) {
 		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B")
 		user_a := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session_a, _ := user_a.InsertSession()
-		req := httptest.NewRequest("GET", "/", nil)
-		expiration := time.Now().Add(365 * 24 * time.Hour)
-		cookie := http.Cookie{Name: "sessionId", Value: session_a.Code, Expires: expiration}
-		req.AddCookie(&cookie)
-		status := CheckPrivacy(req, userToSee)
-		if status.Reason != "private" {
+		c := make(chan TradesSnapshot)
+		ws := WebsocketServer{}
+		ws_trade := WsTrade{userToSee, "testRequest", c, ws.conn}
+		ws_trade_output := ws_trade.UserToSee.GetSnapshot()
+		ws_trade_output.CheckPrivacy(user_a, userToSee)
+		if ws_trade_output.PrivacyStatus.Reason != "private" {
 			t.Fatal("Failed user cannot access other user when PRIVATE")
 		}
 	})
@@ -107,13 +111,12 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user cannot access other user when FOLLOWERS and not following"), func(t *testing.T) {
 		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C")
 		user_a := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session_a, _ := user_a.InsertSession()
-		req := httptest.NewRequest("GET", "/", nil)
-		expiration := time.Now().Add(365 * 24 * time.Hour)
-		cookie := http.Cookie{Name: "sessionId", Value: session_a.Code, Expires: expiration}
-		req.AddCookie(&cookie)
-		status := CheckPrivacy(req, userToSee)
-		if status.Reason != "user is not follower" {
+		c := make(chan TradesSnapshot)
+		ws := WebsocketServer{}
+		ws_trade := WsTrade{userToSee, "testRequest", c, ws.conn}
+		ws_trade_output := ws_trade.UserToSee.GetSnapshot()
+		ws_trade_output.CheckPrivacy(user_a, userToSee)
+		if ws_trade_output.PrivacyStatus.Reason != "user is not follower" {
 			t.Fatal("Failed user cannot access other user when FOLLOWERS and not following")
 		}
 	})
@@ -121,16 +124,15 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user can access other user when FOLLOWERS and yes following"), func(t *testing.T) {
 		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C")
 		Db.Exec(`
-			INSERT INTO followers (followfrom, followto, createdat)
-			VALUES ('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', current_timestamp);`)
+				INSERT INTO followers (followfrom, followto, createdat)
+				VALUES ('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', current_timestamp);`)
 		user_a := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session_a, _ := user_a.InsertSession()
-		req := httptest.NewRequest("GET", "/", nil)
-		expiration := time.Now().Add(365 * 24 * time.Hour)
-		cookie := http.Cookie{Name: "sessionId", Value: session_a.Code, Expires: expiration}
-		req.AddCookie(&cookie)
-		status := CheckPrivacy(req, userToSee)
-		if status.Status != "OK" {
+		c := make(chan TradesSnapshot)
+		ws := WebsocketServer{}
+		ws_trade := WsTrade{userToSee, "testRequest", c, ws.conn}
+		ws_trade_output := ws_trade.UserToSee.GetSnapshot()
+		ws_trade_output.CheckPrivacy(user_a, userToSee)
+		if ws_trade_output.PrivacyStatus.Status != "OK" {
 			t.Fatal("Failed user can access other user when FOLLOWERS and yes following")
 		}
 	})
@@ -138,13 +140,12 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user cannot access other user when SUBSCRIBERS and not subscribers"), func(t *testing.T) {
 		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D")
 		user_a := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session_a, _ := user_a.InsertSession()
-		req := httptest.NewRequest("GET", "/", nil)
-		expiration := time.Now().Add(365 * 24 * time.Hour)
-		cookie := http.Cookie{Name: "sessionId", Value: session_a.Code, Expires: expiration}
-		req.AddCookie(&cookie)
-		status := CheckPrivacy(req, userToSee)
-		if status.Reason != "user is not subscriber" {
+		c := make(chan TradesSnapshot)
+		ws := WebsocketServer{}
+		ws_trade := WsTrade{userToSee, "testRequest", c, ws.conn}
+		ws_trade_output := ws_trade.UserToSee.GetSnapshot()
+		ws_trade_output.CheckPrivacy(user_a, userToSee)
+		if ws_trade_output.PrivacyStatus.Reason != "user is not subscriber" {
 			t.Fatal("Failed user cannot access other user when SUBSCRIBERS and not subscribers")
 		}
 	})
@@ -152,16 +153,15 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user can access other user when SUBSCRIBERS and yes subscriber"), func(t *testing.T) {
 		userToSee, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D")
 		Db.Exec(`
-			INSERT INTO subscribers (subscribefrom, subscribeto, createdat)
-			VALUES ('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', current_timestamp);`)
+				INSERT INTO subscribers (subscribefrom, subscribeto, createdat)
+				VALUES ('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', current_timestamp);`)
 		user_a := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session_a, _ := user_a.InsertSession()
-		req := httptest.NewRequest("GET", "/", nil)
-		expiration := time.Now().Add(365 * 24 * time.Hour)
-		cookie := http.Cookie{Name: "sessionId", Value: session_a.Code, Expires: expiration}
-		req.AddCookie(&cookie)
-		status := CheckPrivacy(req, userToSee)
-		if status.Status != "OK" {
+		c := make(chan TradesSnapshot)
+		ws := WebsocketServer{}
+		ws_trade := WsTrade{userToSee, "testRequest", c, ws.conn}
+		ws_trade_output := ws_trade.UserToSee.GetSnapshot()
+		ws_trade_output.CheckPrivacy(user_a, userToSee)
+		if ws_trade_output.PrivacyStatus.Status != "OK" {
 			t.Fatal("Failed user can access other user when SUBSCRIBERS and yes subscriber")
 		}
 	})
@@ -310,9 +310,9 @@ func TestStartTradesWs(t *testing.T) {
 		defer ws.Close()
 		for {
 			_, message, _ := ws.ReadMessage()
-			privacy_status := PrivacyStatus{}
-			json.Unmarshal(message, &privacy_status)
-			if privacy_status.Reason != "private" {
+			snapshot := TradesSnapshot{}
+			json.Unmarshal(message, &snapshot)
+			if snapshot.PrivacyStatus.Reason != "private" {
 				t.Fatal("Failed test access PRIVATE user")
 			}
 			break
