@@ -39,7 +39,7 @@ func SetupRoutes() (router *mux.Router) {
 	router = mux.NewRouter()
 
 	router.HandleFunc("/login/{wallet}", Login).Methods("GET")
-	router.HandleFunc("/get_trades/{username}/{requestid}", StartTradesWs)
+	router.HandleFunc("/get_trades/{wallet}/{sessionid}", StartTradesWs)
 	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
 
 	router.HandleFunc("/insert_trade", CreateTrade).Methods("POST")
@@ -122,8 +122,6 @@ var Origins = []string{
 	"https://tradinglab.xyz",
 	"https://www.tradinglab.xyz",
 	"https://staging.tradinglab.xyz",
-	"https://hoofcoffee-wet0e0.stormkit.dev",
-	"https://hoofcoffee-wet0e0--staging.stormkit.dev",
 }
 
 func SetUpCors() (c *cors.Cors) {
