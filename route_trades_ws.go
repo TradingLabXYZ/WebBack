@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -19,8 +20,10 @@ type WsTrade struct {
 func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 	user := User{}
 	session, err := GetSession(r, "cookie")
+	fmt.Println(session)
 	if err == nil {
 		user, err = SelectUser("wallet", session.UserWallet)
+		fmt.Println(user)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"urlPath": r.URL.Path,
