@@ -2,36 +2,38 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 )
 
 type WsTrade struct {
 	UserToSee User
-	RequestId string
+	SessionId string
 	Channel   chan TradesSnapshot
 	Ws        *websocket.Conn
 }
 
 func StartTradesWs(w http.ResponseWriter, r *http.Request) {
+	wallet := mux.Vars(r)["wallet"]
+	session_id := mux.Vars(r)["sessionid"]
+
+	session := Session{}
 	user := User{}
-	session, err := GetSession(r, "cookie")
-	fmt.Println(session, err)
-	fmt.Println(r.Cookies())
-	if err == nil {
-		user, err = SelectUser("wallet", session.UserWallet)
-		fmt.Println(user)
-		if err != nil {
+	if session_id != "undefined" {
+		session.Code = session_id
+		session.Select()
+		user, _ = SelectUser("wallet", session.UserWallet)
+		/* if err != nil {
 			log.WithFields(log.Fields{
 				"urlPath": r.URL.Path,
 			}).Warn("Failed starting ws, user has cookie but not found")
 			w.WriteHeader(http.StatusBadRequest)
 			return
-		}
+		} */
 	}
 
 	url_split := strings.Split(r.URL.Path, "/")
@@ -44,8 +46,7 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	wallet := url_split[2]
-	request_id := url_split[3]
+	wallet = url_split[2]
 
 	userToSee, err := SelectUser("wallet", wallet)
 	if err != nil {
@@ -67,7 +68,7 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c := make(chan TradesSnapshot)
-	ws_trade := WsTrade{userToSee, request_id, c, ws}
+	ws_trade := WsTrade{userToSee, session_id, c, ws}
 	ws_trade_output := ws_trade.UserToSee.GetSnapshot()
 
 	ws_trade_output.CheckPrivacy(user, userToSee)
@@ -192,7 +193,7 @@ func (ws_trade *WsTrade) WaitToTerminate() {
 		_, _, err := ws_trade.Ws.ReadMessage()
 		if err != nil {
 			for i, v := range trades_wss[ws_trade.UserToSee.Wallet] {
-				if v.RequestId == ws_trade.RequestId {
+				if v.SessionId == ws_trade.SessionId {
 					trades_wss[ws_trade.UserToSee.Wallet] = append(
 						trades_wss[ws_trade.UserToSee.Wallet][:i],
 						trades_wss[ws_trade.UserToSee.Wallet][i+1:]...)
