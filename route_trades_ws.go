@@ -20,7 +20,7 @@ type WsTrade struct {
 func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 	user := User{}
 	session, err := GetSession(r, "cookie")
-	fmt.Println(session)
+	fmt.Println(session, err)
 	if err == nil {
 		user, err = SelectUser("wallet", session.UserWallet)
 		fmt.Println(user)
