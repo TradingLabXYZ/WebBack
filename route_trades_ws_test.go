@@ -310,9 +310,9 @@ func TestStartTradesWs(t *testing.T) {
 		defer ws.Close()
 		for {
 			_, message, _ := ws.ReadMessage()
-			privacy_status := PrivacyStatus{}
-			json.Unmarshal(message, &privacy_status)
-			if privacy_status.Reason != "private" {
+			snapshot := TradesSnapshot{}
+			json.Unmarshal(message, &snapshot)
+			if snapshot.PrivacyStatus.Reason != "private" {
 				t.Fatal("Failed test access PRIVATE user")
 			}
 			break
