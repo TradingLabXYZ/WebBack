@@ -11,7 +11,7 @@ import (
 func SelectPairs(w http.ResponseWriter, r *http.Request) {
 	type PairInfo struct {
 		CoinId int
-		Symbol string
+		Name   string
 		Slug   string
 	}
 
@@ -19,28 +19,29 @@ func SelectPairs(w http.ResponseWriter, r *http.Request) {
 
 	pairs_sql := `
 		SELECT DISTINCT
+			symbol,
 			name,
 			coinid,
-			symbol,
 			slug
-		FROM coins;`
+		FROM coins
+		ORDER BY 1;`
 	pairs_rows, err := Db.Query(pairs_sql)
 	defer pairs_rows.Close()
 	if err != nil {
 		log.Error(err)
 	}
 	for pairs_rows.Next() {
-		var name string
+		var symbol string
 		pair_info := PairInfo{}
 		if err = pairs_rows.Scan(
-			&name,
+			&symbol,
+			&pair_info.Name,
 			&pair_info.CoinId,
-			&pair_info.Symbol,
 			&pair_info.Slug,
 		); err != nil {
 			log.Error(err)
 		}
-		pairs[name] = pair_info
+		pairs[symbol] = pair_info
 	}
 
 	json.NewEncoder(w).Encode(pairs)
