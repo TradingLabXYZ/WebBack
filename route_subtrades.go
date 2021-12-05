@@ -90,8 +90,8 @@ func CreateSubtrade(w http.ResponseWriter, r *http.Request) {
 			quantity, avgprice, total, updatedat)
 		VALUES (
 			SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2,
-			current_timestamp, 'BUY', '', 0, 0,
-			0, current_timestamp)
+			current_timestamp, 'BUY', '', 0.0001, 0.0001,
+			0.0001, current_timestamp)
 		RETURNING code;`
 	var subtrade_code string
 	err = Db.QueryRow(
