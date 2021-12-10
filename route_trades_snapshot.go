@@ -192,10 +192,10 @@ func (user User) SelectUserTrades() (trades []Trade) {
 			t.futurereturn,
 			t.futurereturn * t.firstpairprice / c3.price AS futurereturnbtc,
 			t.futurereturn * t.firstpairprice AS futurereturnusd,
-			CASE WHEN t.totalreturn > 1 THEN ROUND(t.totalreturn, 2) ELSE ROUND(t.totalreturn, 5) END as totalreturn,
+			ROUND(t.totalreturn, 2) as totalreturn,
 			t.totalreturn * t.firstpairprice / c3.price AS returnbtc,
 			t.totalreturn * t.firstpairprice AS returnusd,
-			ROUND(t.roi, 2) AS roi,
+			ROUND(t.roi, 1) AS roi,
 			c3.price AS btcprice
 		FROM TRADES_MICRO t
 		LEFT JOIN CURRENT_PRICE c3 ON(c3.coinid = 1);`
@@ -271,7 +271,7 @@ func (trade Trade) SelectTradeSubtrades() (subtrades []Subtrade) {
 				CASE WHEN reason IS NULL THEN '' ELSE reason END AS reason,
 				TO_CHAR(createdat, 'YYYY-MM-DD"T"HH24:MI'),
 				quantity,
-				avgprice,
+				ROUND(avgprice, 6) AS avgprice,
 				total
 			FROM subtrades
 			WHERE tradecode = $1
