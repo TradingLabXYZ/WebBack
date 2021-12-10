@@ -57,14 +57,14 @@ func SelectPairRatio(w http.ResponseWriter, r *http.Request) {
 			y.price / x.price
 		FROM (
 			SELECT
-				price
+				ROUND(price, 6) AS price
 			FROM prices
 			WHERE coinid = $1
 			ORDER BY createdat
 			DESC LIMIT 1) x
 		LEFT JOIN (
 			SELECT
-				price
+				ROUND(price, 6) AS price
 			FROM prices
 			WHERE coinid = $2
 			ORDER BY createdat DESC
