@@ -1,22 +1,27 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
+	"os"
+
+	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
-type ActivitySnapshot struct {
-	ActiveUsers int
-	User        []string
-}
-
 func SelectActivity(w http.ResponseWriter, r *http.Request) {
-	/* activeUsers := len(trades_wss)
-	// fmt.Println(activeUsers)
-	for userWatcher, _ := range trades_wss {
-		for userToSee, _ := range trades_wss {
-			fmt.Println("userWatcher:", userWatcher)
-			fmt.Println("\tuserToSee:", userToSee)
+	token := mux.Vars(r)["token"]
+	admin_token := os.Getenv("ADMIN_TOKEN")
+	if token != admin_token {
+		log.Warn("Attempted accessing admin with invalid token")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	output := make(map[string][]string)
+	for userToSee, _ := range trades_wss {
+		for _, q := range trades_wss[userToSee] {
+			output[userToSee] = append(output[userToSee], q.SessionId)
 		}
 	}
-	json.NewEncoder(w).Encode("OK") */
+	json.NewEncoder(w).Encode(output)
 }

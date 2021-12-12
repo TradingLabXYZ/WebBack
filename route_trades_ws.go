@@ -10,7 +10,8 @@ import (
 )
 
 type WsTrade struct {
-	UserToSee User
+	Observer  User
+	Observed  User
 	SessionId string
 	Channel   chan TradesSnapshot
 	Ws        *websocket.Conn
@@ -19,6 +20,7 @@ type WsTrade struct {
 func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 	url_split := strings.Split(r.URL.Path, "/")
 
+	// UNDERSTAND WHICH USER PROFILE NEEDS TO BE DISPLAYED
 	if len(url_split) < 4 {
 		log.WithFields(log.Fields{
 			"urlPath": r.URL.Path,
@@ -27,15 +29,25 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	wallet := url_split[2]
-	session_id := url_split[3]
 
+	observed, err := SelectUser("wallet", wallet)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"urlPath":  r.URL.Path,
+			"observed": observed,
+		}).Warn("Failed starting ws, user not found")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// UNDERSTAND WHICH USER WANTS TO RECEIVE THE DATA
+	session_id := url_split[3]
 	session := Session{}
-	user := User{}
-	err := errors.New("")
-	if session_id != "undefined" {
-		session.Code = session_id
-		session.Select()
-		user, err = SelectUser("wallet", session.UserWallet)
+	observer := User{}
+	session.Code = session_id
+	err = session.Select()
+	if err == nil {
+		observer, err = SelectUser("wallet", session.UserWallet)
 		if err != nil {
 			log.WithFields(log.Fields{
 				"urlPath": r.URL.Path,
@@ -43,18 +55,11 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+	} else {
+		// USER HAS NOT BEEN FOUND
 	}
 
-	userToSee, err := SelectUser("wallet", wallet)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"urlPath":   r.URL.Path,
-			"userToSee": userToSee,
-		}).Warn("Failed starting ws, user not found")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
+	// INSTANCIATE WS
 	ws, err := InstanciateTradeWs(w, r)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -65,17 +70,18 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c := make(chan TradesSnapshot)
-	ws_trade := WsTrade{userToSee, session_id, c, ws}
-	ws_trade_output := ws_trade.UserToSee.GetSnapshot()
+	ws_trade := WsTrade{observer, observed, session_id, c, ws}
+	snapshot := observed.GetSnapshot()
 
-	ws_trade_output.CheckPrivacy(user, userToSee)
+	snapshot.CheckPrivacy(observer, observed)
 
-	if ws_trade_output.PrivacyStatus.Status == "KO" {
-		ws_trade_output.Trades = nil
-		ws_trade.SendInitialSnapshot(ws_trade_output)
+	if snapshot.PrivacyStatus.Status == "KO" {
+		snapshot.Trades = nil
+		ws_trade.SendInitialSnapshot(snapshot)
 		return
 	}
-	ws_trade.SendInitialSnapshot(ws_trade_output)
+
+	ws_trade.SendInitialSnapshot(snapshot)
 	trades_wss[wallet] = append(trades_wss[wallet], ws_trade)
 	go ws_trade.WaitToTerminate()
 	go ws_trade.WaitToSendMessage()
@@ -178,7 +184,7 @@ func (ws_trade *WsTrade) SendInitialSnapshot(snapshot TradesSnapshot) {
 	if err != nil {
 		ws_trade.Ws.Close()
 		log.WithFields(log.Fields{
-			"wallet":     ws_trade.UserToSee.Wallet,
+			"sessionId":  ws_trade.SessionId,
 			"custom_msg": "Failed running sending initial snapshot",
 		}).Error(err)
 		return
@@ -189,19 +195,24 @@ func (ws_trade *WsTrade) WaitToTerminate() {
 	for {
 		_, _, err := ws_trade.Ws.ReadMessage()
 		if err != nil {
-			for i, v := range trades_wss[ws_trade.UserToSee.Wallet] {
-				if v.SessionId == ws_trade.SessionId {
-					trades_wss[ws_trade.UserToSee.Wallet] = append(
-						trades_wss[ws_trade.UserToSee.Wallet][:i],
-						trades_wss[ws_trade.UserToSee.Wallet][i+1:]...)
+			observers := []WsTrade{}
+			for _, observer := range trades_wss[ws_trade.Observed.Wallet] {
+				if observer.SessionId != ws_trade.SessionId {
+					observers = append(observers, observer)
 				}
 			}
+			trades_wss[ws_trade.Observed.Wallet] = observers
+
+			if len(trades_wss[ws_trade.Observed.Wallet]) == 0 {
+				delete(trades_wss, ws_trade.Observed.Wallet)
+			}
+
 			ws_trade.Ws.Close()
 			return
 		} else {
 			ws_trade.Ws.Close()
 			log.WithFields(log.Fields{
-				"wallet":     ws_trade.UserToSee.Wallet,
+				"sessionId":  ws_trade.SessionId,
 				"custom_msg": "Failed terminating trade ws",
 			}).Error(err)
 			return
@@ -212,16 +223,14 @@ func (ws_trade *WsTrade) WaitToTerminate() {
 func (ws_trade *WsTrade) WaitToSendMessage() {
 	for {
 		s1 := <-ws_trade.Channel
-		if s1.UserDetails.Username == ws_trade.UserToSee.Wallet {
-			err := ws_trade.Ws.WriteJSON(s1)
-			if err != nil {
-				ws_trade.Ws.Close()
-				log.WithFields(log.Fields{
-					"wallet":     ws_trade.UserToSee.Wallet,
-					"custom_msg": "Failed running sending snapshot",
-				}).Error(err)
-				return
-			}
+		err := ws_trade.Ws.WriteJSON(s1)
+		if err != nil {
+			ws_trade.Ws.Close()
+			log.WithFields(log.Fields{
+				"sessionId":  ws_trade.SessionId,
+				"custom_msg": "Failed running sending snapshot",
+			}).Error(err)
+			return
 		}
 	}
 }
