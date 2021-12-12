@@ -55,6 +55,7 @@ export TL_DB_PORT=
 export DO_KEY=
 export DO_SECRET=
 export CDN_PATH=
+export ADMIN_TOKEN=
 ```
 
 Build and run the program:

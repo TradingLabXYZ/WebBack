@@ -54,7 +54,7 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/update_privacy", UpdateUserPrivacy).Methods("POST")
 	router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
 
-	router.HandleFunc("/admin/abc", SelectActivity).Methods("GET")
+	router.HandleFunc("/admin/{token}", SelectActivity).Methods("GET")
 
 	return
 }
