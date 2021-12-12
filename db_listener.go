@@ -43,13 +43,13 @@ func (db_listener *DbListener) Listen() {
 }
 
 func DistpachSnapshots(user_wallet string) {
-	user, _ := SelectUser("wallet", user_wallet)
-	user_snapshot := user.GetSnapshot()
-	for _, q := range trades_wss[user.Wallet] {
-		user_snapshot.CheckPrivacy(user, q.UserToSee)
-		if user_snapshot.PrivacyStatus.Status == "KO" {
-			user_snapshot.Trades = nil
+	observed, _ := SelectUser("wallet", user_wallet)
+	snapshot := observed.GetSnapshot()
+	for _, q := range trades_wss[observed.Wallet] {
+		snapshot.CheckPrivacy(q.Observer, observed)
+		if snapshot.PrivacyStatus.Status == "KO" {
+			snapshot.Trades = nil
 		}
-		q.Channel <- user_snapshot
+		q.Channel <- snapshot
 	}
 }
