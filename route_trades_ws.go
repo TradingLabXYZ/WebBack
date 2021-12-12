@@ -193,8 +193,10 @@ func (ws_trade *WsTrade) SendInitialSnapshot(snapshot TradesSnapshot) {
 
 func (ws_trade *WsTrade) WaitToTerminate() {
 	for {
-		_, _, err := ws_trade.Ws.ReadMessage()
-		if err != nil {
+		_, message, err := ws_trade.Ws.ReadMessage()
+		if string(message) == "ping" {
+			continue
+		} else if err != nil {
 			observers := []WsTrade{}
 			for _, observer := range trades_wss[ws_trade.Observed.Wallet] {
 				if observer.SessionId != ws_trade.SessionId {
