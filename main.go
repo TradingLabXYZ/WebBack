@@ -42,6 +42,7 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/get_trades/{wallet}/{sessionid}", StartTradesWs)
 	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
 	router.HandleFunc("/get_pair_ratio/{firstPairCoinId}/{secondPairCoinId}", SelectPairRatio).Methods("GET")
+	router.HandleFunc("/get_explore", SelectExplore).Methods("GET")
 
 	router.HandleFunc("/insert_trade", CreateTrade).Methods("POST")
 	router.HandleFunc("/change_trade/{tradecode}/{tostatus}", ChangeTradeStatus).Methods("GET")
