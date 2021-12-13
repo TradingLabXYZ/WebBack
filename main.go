@@ -56,25 +56,28 @@ func SetupRoutes() (router *mux.Router) {
 
 	router.HandleFunc("/admin/{token}", SelectActivity).Methods("GET")
 
+	files := http.FileServer(http.Dir("templates/public"))
+	s := http.StripPrefix("/static/", files)
+	router.PathPrefix("/static/").Handler(s)
+
 	return
 }
 
-func SetUpLog() (file *os.File) {
-	file, err := os.OpenFile(
-		"logs.log",
-		os.O_APPEND|os.O_CREATE|os.O_RDWR,
-		0o666,
-	)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"custom_msg": "Failed setting up log file",
-		}).Error(err)
-		return
-	}
-	log.SetLevel(log.TraceLevel)
-	log.SetFormatter(&log.JSONFormatter{})
-	log.SetOutput(io.MultiWriter(file, os.Stdout))
-	return
+var Origins = []string{
+	"http://127.0.0.1",
+	"http://localhost:9000",
+	"https://tradinglab.xyz",
+	"https://www.tradinglab.xyz",
+	"https://staging.tradinglab.xyz",
+}
+
+func SetUpCors() (c *cors.Cors) {
+	return cors.New(cors.Options{
+		AllowedOrigins:   Origins,
+		AllowedHeaders:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT"},
+		AllowCredentials: true,
+	})
 }
 
 func setUpDb() (db *sqlx.DB) {
@@ -117,19 +120,20 @@ func setUpDb() (db *sqlx.DB) {
 	return
 }
 
-var Origins = []string{
-	"http://127.0.0.1",
-	"http://localhost:9000",
-	"https://tradinglab.xyz",
-	"https://www.tradinglab.xyz",
-	"https://staging.tradinglab.xyz",
-}
-
-func SetUpCors() (c *cors.Cors) {
-	return cors.New(cors.Options{
-		AllowedOrigins:   Origins,
-		AllowedHeaders:   []string{"*"},
-		AllowedMethods:   []string{"GET", "POST", "PUT"},
-		AllowCredentials: true,
-	})
+func SetUpLog() (file *os.File) {
+	file, err := os.OpenFile(
+		"logs.log",
+		os.O_APPEND|os.O_CREATE|os.O_RDWR,
+		0o666,
+	)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"custom_msg": "Failed setting up log file",
+		}).Error(err)
+		return
+	}
+	log.SetLevel(log.TraceLevel)
+	log.SetFormatter(&log.JSONFormatter{})
+	log.SetOutput(io.MultiWriter(file, os.Stdout))
+	return
 }
