@@ -175,7 +175,7 @@ func TestGetSnapshot(t *testing.T) {
 		if snapshot.Trades[0].QtyAvailable != 1 {
 			t.Fatal("Failed test snapshot multiple buy and sell, trade[0].QtyAvailable")
 		}
-		if snapshot.Trades[0].Roi != math.Round((((1.0*65000+1.5*100000+0.5*80000)/(1.0*50000+2*70000)-1)*100)*100)/100 {
+		if snapshot.Trades[0].Roi != math.Round((((1.0*65000+1.5*100000+0.5*80000)/(1.0*50000+2*70000)-1)*100)*10)/10 {
 			t.Fatal("Failed test snapshot multiple buy and sell, trade[0].Roi")
 		}
 		if snapshot.CountTrades != 1 {
