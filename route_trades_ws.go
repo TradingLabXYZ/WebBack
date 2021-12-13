@@ -87,26 +87,26 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 	go ws_trade.WaitToSendMessage()
 }
 
-func (snapshot *TradesSnapshot) CheckPrivacy(user User, userToSee User) {
-	if userToSee.Privacy == "all" {
+func (snapshot *TradesSnapshot) CheckPrivacy(observer User, observed User) {
+	if observed.Privacy == "all" {
 		snapshot.PrivacyStatus.Status = "OK"
-		snapshot.PrivacyStatus.Reason = "userToSee ALL"
+		snapshot.PrivacyStatus.Reason = "observed ALL"
 		return
 	}
 
-	if user.Wallet == "" {
+	if observer.Wallet == "" {
 		snapshot.PrivacyStatus.Status = "KO"
 		snapshot.PrivacyStatus.Reason = "user is not logged in"
 		return
 	}
 
-	if user.Wallet == userToSee.Wallet {
+	if observer.Wallet == observed.Wallet {
 		snapshot.PrivacyStatus.Status = "OK"
 		snapshot.PrivacyStatus.Reason = "user access its own profile"
 		return
 	}
 
-	switch userToSee.Privacy {
+	switch observed.Privacy {
 	case "private":
 		snapshot.PrivacyStatus.Status = "KO"
 		snapshot.PrivacyStatus.Reason = "private"
@@ -117,7 +117,7 @@ func (snapshot *TradesSnapshot) CheckPrivacy(user User, userToSee User) {
 					SELECT TRUE
 					FROM followers
 					WHERE followfrom = $1
-					AND followto = $2;`, user.Wallet, userToSee.Wallet).Scan(
+					AND followto = $2;`, observer.Wallet, observed.Wallet).Scan(
 			&isfollower,
 		)
 		if isfollower {
@@ -135,7 +135,7 @@ func (snapshot *TradesSnapshot) CheckPrivacy(user User, userToSee User) {
 					SELECT TRUE
 					FROM subscribers
 					WHERE subscribefrom = $1
-					AND subscribeto = $2;`, user.Wallet, userToSee.Wallet).Scan(
+					AND subscribeto = $2;`, observer.Wallet, observed.Wallet).Scan(
 			&issubscriber,
 		)
 		if issubscriber {
@@ -149,8 +149,8 @@ func (snapshot *TradesSnapshot) CheckPrivacy(user User, userToSee User) {
 		}
 	default:
 		log.WithFields(log.Fields{
-			"userToSee": userToSee.Wallet,
-			"user":      user.Wallet,
+			"observed": observed.Wallet,
+			"observer": observer.Wallet,
 		}).Warn("Not possible to determine user's privacy")
 		snapshot.PrivacyStatus.Status = "KO"
 		snapshot.PrivacyStatus.Reason = "unknown reason"

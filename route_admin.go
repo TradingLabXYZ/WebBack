@@ -18,9 +18,9 @@ func SelectActivity(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	output := make(map[string][]string)
-	for userToSee, _ := range trades_wss {
-		for _, q := range trades_wss[userToSee] {
-			output[userToSee] = append(output[userToSee], q.SessionId)
+	for observed, _ := range trades_wss {
+		for _, q := range trades_wss[observed] {
+			output[observed] = append(output[observed], q.SessionId)
 		}
 	}
 	json.NewEncoder(w).Encode(output)
