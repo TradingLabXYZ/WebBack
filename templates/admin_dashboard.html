@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TradingLab Monitor</title>
+    <meta name="description" content="A simple way to monitor real-time users of TradingLab.">
+    <meta name="author" content="TradingLab">
+    <link href="https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="icon" href="/static/favicon.ico">
+  </head>
+  <body class="mx-40">
+    <h1 class="flex align-middle justify-center text-5xl font-bold items-center bg-gray-500 h-40 border-b-2 border-gray-800">
+      TradingLab User Monitor
+    </h1>
+    <div class="mt-2 flex align-middle justify-center text-4xl items-center bg-gray-200 h-30">
+      Online Users: {{ .Count }}
+    </div>
+    <div class="mt-2">
+      {{range .Users}}
+        <div class="mt-1 bg-blue-300 h-10 text-center text-xl">
+          Observer: {{.Wallet}}
+          {{range .Observed}}
+          <div class="mt-1 bg-blue-100 h-10 text-center text-md">
+            Observed: {{.}}
+          </div>
+          {{end}}
+        {{end}}
+    </div>
+  </body>
+</html>
