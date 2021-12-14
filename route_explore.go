@@ -13,7 +13,15 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 					'trade' AS eventtype,
 					t.code,
 					t.createdat,
-					ROUND(EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60) AS minuteago,
+					CASE
+						WHEN EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 < 1
+							THEN ROUND(EXTRACT(EPOCH FROM (NOW() - t.createdat)))::TEXT || ' seconds ago'
+						WHEN (EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 > 1) AND (EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 < 60)
+							THEN ROUND(EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60)::TEXT || ' minutes ago'
+						WHEN (EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 >= 60) AND (EXTRACT(EPOCH FROM(NOW() - t.createdat)) / 60 < 1440)  
+							THEN ROUND(EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 / 60)::TEXT || ' hours ago'
+						ELSE ROUND(EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 / 60 / 60)::TEXT || ' days ago'
+					END AS timeago,
 					t.userwallet,
 					t.exchange,
 					t.firstpair,
@@ -32,7 +40,15 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 					'subtrade' AS eventtype,
 					s.tradecode,
 					s.createdat,
-					ROUND(EXTRACT(EPOCH FROM (NOW() - s.createdat)) / 60) AS minuteago,
+					CASE
+						WHEN EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 < 1
+							THEN ROUND(EXTRACT(EPOCH FROM (NOW() - t.createdat)))::TEXT || ' seconds ago'
+						WHEN (EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 > 1) AND (EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 < 60)
+							THEN ROUND(EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60)::TEXT || ' minutes ago'
+						WHEN (EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 >= 60) AND (EXTRACT(EPOCH FROM(NOW() - t.createdat)) / 60 < 1440)  
+							THEN ROUND(EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 / 60)::TEXT || ' hours ago'
+						ELSE ROUND(EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 / 60 / 60)::TEXT || ' days ago'
+					END AS timeago,
 					s.userwallet,
 					s.type,
 					s.reason,
