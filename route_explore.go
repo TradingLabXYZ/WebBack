@@ -81,7 +81,7 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 		FROM events c;`
 
 	var explore_json string
-	err := Db.QueryRow(explore_sql, offset).Scan(&explore_json)
+	err = Db.QueryRow(explore_sql, offset).Scan(&explore_json)
 	if err != nil {
 		w.Write([]byte("{}"))
 		return
