@@ -32,15 +32,15 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 				SELECT
 					'subtrade' AS eventtype,
 					s.tradecode,
-					s.createdat,
+					s.updatedat,
 					CASE
-						WHEN EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 < 1
-							THEN ROUND(EXTRACT(EPOCH FROM (NOW() - t.createdat)))::TEXT || ' seconds ago'
-						WHEN (EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 > 1) AND (EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 < 60)
-							THEN ROUND(EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60)::TEXT || ' minutes ago'
-						WHEN (EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 >= 60) AND (EXTRACT(EPOCH FROM(NOW() - t.createdat)) / 60 < 1440)  
-							THEN ROUND(EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 / 60)::TEXT || ' hours ago'
-						ELSE ROUND(EXTRACT(EPOCH FROM (NOW() - t.createdat)) / 60 / 60 / 60)::TEXT || ' days ago'
+						WHEN EXTRACT(EPOCH FROM (NOW() - s.updatedat)) / 60 < 1
+							THEN ROUND(EXTRACT(EPOCH FROM (NOW() - s.updatedat)))::TEXT || ' seconds ago'
+						WHEN (EXTRACT(EPOCH FROM (NOW() - s.updatedat)) / 60 > 1) AND (EXTRACT(EPOCH FROM (NOW() - s.updatedat)) / 60 < 60)
+							THEN ROUND(EXTRACT(EPOCH FROM (NOW() - s.updatedat)) / 60)::TEXT || ' minutes ago'
+						WHEN (EXTRACT(EPOCH FROM (NOW() - s.updatedat)) / 60 >= 60) AND (EXTRACT(EPOCH FROM(NOW() - s.updatedat)) / 60 < 1440)  
+							THEN ROUND(EXTRACT(EPOCH FROM (NOW() - s.updatedat)) / 60 / 60)::TEXT || ' hours ago'
+						ELSE CEIL(EXTRACT(EPOCH FROM (NOW() - s.updatedat)) / 60 / 60 / 60)::TEXT || ' days ago'
 					END AS timeago,
 					s.userwallet,
 					s.type,
@@ -67,13 +67,13 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 				LEFT JOIN users u ON(s.userwallet = u.wallet)
 				LEFT JOIN CURRENT_PRICE cp1 ON(t.firstpair = cp1.coinid)
 				LEFT JOIN CURRENT_PRICE cp2 ON(t.secondpair = cp2.coinid)
-				ORDER BY createdat DESC
+				ORDER BY s.updatedat DESC
 				LIMIT 10
 				OFFSET $1),
 			events AS (
 				SELECT
 					userwallet,
-					createdat,
+					updatedat,
 					ROW_TO_JSON(subtrades) AS row_json
 				FROM SUBTRADES)
 		SELECT
