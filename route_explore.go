@@ -46,6 +46,7 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 					s.type,
 					s.reason,
 					s.quantity,
+					CASE WHEN s.quantity > 1 THEN ROUND(s.quantity, 2) ELSE ROUND(s.quantity, 5) END as quantity,
 					CASE WHEN s.avgprice > 1 THEN ROUND(s.avgprice, 2) ELSE ROUND(s.avgprice, 5) END as avgprice,
 					CASE WHEN s.total > 1 THEN ROUND(s.total, 2) ELSE ROUND(s.total, 5) END as total,
 					u.profilepicture,
