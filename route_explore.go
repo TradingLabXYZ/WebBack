@@ -3,10 +3,18 @@ package main
 import (
 	"net/http"
 
+	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
 
 func SelectExplore(w http.ResponseWriter, r *http.Request) {
+	offset := mux.Vars(r)["offset"]
+	if offset != "10" {
+		log.Warn("Attempted accessing Explore with invalid offset")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	explore_sql := `
 		WITH
 			CURRENT_PRICE AS (
@@ -57,24 +65,24 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 				LEFT JOIN users u ON(s.userwallet = u.wallet)
 				LEFT JOIN CURRENT_PRICE cp1 ON(t.firstpair = cp1.coinid)
 				LEFT JOIN CURRENT_PRICE cp2 ON(t.secondpair = cp2.coinid)
-				LIMIT 20),
+				ORDER BY createdat DESC
+				LIMIT 10
+				OFFSET $1),
 			events AS (
 				SELECT
 					userwallet,
 					createdat,
 					ROW_TO_JSON(subtrades) AS row_json
-				FROM SUBTRADES
-				ORDER BY createdat DESC)
+				FROM SUBTRADES)
 		SELECT
 			json_agg(row_json)
 		FROM events c;`
 
 	var explore_json string
-	err := Db.QueryRow(explore_sql).Scan(&explore_json)
+	err := Db.QueryRow(explore_sql, offset).Scan(&explore_json)
 	if err != nil {
-		log.WithFields(log.Fields{
-			"custom_msg": "Failed sending explore snapshot",
-		}).Error(err.Error())
+		w.Write([]byte("{}"))
+		return
 	}
 	w.Write([]byte(explore_json))
 }
