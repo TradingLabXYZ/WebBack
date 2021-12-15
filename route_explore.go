@@ -2,14 +2,16 @@ package main
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
 
 func SelectExplore(w http.ResponseWriter, r *http.Request) {
-	offset := mux.Vars(r)["offset"]
-	if offset != "10" {
+	offset_string := mux.Vars(r)["offset"]
+	offset, err := strconv.Atoi(offset_string)
+	if offset%10 != 0 {
 		log.Warn("Attempted accessing Explore with invalid offset")
 		w.WriteHeader(http.StatusBadRequest)
 		return
