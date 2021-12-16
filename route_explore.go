@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -45,9 +46,21 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 					s.userwallet,
 					s.type,
 					s.reason,
-					CASE WHEN s.quantity > 1 THEN ROUND(s.quantity, 2) ELSE ROUND(s.quantity, 5) END as quantity,
-					CASE WHEN s.avgprice > 1 THEN ROUND(s.avgprice, 2) ELSE ROUND(s.avgprice, 5) END as avgprice,
-					CASE WHEN s.total > 1 THEN ROUND(s.total, 2) ELSE ROUND(s.total, 5) END as total,
+					CASE
+						WHEN s.quantity > 100 THEN TO_CHAR(s.quantity, '999,999,999')
+						WHEN s.quantity > 1 THEN TO_CHAR(s.quantity, '999,999,999.00')
+						ELSE TO_CHAR(s.quantity, '999,999,999.00000')
+					END as quantity,
+					CASE
+						WHEN s.avgprice > 100 THEN TO_CHAR(s.avgprice, '999,999,999')
+						WHEN s.avgprice > 1 THEN TO_CHAR(s.avgprice, '999,999,999.00')
+						ELSE TO_CHAR(s.avgprice, '999,999,999.00000')
+					END as avgprice,
+					CASE
+						WHEN s.total > 100 THEN TO_CHAR(s.total, '999,999,999')
+						WHEN s.total > 1 THEN TO_CHAR(s.total, '999,999,999.00')
+						ELSE TO_CHAR(s.total, '999,999,999.00000')
+					END as total,
 					u.profilepicture,
 					t.firstpair,
 					'https://s2.coinmarketcap.com/static/img/coins/32x32/' || t.firstpair::TEXT || '.png' AS firstpairurlicon,
@@ -56,8 +69,9 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 					'https://s2.coinmarketcap.com/static/img/coins/32x32/' || t.secondpair::TEXT || '.png' AS secondpairurlicon,
 					c2.symbol AS secondpairsymbol,
 					CASE
-						WHEN (cp2.price / cp1.price)  > 1 THEN ROUND((cp2.price / cp1.price) , 2)
-						ELSE ROUND((cp2.price / cp1.price) , 5)
+						WHEN (cp2.price / cp1.price)  > 100 THEN TO_CHAR((cp2.price / cp1.price), '999,999,999') 
+						WHEN (cp2.price / cp1.price)  > 1 THEN TO_CHAR((cp2.price / cp1.price), '999,999,999.00') 
+						ELSE TO_CHAR((cp2.price / cp1.price), '999,999,999.00000')
 					END as currentprice,
 					ROUND(((((cp2.price / cp1.price) / s.avgprice) - 1) * 100), 1) AS deltapriceperc
 				FROM subtrades s
@@ -83,6 +97,7 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 	var explore_json string
 	err = Db.QueryRow(explore_sql, offset).Scan(&explore_json)
 	if err != nil {
+		fmt.Println(err)
 		w.Write([]byte("{}"))
 		return
 	}
