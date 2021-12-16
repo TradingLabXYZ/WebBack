@@ -48,8 +48,8 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 					s.reason,
 					CASE
 						WHEN s.quantity > 100 THEN TO_CHAR(s.quantity, '999,999,999')
-						WHEN s.quantity > 1 THEN TO_CHAR(s.quantity, '999,999,999.00')
-						ELSE TO_CHAR(s.quantity, '999,999,999.00000')
+						WHEN s.quantity > 1 THEN RTRIM(RTRIM(TO_CHAR(s.quantity, '999,999,999.00'), '0'), '.')
+						ELSE RTRIM(RTRIM(TO_CHAR(s.quantity, '999,999,999.00000'), '0'), '.')
 					END as quantity,
 					CASE
 						WHEN s.avgprice > 100 THEN TO_CHAR(s.avgprice, '999,999,999')
