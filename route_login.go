@@ -49,22 +49,28 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	user_data := struct {
 		SessionId      string
-		Username       string
 		Wallet         string
-		ProfilePicture string
+		Username       string
 		Twitter        string
-		Website        string
+		Discord        string
+		Github         string
+		ProfilePicture string
 		Privacy        string
 		Plan           string
+		Followers      int
+		Subscribers    int
 	}{
 		session.Code,
-		user.UserName,
 		user.Wallet,
-		user.ProfilePicture,
+		user.Username,
 		user.Twitter,
-		user.Website,
+		user.Discord,
+		user.Github,
+		user.ProfilePicture,
 		user.Privacy,
 		user.Plan,
+		user.Followers,
+		user.Subscribers,
 	}
 
 	json.NewEncoder(w).Encode(user_data)

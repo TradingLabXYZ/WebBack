@@ -7,8 +7,14 @@ import (
 )
 
 type UserDetails struct {
-	Username string
-	Twitter  string
+	Username       string
+	Twitter        string
+	Github         string
+	Discord        string
+	Followers      int
+	Subscribers    int
+	ProfilePicture string
+	JoinTime       string
 }
 
 type Subtrade struct {
@@ -77,8 +83,14 @@ type TradesSnapshot struct {
 
 func (user User) GetSnapshot() (snapshot TradesSnapshot) {
 	snapshot.UserDetails = UserDetails{
-		user.Wallet,
+		user.Username,
 		user.Twitter,
+		user.Github,
+		user.Discord,
+		user.Followers,
+		user.Subscribers,
+		user.ProfilePicture,
+		user.JoinTime,
 	}
 
 	snapshot.Trades = user.SelectUserTrades()
@@ -102,7 +114,7 @@ func (user User) SelectUserTrades() (trades []Trade) {
 			TRADES_MACRO AS (
 				SELECT
 					t.code,
-					u.username,
+					CASE WHEN u.username IS NULL THEN '' ELSE u.username END AS username,
 					u.wallet AS userwallet,
 					t.isopen,
 					CASE WHEN t.exchange IS NULL THEN '' ELSE t.exchange END AS exchange,
