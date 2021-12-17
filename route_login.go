@@ -57,16 +57,20 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		ProfilePicture string
 		Privacy        string
 		Plan           string
+		Followers      int
+		Subscribers    int
 	}{
 		session.Code,
 		user.Wallet,
-		user.UserName,
+		user.Username,
 		user.Twitter,
 		user.Discord,
 		user.Github,
 		user.ProfilePicture,
 		user.Privacy,
 		user.Plan,
+		user.Followers,
+		user.Subscribers,
 	}
 
 	json.NewEncoder(w).Encode(user_data)

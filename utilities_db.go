@@ -19,13 +19,15 @@ type Session struct {
 
 type User struct {
 	Wallet         string
-	UserName       string
+	Username       string
 	Twitter        string
 	Discord        string
 	Github         string
 	Privacy        string
 	Plan           string
 	ProfilePicture string
+	Followers      int
+	Subscribers    int
 }
 
 func (user *User) InsertSession() (session Session, err error) {
@@ -139,24 +141,39 @@ func SelectUser(by string, value string) (user User, err error) {
 	user_sql := fmt.Sprintf(`
 		SELECT
 			wallet,
-			username,
+			CASE WHEN username IS NULL THEN '' ELSE username END AS username,
 			CASE WHEN twitter IS NULL THEN '' ELSE twitter END AS twitter,
 			CASE WHEN discord IS NULL THEN '' ELSE discord END AS discord,
 			CASE WHEN github IS NULL THEN '' ELSE github END AS github,
 			privacy,
 			plan,
-			CASE WHEN profilepicture IS NULL THEN '' ELSE profilepicture END AS profilepicture
+			CASE WHEN profilepicture IS NULL THEN '' ELSE profilepicture END AS profilepicture,
+			f.count_followers,
+			s.count_subscribers
 		FROM users
+		LEFT JOIN (
+			SELECT
+				COUNT(*) AS count_followers
+			FROM followers
+			WHERE followto = $1) f ON(1=1)
+		LEFT JOIN (
+			SELECT
+				COUNT(*) AS count_subscribers
+			FROM subscribers
+			WHERE subscribeto = $1) s ON(1=1)
 		WHERE %s = $1;`, by)
 	err = Db.QueryRow(user_sql, value).Scan(
 		&user.Wallet,
-		&user.UserName,
+		&user.Username,
 		&user.Twitter,
 		&user.Discord,
 		&user.Github,
 		&user.Privacy,
 		&user.Plan,
 		&user.ProfilePicture,
+		&user.Followers,
+		&user.Subscribers,
 	)
+
 	return
 }
