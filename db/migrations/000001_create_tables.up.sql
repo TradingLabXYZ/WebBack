@@ -5,11 +5,12 @@ BEGIN;
 
   CREATE TABLE IF NOT EXISTS users (
     wallet VARCHAR(42) NOT NULL UNIQUE,
-    username VARCHAR(255),
+    username VARCHAR(20),
+    twitter VARCHAR(15),
+    discord VARCHAR(30),
+    github VARCHAR(32),
     privacy privacies NOT NULL,
     profilepicture TEXT,
-    twitter TEXT,
-    website TEXT,
     plan plans NOT NULL,
     createdat TIMESTAMP NOT NULL,
     updatedat TIMESTAMP NOT NULL

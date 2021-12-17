@@ -146,8 +146,10 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	settings := struct {
-		Twitter string `json:"Twitter"`
-		Website string `json:"Website"`
+		Username string `json:"Username"`
+		Twitter  string `json:"Twitter"`
+		Discord  string `json:"Discord"`
+		Github   string `json:"Github"`
 	}{}
 
 	decoder := json.NewDecoder(r.Body)
@@ -156,6 +158,25 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{
 			"sessionCode": session.Code,
 			"customMsg":   "Failed getting settings, wrong payload",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var is_username_already_taken bool
+	err = Db.QueryRow(`
+		SELECT
+			TRUE
+		FROM users
+		WHERE wallet != $1
+		AND username = $2;`,
+		session.UserWallet,
+		settings.Username).Scan(&is_username_already_taken)
+	if is_username_already_taken {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"username":    settings.Username,
+			"customMsg":   "Failed getting settings, username taken",
 		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -180,20 +201,39 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var is_website_already_taken bool
+	var is_discord_already_taken bool
 	err = Db.QueryRow(`
 		SELECT
 			TRUE
 		FROM users
 		WHERE wallet != $1
-		AND website = $2;`,
+		AND discord = $2;`,
 		session.UserWallet,
-		settings.Website).Scan(&is_website_already_taken)
-	if is_website_already_taken {
+		settings.Discord).Scan(&is_discord_already_taken)
+	if is_discord_already_taken {
 		log.WithFields(log.Fields{
 			"sessionCode": session.Code,
-			"website":     settings.Website,
-			"customMsg":   "Failed getting settings, website taken",
+			"twitter":     settings.Discord,
+			"customMsg":   "Failed getting settings, discord taken",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var is_github_already_taken bool
+	err = Db.QueryRow(`
+		SELECT
+			TRUE
+		FROM users
+		WHERE wallet != $1
+		AND github = $2;`,
+		session.UserWallet,
+		settings.Github).Scan(&is_github_already_taken)
+	if is_twitter_already_taken {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"github":      settings.Github,
+			"customMsg":   "Failed getting settings, github taken",
 		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -202,13 +242,17 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	statement := `
 		UPDATE users
 		SET
-			twitter = $1,
-			website = $2
-		WHERE wallet = $3;`
+			username = $1,
+			twitter = $2,
+			discord = $3,
+			github = $4
+		WHERE wallet = $5;`
 	_, err = Db.Exec(
 		statement,
+		settings.Username,
 		settings.Twitter,
-		settings.Website,
+		settings.Discord,
+		settings.Github,
 		session.UserWallet)
 	if err != nil {
 		log.Error(err)
