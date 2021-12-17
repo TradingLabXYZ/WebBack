@@ -14,6 +14,7 @@ type UserDetails struct {
 	Followers      int
 	Subscribers    int
 	ProfilePicture string
+	JoinTime       string
 }
 
 type Subtrade struct {
@@ -89,6 +90,7 @@ func (user User) GetSnapshot() (snapshot TradesSnapshot) {
 		user.Followers,
 		user.Subscribers,
 		user.ProfilePicture,
+		user.JoinTime,
 	}
 
 	snapshot.Trades = user.SelectUserTrades()

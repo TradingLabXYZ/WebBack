@@ -19,6 +19,7 @@ type Session struct {
 
 type User struct {
 	Wallet         string
+	JoinTime       string
 	Username       string
 	Twitter        string
 	Discord        string
@@ -141,6 +142,7 @@ func SelectUser(by string, value string) (user User, err error) {
 	user_sql := fmt.Sprintf(`
 		SELECT
 			wallet,
+			TO_CHAR(createdat, 'Month') || ' ' || TO_CHAR(createdat, 'YYYY') AS jointime,
 			CASE WHEN username IS NULL THEN '' ELSE username END AS username,
 			CASE WHEN twitter IS NULL THEN '' ELSE twitter END AS twitter,
 			CASE WHEN discord IS NULL THEN '' ELSE discord END AS discord,
@@ -164,6 +166,7 @@ func SelectUser(by string, value string) (user User, err error) {
 		WHERE %s = $1;`, by)
 	err = Db.QueryRow(user_sql, value).Scan(
 		&user.Wallet,
+		&user.JoinTime,
 		&user.Username,
 		&user.Twitter,
 		&user.Discord,
