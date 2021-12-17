@@ -49,20 +49,22 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	user_data := struct {
 		SessionId      string
-		Username       string
 		Wallet         string
-		ProfilePicture string
+		Username       string
 		Twitter        string
-		Website        string
+		Discord        string
+		Github         string
+		ProfilePicture string
 		Privacy        string
 		Plan           string
 	}{
 		session.Code,
-		user.UserName,
 		user.Wallet,
-		user.ProfilePicture,
+		user.UserName,
 		user.Twitter,
-		user.Website,
+		user.Discord,
+		user.Github,
+		user.ProfilePicture,
 		user.Privacy,
 		user.Plan,
 	}
