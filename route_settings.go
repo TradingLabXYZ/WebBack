@@ -175,7 +175,7 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	if is_username_already_taken {
 		log.WithFields(log.Fields{
 			"sessionCode": session.Code,
-			"website":     settings.Username,
+			"username":    settings.Username,
 			"customMsg":   "Failed getting settings, username taken",
 		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
