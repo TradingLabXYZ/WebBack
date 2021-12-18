@@ -163,80 +163,88 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var is_username_already_taken bool
-	err = Db.QueryRow(`
+	if settings.Username != "" {
+		var is_username_already_taken bool
+		err = Db.QueryRow(`
 		SELECT
 			TRUE
 		FROM users
 		WHERE wallet != $1
 		AND username = $2;`,
-		session.UserWallet,
-		settings.Username).Scan(&is_username_already_taken)
-	if is_username_already_taken {
-		log.WithFields(log.Fields{
-			"sessionCode": session.Code,
-			"username":    settings.Username,
-			"customMsg":   "Failed getting settings, username taken",
-		}).Error(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+			session.UserWallet,
+			settings.Username).Scan(&is_username_already_taken)
+		if is_username_already_taken {
+			log.WithFields(log.Fields{
+				"sessionCode": session.Code,
+				"username":    settings.Username,
+				"customMsg":   "Failed getting settings, username taken",
+			}).Error(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	}
 
-	var is_twitter_already_taken bool
-	err = Db.QueryRow(`
+	if settings.Twitter != "" {
+		var is_twitter_already_taken bool
+		err = Db.QueryRow(`
 		SELECT
 			TRUE
 		FROM users
 		WHERE wallet != $1
 		AND twitter = $2;`,
-		session.UserWallet,
-		settings.Twitter).Scan(&is_twitter_already_taken)
-	if is_twitter_already_taken {
-		log.WithFields(log.Fields{
-			"sessionCode": session.Code,
-			"twitter":     settings.Twitter,
-			"customMsg":   "Failed getting settings, twitter taken",
-		}).Error(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+			session.UserWallet,
+			settings.Twitter).Scan(&is_twitter_already_taken)
+		if is_twitter_already_taken {
+			log.WithFields(log.Fields{
+				"sessionCode": session.Code,
+				"twitter":     settings.Twitter,
+				"customMsg":   "Failed getting settings, twitter taken",
+			}).Error(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	}
 
-	var is_discord_already_taken bool
-	err = Db.QueryRow(`
+	if settings.Discord != "" {
+		var is_discord_already_taken bool
+		err = Db.QueryRow(`
 		SELECT
 			TRUE
 		FROM users
 		WHERE wallet != $1
 		AND discord = $2;`,
-		session.UserWallet,
-		settings.Discord).Scan(&is_discord_already_taken)
-	if is_discord_already_taken {
-		log.WithFields(log.Fields{
-			"sessionCode": session.Code,
-			"twitter":     settings.Discord,
-			"customMsg":   "Failed getting settings, discord taken",
-		}).Error(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+			session.UserWallet,
+			settings.Discord).Scan(&is_discord_already_taken)
+		if is_discord_already_taken {
+			log.WithFields(log.Fields{
+				"sessionCode": session.Code,
+				"twitter":     settings.Discord,
+				"customMsg":   "Failed getting settings, discord taken",
+			}).Error(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	}
 
-	var is_github_already_taken bool
-	err = Db.QueryRow(`
+	if settings.Github != "" {
+		var is_github_already_taken bool
+		err = Db.QueryRow(`
 		SELECT
 			TRUE
 		FROM users
 		WHERE wallet != $1
 		AND github = $2;`,
-		session.UserWallet,
-		settings.Github).Scan(&is_github_already_taken)
-	if is_twitter_already_taken {
-		log.WithFields(log.Fields{
-			"sessionCode": session.Code,
-			"github":      settings.Github,
-			"customMsg":   "Failed getting settings, github taken",
-		}).Error(err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
+			session.UserWallet,
+			settings.Github).Scan(&is_github_already_taken)
+		if is_github_already_taken {
+			log.WithFields(log.Fields{
+				"sessionCode": session.Code,
+				"github":      settings.Github,
+				"customMsg":   "Failed getting settings, github taken",
+			}).Error(err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	}
 
 	statement := `
