@@ -31,7 +31,7 @@ func main() {
 
 	go InstanciateActivityMonitor()
 
-	fmt.Println(Bold(Green("Application is running on port 8080")))
+	fmt.Println(Bold(Green("Application running on port 8080")))
 	log.Fatal(http.ListenAndServe(":8080", h))
 }
 
