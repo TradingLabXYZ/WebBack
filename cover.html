@@ -1,0 +1,2239 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>WebBack: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/TradingLabXYZ/WebBack/db_listener.go (85.7%)</option>
+				
+				<option value="file1">github.com/TradingLabXYZ/WebBack/main.go (0.0%)</option>
+				
+				<option value="file2">github.com/TradingLabXYZ/WebBack/route_admin.go (96.6%)</option>
+				
+				<option value="file3">github.com/TradingLabXYZ/WebBack/route_crypto.go (79.2%)</option>
+				
+				<option value="file4">github.com/TradingLabXYZ/WebBack/route_explore.go (0.0%)</option>
+				
+				<option value="file5">github.com/TradingLabXYZ/WebBack/route_login.go (0.0%)</option>
+				
+				<option value="file6">github.com/TradingLabXYZ/WebBack/route_settings.go (43.0%)</option>
+				
+				<option value="file7">github.com/TradingLabXYZ/WebBack/route_subtrades.go (95.1%)</option>
+				
+				<option value="file8">github.com/TradingLabXYZ/WebBack/route_trades_manage.go (88.2%)</option>
+				
+				<option value="file9">github.com/TradingLabXYZ/WebBack/route_trades_snapshot.go (90.2%)</option>
+				
+				<option value="file10">github.com/TradingLabXYZ/WebBack/route_trades_ws.go (87.9%)</option>
+				
+				<option value="file11">github.com/TradingLabXYZ/WebBack/utilities.go (85.7%)</option>
+				
+				<option value="file12">github.com/TradingLabXYZ/WebBack/utilities_db.go (54.2%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package main
+
+import (
+        "time"
+
+        "github.com/lib/pq"
+        log "github.com/sirupsen/logrus"
+)
+
+type DbListener struct {
+        Listener *pq.Listener
+}
+
+func InstanciateActivityMonitor() <span class="cov8" title="1">{
+        listener := DbListener{}
+        listener.Instanciate()
+        listener.Listen()
+}</span>
+
+func (l *DbListener) Instanciate() <span class="cov8" title="1">{
+        reportProblem := func(ev pq.ListenerEventType, err error) </span><span class="cov8" title="1">{
+                if err != nil </span><span class="cov0" title="0">{
+                        log.WithFields(log.Fields{
+                                "custom_msg": "Failed instanciating database listener",
+                        }).Error(err.Error())
+                }</span>
+        }
+        <span class="cov8" title="1">l.Listener = pq.NewListener(DbUrl, 10*time.Second, time.Minute, reportProblem)
+        err := l.Listener.Listen("activity_update")
+        if err != nil </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "custom_msg": "Failed listening database",
+                }).Error(err.Error())
+        }</span>
+}
+
+func (db_listener *DbListener) Listen() <span class="cov8" title="1">{
+        for </span><span class="cov8" title="1">{
+                n := &lt;-db_listener.Listener.Notify
+                user_wallet := n.Extra
+                DistpachSnapshots(user_wallet)
+        }</span>
+}
+
+func DistpachSnapshots(user_wallet string) <span class="cov8" title="1">{
+        observed, _ := SelectUser("wallet", user_wallet)
+        snapshot := observed.GetSnapshot()
+        for _, q := range trades_wss[observed.Wallet] </span><span class="cov8" title="1">{
+                snapshot.CheckPrivacy(q.Observer, observed)
+                if snapshot.PrivacyStatus.Status == "KO" </span><span class="cov0" title="0">{
+                        snapshot.Trades = nil
+                }</span>
+                <span class="cov8" title="1">q.Channel &lt;- snapshot</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package main
+
+import (
+        "fmt"
+        "io"
+        "net/http"
+        "os"
+
+        "github.com/gorilla/mux"
+        "github.com/jmoiron/sqlx"
+        . "github.com/logrusorgru/aurora"
+        "github.com/rs/cors"
+        log "github.com/sirupsen/logrus"
+)
+
+var (
+        DbUrl      string
+        Db         sqlx.DB
+        trades_wss = make(map[string][]WsTrade)
+)
+
+func main() <span class="cov0" title="0">{
+        r := SetupRoutes()
+        c := SetUpCors()
+        h := c.Handler(r)
+
+        log_file := SetUpLog()
+        defer log_file.Close()
+        Db = *setUpDb()
+        defer Db.Close()
+
+        go InstanciateActivityMonitor()
+
+        fmt.Println(Bold(Green("Application running on port 8080")))
+        log.Fatal(http.ListenAndServe(":8080", h))
+}</span>
+
+func SetupRoutes() (router *mux.Router) <span class="cov0" title="0">{
+        router = mux.NewRouter()
+
+        router.HandleFunc("/login/{wallet}", Login).Methods("GET")
+        router.HandleFunc("/get_trades/{wallet}/{sessionid}", StartTradesWs)
+        router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
+        router.HandleFunc("/get_pair_ratio/{firstPairCoinId}/{secondPairCoinId}", SelectPairRatio).Methods("GET")
+        router.HandleFunc("/get_explore/{offset}", SelectExplore).Methods("GET")
+
+        router.HandleFunc("/insert_trade", CreateTrade).Methods("POST")
+        router.HandleFunc("/change_trade/{tradecode}/{tostatus}", ChangeTradeStatus).Methods("GET")
+        router.HandleFunc("/delete_trade/{tradecode}", DeleteTrade).Methods("GET")
+        router.HandleFunc("/update_subtrade", UpdateSubtrade).Methods("POST")
+        router.HandleFunc("/insert_subtrade/{tradecode}", CreateSubtrade).Methods("GET")
+        router.HandleFunc("/delete_subtrade/{subtradecode}", DeleteSubtrade).Methods("GET")
+
+        router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")
+        router.HandleFunc("/update_privacy", UpdateUserPrivacy).Methods("POST")
+        router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
+
+        router.HandleFunc("/admin/{token}", SelectActivity).Methods("GET")
+
+        files := http.FileServer(http.Dir("templates/public"))
+        s := http.StripPrefix("/static/", files)
+        router.PathPrefix("/static/").Handler(s)
+
+        return
+}</span>
+
+var Origins = []string{
+        "http://127.0.0.1",
+        "http://localhost:9000",
+        "https://tradinglab.xyz",
+        "https://www.tradinglab.xyz",
+        "https://staging.tradinglab.xyz",
+}
+
+func SetUpCors() (c *cors.Cors) <span class="cov0" title="0">{
+        return cors.New(cors.Options{
+                AllowedOrigins:   Origins,
+                AllowedHeaders:   []string{"*"},
+                AllowedMethods:   []string{"GET", "POST", "PUT"},
+                AllowCredentials: true,
+        })
+}</span>
+
+func setUpDb() (db *sqlx.DB) <span class="cov0" title="0">{
+        env := os.Getenv("TL_APP_ENV")
+        var DB_NAME string
+        if env == "production" </span><span class="cov0" title="0">{
+                DB_NAME = "webappconnectionpool"
+        }</span> else<span class="cov0" title="0"> if env == "staging" </span><span class="cov0" title="0">{
+                DB_NAME = "stagingwebappconnectionpool"
+        }</span> else<span class="cov0" title="0"> if env == "test" </span><span class="cov0" title="0">{
+                DB_NAME = "testwebapp"
+        }</span>
+
+        <span class="cov0" title="0">DbUrl = fmt.Sprintf(
+                "postgres://%s:%s@%s:%s/%s",
+                os.Getenv("TL_DB_USER"),
+                os.Getenv("TL_DB_PASS"),
+                os.Getenv("TL_DB_HOST"),
+                os.Getenv("TL_DB_PORT"),
+                DB_NAME,
+        )
+
+        db, err := sqlx.Connect("postgres", DbUrl)
+        if err != nil </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "dbname":     DB_NAME,
+                        "custom_msg": "Failed setting up database",
+                }).Error(err)
+                return
+        }</span>
+
+        <span class="cov0" title="0">if err = db.Ping(); err != nil </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "dbname":     DB_NAME,
+                        "custom_msg": "Unsucessfully connected with db",
+                }).Error(err)
+                return
+        }</span>
+
+        <span class="cov0" title="0">return</span>
+}
+
+func SetUpLog() (file *os.File) <span class="cov0" title="0">{
+        file, err := os.OpenFile(
+                "logs.log",
+                os.O_APPEND|os.O_CREATE|os.O_RDWR,
+                0o666,
+        )
+        if err != nil </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "custom_msg": "Failed setting up log file",
+                }).Error(err)
+                return
+        }</span>
+        <span class="cov0" title="0">log.SetLevel(log.TraceLevel)
+        log.SetFormatter(&amp;log.JSONFormatter{})
+        log.SetOutput(io.MultiWriter(file, os.Stdout))
+        return</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package main
+
+import (
+        "net/http"
+        "os"
+        "text/template"
+
+        "github.com/gorilla/mux"
+        log "github.com/sirupsen/logrus"
+)
+
+type OnlineUser struct {
+        Wallet   string
+        Observed []string
+}
+
+type OnlineUsers struct {
+        Count int
+        Users []OnlineUser
+}
+
+func SelectActivity(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        token := mux.Vars(r)["token"]
+        admin_token := os.Getenv("ADMIN_TOKEN")
+
+        if token != admin_token </span><span class="cov8" title="1">{
+                log.Warn("Attempted accessing admin with invalid token")
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        // clean trade_wss
+        <span class="cov8" title="1">unique_observers := make(map[string]bool)
+        all := [][]string{}
+        for observed := range trades_wss </span><span class="cov8" title="1">{
+                for _, q := range trades_wss[observed] </span><span class="cov8" title="1">{
+                        var observer string
+                        if q.Observer.Wallet != "" </span><span class="cov8" title="1">{
+                                observer = q.Observer.Wallet
+                        }</span> else<span class="cov0" title="0"> {
+                                observer = q.SessionId
+                        }</span>
+                        <span class="cov8" title="1">if !unique_observers[observer] </span><span class="cov8" title="1">{
+                                unique_observers[observer] = true
+                        }</span>
+                        <span class="cov8" title="1">all = append(all, []string{observer, q.Observed.Wallet})</span>
+                }
+        }
+
+        // prepare output for html template
+        <span class="cov8" title="1">online_users := OnlineUsers{}
+        for observer := range unique_observers </span><span class="cov8" title="1">{
+                online_user := OnlineUser{}
+                online_user.Wallet = observer
+                for _, pair := range all </span><span class="cov8" title="1">{
+                        if observer == pair[0] </span><span class="cov8" title="1">{
+                                online_user.Observed = append(online_user.Observed, pair[1])
+                        }</span>
+                }
+                <span class="cov8" title="1">online_users.Users = append(online_users.Users, online_user)</span>
+        }
+
+        <span class="cov8" title="1">online_users.Count = len(online_users.Users)
+
+        tmpl := template.Must(template.ParseFiles("templates/admin_dashboard.html"))
+        tmpl.Execute(w, online_users)
+        http.ListenAndServe(":80", nil)</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package main
+
+import (
+        "encoding/json"
+        "net/http"
+
+        "github.com/gorilla/mux"
+        _ "github.com/lib/pq"
+        log "github.com/sirupsen/logrus"
+)
+
+func SelectPairs(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        type PairInfo struct {
+                CoinId int
+                Name   string
+                Slug   string
+        }
+
+        pairs := make(map[string]PairInfo)
+
+        pairs_sql := `
+                SELECT DISTINCT
+                        symbol,
+                        name,
+                        coinid,
+                        slug
+                FROM coins
+                ORDER BY 1;`
+        pairs_rows, err := Db.Query(pairs_sql)
+        defer pairs_rows.Close()
+        if err != nil </span><span class="cov0" title="0">{
+                log.Error(err)
+        }</span>
+        <span class="cov8" title="1">for pairs_rows.Next() </span><span class="cov8" title="1">{
+                var symbol string
+                pair_info := PairInfo{}
+                if err = pairs_rows.Scan(
+                        &amp;symbol,
+                        &amp;pair_info.Name,
+                        &amp;pair_info.CoinId,
+                        &amp;pair_info.Slug,
+                ); err != nil </span><span class="cov0" title="0">{
+                        log.Error(err)
+                }</span>
+                <span class="cov8" title="1">pairs[symbol] = pair_info</span>
+        }
+
+        <span class="cov8" title="1">json.NewEncoder(w).Encode(pairs)</span>
+}
+
+func SelectPairRatio(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        first_coin_id := mux.Vars(r)["firstPairCoinId"]
+        second_coin_id := mux.Vars(r)["secondPairCoinId"]
+
+        ratio_sql := `
+                SELECT
+                        y.price / x.price
+                FROM (
+                        SELECT
+                                ROUND(price, 6) AS price
+                        FROM prices
+                        WHERE coinid = $1
+                        ORDER BY createdat
+                        DESC LIMIT 1) x
+                LEFT JOIN (
+                        SELECT
+                                ROUND(price, 6) AS price
+                        FROM prices
+                        WHERE coinid = $2
+                        ORDER BY createdat DESC
+                        LIMIT 1) y ON(1=1);`
+
+        var pair_ratio float64
+        err := Db.QueryRow(
+                ratio_sql,
+                first_coin_id,
+                second_coin_id).Scan(&amp;pair_ratio)
+        if err != nil </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "firstPairCoinId":  first_coin_id,
+                        "secondPairCoinId": second_coin_id,
+                        "customMsg":        "Failed extracting pair ratio",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">json.NewEncoder(w).Encode(pair_ratio)</span>
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package main
+
+import (
+        "fmt"
+        "net/http"
+        "strconv"
+
+        "github.com/gorilla/mux"
+        log "github.com/sirupsen/logrus"
+)
+
+func SelectExplore(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        offset_string := mux.Vars(r)["offset"]
+        offset, err := strconv.Atoi(offset_string)
+        if offset%10 != 0 </span><span class="cov0" title="0">{
+                log.Warn("Attempted accessing Explore with invalid offset")
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov0" title="0">explore_sql := `
+                WITH
+                        CURRENT_PRICE AS (
+                                SELECT
+                                        p.coinid,
+                                        c.name,
+                                        c.symbol,
+                                        p.price
+                                FROM prices p
+                                LEFT JOIN coins c ON(p.coinid = c.coinid)
+                                WHERE createdat = (SELECT MAX(createdat) FROM prices)),
+                        SUBTRADES AS (
+                                SELECT
+                                        'subtrade' AS eventtype,
+                                        s.tradecode,
+                                        s.updatedat,
+                                        CASE
+                                                WHEN EXTRACT(EPOCH FROM (NOW() - s.updatedat)) / 60 &lt; 1
+                                                        THEN ROUND(EXTRACT(EPOCH FROM (NOW() - s.updatedat)))::TEXT || ' seconds ago'
+                                                WHEN (EXTRACT(EPOCH FROM (NOW() - s.updatedat)) / 60 &gt; 1) AND (EXTRACT(EPOCH FROM (NOW() - s.updatedat)) / 60 &lt; 60)
+                                                        THEN ROUND(EXTRACT(EPOCH FROM (NOW() - s.updatedat)) / 60)::TEXT || ' minutes ago'
+                                                WHEN (EXTRACT(EPOCH FROM (NOW() - s.updatedat)) / 60 &gt;= 60) AND (EXTRACT(EPOCH FROM(NOW() - s.updatedat)) / 60 &lt; 1440)  
+                                                        THEN ROUND(EXTRACT(EPOCH FROM (NOW() - s.updatedat)) / 60 / 60)::TEXT || ' hours ago'
+                                                ELSE CEIL(EXTRACT(EPOCH FROM (NOW() - s.updatedat)) / 60 / 60 / 60)::TEXT || ' days ago'
+                                        END AS timeago,
+                                        s.userwallet,
+                                        s.type,
+                                        s.reason,
+                                        CASE
+                                                WHEN s.quantity &gt; 100 THEN TO_CHAR(s.quantity, '999,999,999')
+                                                WHEN s.quantity &gt; 1 THEN RTRIM(RTRIM(TO_CHAR(s.quantity, '999,999,999.00'), '0'), '.')
+                                                ELSE RTRIM(RTRIM(TO_CHAR(s.quantity, '999,999,999.00000'), '0'), '.')
+                                        END as quantity,
+                                        CASE
+                                                WHEN s.avgprice &gt; 100 THEN TO_CHAR(s.avgprice, '999,999,999')
+                                                WHEN s.avgprice &gt; 1 THEN TO_CHAR(s.avgprice, '999,999,999.00')
+                                                ELSE TO_CHAR(s.avgprice, '999,999,999.00000')
+                                        END as avgprice,
+                                        CASE
+                                                WHEN s.total &gt; 100 THEN TO_CHAR(s.total, '999,999,999')
+                                                WHEN s.total &gt; 1 THEN TO_CHAR(s.total, '999,999,999.00')
+                                                ELSE TO_CHAR(s.total, '999,999,999.00000')
+                                        END as total,
+                                        u.profilepicture,
+                                        t.firstpair,
+                                        'https://s2.coinmarketcap.com/static/img/coins/32x32/' || t.firstpair::TEXT || '.png' AS firstpairurlicon,
+                                        c1.symbol AS firstpairsymbol,
+                                        t.secondpair,
+                                        'https://s2.coinmarketcap.com/static/img/coins/32x32/' || t.secondpair::TEXT || '.png' AS secondpairurlicon,
+                                        c2.symbol AS secondpairsymbol,
+                                        CASE
+                                                WHEN (cp2.price / cp1.price)  &gt; 100 THEN TO_CHAR((cp2.price / cp1.price), '999,999,999') 
+                                                WHEN (cp2.price / cp1.price)  &gt; 1 THEN TO_CHAR((cp2.price / cp1.price), '999,999,999.00') 
+                                                ELSE TO_CHAR((cp2.price / cp1.price), '999,999,999.00000')
+                                        END as currentprice,
+                                        ROUND(((((cp2.price / cp1.price) / s.avgprice) - 1) * 100), 1) AS deltapriceperc
+                                FROM subtrades s
+                                LEFT JOIN trades t ON(s.tradecode = t.code)
+                                LEFT JOIN coins c1 ON(t.firstpair = c1.coinid)
+                                LEFT JOIN coins c2 ON(t.secondpair = c2.coinid)
+                                LEFT JOIN users u ON(s.userwallet = u.wallet)
+                                LEFT JOIN CURRENT_PRICE cp1 ON(t.firstpair = cp1.coinid)
+                                LEFT JOIN CURRENT_PRICE cp2 ON(t.secondpair = cp2.coinid)
+                                ORDER BY s.updatedat DESC
+                                LIMIT 10
+                                OFFSET $1),
+                        events AS (
+                                SELECT
+                                        userwallet,
+                                        updatedat,
+                                        ROW_TO_JSON(subtrades) AS row_json
+                                FROM SUBTRADES)
+                SELECT
+                        json_agg(row_json)
+                FROM events c;`
+
+        var explore_json string
+        err = Db.QueryRow(explore_sql, offset).Scan(&amp;explore_json)
+        if err != nil </span><span class="cov0" title="0">{
+                fmt.Println(err)
+                w.Write([]byte("{}"))
+                return
+        }</span>
+        <span class="cov0" title="0">w.Write([]byte(explore_json))</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package main
+
+import (
+        "encoding/json"
+        "net/http"
+
+        validator "github.com/go-playground/validator/v10"
+        "github.com/gorilla/mux"
+        log "github.com/sirupsen/logrus"
+)
+
+type UserWallet struct {
+        Wallet string `validate="eth_addr"`
+}
+
+func Login(w http.ResponseWriter, r *http.Request) <span class="cov0" title="0">{
+        wallet := mux.Vars(r)["wallet"]
+
+        user_wallet := UserWallet{
+                Wallet: wallet,
+        }
+
+        validate := validator.New()
+        err := validate.Struct(user_wallet)
+        if err != nil </span><span class="cov0" title="0">{
+                validationErrors := err.(validator.ValidationErrors)
+                first_error := validationErrors[0].Tag()
+                w.Write([]byte(first_error))
+                return
+        }</span>
+
+        <span class="cov0" title="0">user, err := SelectUser("wallet", user_wallet.Wallet)
+        if user == (User{}) </span><span class="cov0" title="0">{
+                InsertUser(wallet)
+                user, err = SelectUser("wallet", user_wallet.Wallet)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Error(err)
+                        w.WriteHeader(http.StatusBadRequest)
+                        return
+                }</span>
+        }
+
+        <span class="cov0" title="0">session, err := user.InsertSession()
+        if err != nil </span><span class="cov0" title="0">{
+                log.Error(err)
+                w.WriteHeader(http.StatusForbidden)
+                return
+        }</span>
+
+        <span class="cov0" title="0">user_data := struct {
+                SessionId      string
+                Wallet         string
+                Username       string
+                Twitter        string
+                Discord        string
+                Github         string
+                ProfilePicture string
+                Privacy        string
+                Plan           string
+                Followers      int
+                Subscribers    int
+        }{
+                session.Code,
+                user.Wallet,
+                user.Username,
+                user.Twitter,
+                user.Discord,
+                user.Github,
+                user.ProfilePicture,
+                user.Privacy,
+                user.Plan,
+                user.Followers,
+                user.Subscribers,
+        }
+
+        json.NewEncoder(w).Encode(user_data)</span>
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package main
+
+import (
+        "encoding/json"
+        "net/http"
+        "os"
+        "strings"
+
+        "github.com/aws/aws-sdk-go/aws"
+        "github.com/aws/aws-sdk-go/aws/credentials"
+        aws_session "github.com/aws/aws-sdk-go/aws/session"
+        "github.com/aws/aws-sdk-go/service/s3"
+        "github.com/aws/aws-sdk-go/service/s3/s3manager"
+        log "github.com/sirupsen/logrus"
+)
+
+func InsertProfilePicture(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        session, err := GetSession(r, "header")
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "customMsg": "Failed inserting profile picture, wrong header",
+                }).Error(err)
+                w.WriteHeader(http.StatusUnauthorized)
+                return
+        }</span>
+
+        <span class="cov8" title="1">file, handler, err := r.FormFile("file")
+        if handler == nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "customMsg": "Failed inserting profile picture, wrong file form",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">file_name := handler.Filename
+        if !strings.HasSuffix(file_name, "jpg") &amp;&amp; !strings.HasSuffix(file_name, "png") </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "fileName":    file_name,
+                        "customMsg":   "Failed inserting profile picture, wrong file",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+        <span class="cov8" title="1">defer file.Close()
+
+        file_extensions := strings.Split(file_name, ".")
+        if len(file_extensions) != 2 </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "fileName":    file_name,
+                        "customMsg":   "Failed inserting profile picture, invalid file name",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">file_path := "profile_pictures/" + session.UserWallet + "." + file_extensions[1]
+
+        // CONNECT AWS S3
+        do_key := os.Getenv("DO_KEY")
+        do_secret := os.Getenv("DO_SECRET")
+        s3Config := &amp;aws.Config{
+                Credentials: credentials.NewStaticCredentials(do_key, do_secret, ""),
+                Endpoint:    aws.String("https://fra1.digitaloceanspaces.com"),
+                Region:      aws.String("fra1"),
+        }
+        sess := aws_session.New(s3Config)
+
+        // DELETE OLD
+        svc := s3.New(sess)
+        resp, err := svc.ListObjectsV2(&amp;s3.ListObjectsV2Input{
+                Bucket: aws.String("tradinglab"),
+                Prefix: aws.String("profile_pictures/" + session.UserWallet),
+        })
+        if err != nil </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed inserting profile picture, error listing user pictures",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+        <span class="cov8" title="1">for _, item := range resp.Contents </span><span class="cov8" title="1">{
+                input := &amp;s3.DeleteObjectInput{
+                        Bucket: aws.String("tradinglab"),
+                        Key:    aws.String(*item.Key),
+                }
+                _, err = svc.DeleteObject(input)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.WithFields(log.Fields{
+                                "sessionCode": session.Code,
+                                "customMsg":   "Failed inserting profile picture, error deleting old",
+                        }).Error(err)
+                        w.WriteHeader(http.StatusBadRequest)
+                        return
+                }</span>
+        }
+
+        // UPLOAD NEW
+        <span class="cov8" title="1">uploader := s3manager.NewUploader(sess)
+        _, err = uploader.Upload(&amp;s3manager.UploadInput{
+                Bucket: aws.String("tradinglab"),
+                Key:    aws.String(file_path),
+                Body:   file,
+                ACL:    aws.String("public-read"),
+        })
+        if err != nil </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed inserting profile picture, error uploading new",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        // SAVE PICTURE IN DB
+        <span class="cov8" title="1">cdn_path := os.Getenv("CDN_PATH")
+        file_cdn_path := cdn_path + "/" + file_path
+        statement := `
+                UPDATE users
+                SET profilepicture = $1
+                WHERE wallet = $2;`
+        _, err = Db.Exec(statement, file_cdn_path, session.UserWallet)
+        if err != nil </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed inserting profile picture, error saving picture in db",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.Write([]byte(file_cdn_path))</span>
+}
+
+func UpdateUserSettings(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        session, err := GetSession(r, "header")
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "customMsg": "Failed getting settings, wrong header",
+                }).Error(err)
+                w.WriteHeader(http.StatusUnauthorized)
+                return
+        }</span>
+
+        <span class="cov0" title="0">settings := struct {
+                Username string `json:"Username"`
+                Twitter  string `json:"Twitter"`
+                Discord  string `json:"Discord"`
+                Github   string `json:"Github"`
+        }{}
+
+        decoder := json.NewDecoder(r.Body)
+        err = decoder.Decode(&amp;settings)
+        if err != nil </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed getting settings, wrong payload",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov0" title="0">if settings.Username != "" </span><span class="cov0" title="0">{
+                var is_username_already_taken bool
+                err = Db.QueryRow(`
+                SELECT
+                        TRUE
+                FROM users
+                WHERE wallet != $1
+                AND username = $2;`,
+                        session.UserWallet,
+                        settings.Username).Scan(&amp;is_username_already_taken)
+                if is_username_already_taken </span><span class="cov0" title="0">{
+                        log.WithFields(log.Fields{
+                                "sessionCode": session.Code,
+                                "username":    settings.Username,
+                                "customMsg":   "Failed getting settings, username taken",
+                        }).Error(err)
+                        w.WriteHeader(http.StatusBadRequest)
+                        return
+                }</span>
+        }
+
+        <span class="cov0" title="0">if settings.Twitter != "" </span><span class="cov0" title="0">{
+                var is_twitter_already_taken bool
+                err = Db.QueryRow(`
+                SELECT
+                        TRUE
+                FROM users
+                WHERE wallet != $1
+                AND twitter = $2;`,
+                        session.UserWallet,
+                        settings.Twitter).Scan(&amp;is_twitter_already_taken)
+                if is_twitter_already_taken </span><span class="cov0" title="0">{
+                        log.WithFields(log.Fields{
+                                "sessionCode": session.Code,
+                                "twitter":     settings.Twitter,
+                                "customMsg":   "Failed getting settings, twitter taken",
+                        }).Error(err)
+                        w.WriteHeader(http.StatusBadRequest)
+                        return
+                }</span>
+        }
+
+        <span class="cov0" title="0">if settings.Discord != "" </span><span class="cov0" title="0">{
+                var is_discord_already_taken bool
+                err = Db.QueryRow(`
+                SELECT
+                        TRUE
+                FROM users
+                WHERE wallet != $1
+                AND discord = $2;`,
+                        session.UserWallet,
+                        settings.Discord).Scan(&amp;is_discord_already_taken)
+                if is_discord_already_taken </span><span class="cov0" title="0">{
+                        log.WithFields(log.Fields{
+                                "sessionCode": session.Code,
+                                "twitter":     settings.Discord,
+                                "customMsg":   "Failed getting settings, discord taken",
+                        }).Error(err)
+                        w.WriteHeader(http.StatusBadRequest)
+                        return
+                }</span>
+        }
+
+        <span class="cov0" title="0">if settings.Github != "" </span><span class="cov0" title="0">{
+                var is_github_already_taken bool
+                err = Db.QueryRow(`
+                SELECT
+                        TRUE
+                FROM users
+                WHERE wallet != $1
+                AND github = $2;`,
+                        session.UserWallet,
+                        settings.Github).Scan(&amp;is_github_already_taken)
+                if is_github_already_taken </span><span class="cov0" title="0">{
+                        log.WithFields(log.Fields{
+                                "sessionCode": session.Code,
+                                "github":      settings.Github,
+                                "customMsg":   "Failed getting settings, github taken",
+                        }).Error(err)
+                        w.WriteHeader(http.StatusBadRequest)
+                        return
+                }</span>
+        }
+
+        <span class="cov0" title="0">statement := `
+                UPDATE users
+                SET
+                        username = $1,
+                        twitter = $2,
+                        discord = $3,
+                        github = $4
+                WHERE wallet = $5;`
+        _, err = Db.Exec(
+                statement,
+                settings.Username,
+                settings.Twitter,
+                settings.Discord,
+                settings.Github,
+                session.UserWallet)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Error(err)
+        }</span>
+
+        <span class="cov0" title="0">w.WriteHeader(http.StatusOK)</span>
+}
+
+func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        session, err := GetSession(r, "header")
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "customMsg": "Failed updating privacy, wrong header",
+                }).Error(err)
+                w.WriteHeader(http.StatusUnauthorized)
+                return
+        }</span>
+
+        <span class="cov0" title="0">privacy := struct {
+                Privacy string `json:"Privacy"`
+        }{}
+
+        decoder := json.NewDecoder(r.Body)
+        err = decoder.Decode(&amp;privacy)
+        if err != nil || privacy.Privacy == "" </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed updating privacy, empty payload",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov0" title="0">if privacy.Privacy != "all" &amp;&amp;
+                privacy.Privacy != "private" &amp;&amp;
+                privacy.Privacy != "subscribers" &amp;&amp;
+                privacy.Privacy != "followers" </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "payload":     privacy.Privacy,
+                        "customMsg":   "Failed updating privacy, wrong payload",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov0" title="0">statement := `
+                UPDATE users
+                SET privacy = $1
+                WHERE wallet = $2;`
+        _, err = Db.Exec(
+                statement,
+                privacy.Privacy,
+                session.UserWallet)
+        if err != nil </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed updating privacy, failed sql",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+        }</span>
+
+        <span class="cov0" title="0">w.WriteHeader(http.StatusOK)</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package main
+
+import (
+        "encoding/json"
+        "fmt"
+        "net/http"
+        "strconv"
+        "strings"
+        "time"
+
+        "github.com/gorilla/mux"
+        _ "github.com/lib/pq"
+        log "github.com/sirupsen/logrus"
+)
+
+func (new_trade *NewTrade) InsertSubTrades() (err error) <span class="cov8" title="1">{
+        subtrade_sql := `
+                INSERT INTO subtrades (
+                        code, tradecode, userwallet, 
+                        createdat, type, reason, 
+                        quantity, avgprice, total, updatedat)
+                VALUES %s;`
+
+        valueStrings := []string{}
+        valueArgs := []interface{}{}
+        timeNow := time.Now()
+        for i, subtrade := range new_trade.Subtrades </span><span class="cov8" title="1">{
+                rand_subtrade_code := RandStringBytes(12)
+                str1 := "$" + strconv.Itoa(1+i*10) + ","
+                str2 := "$" + strconv.Itoa(2+i*10) + ","
+                str3 := "$" + strconv.Itoa(3+i*10) + ","
+                str4 := "$" + strconv.Itoa(4+i*10) + ","
+                str5 := "$" + strconv.Itoa(5+i*10) + ","
+                str6 := "$" + strconv.Itoa(6+i*10) + ","
+                str7 := "$" + strconv.Itoa(7+i*10) + ","
+                str8 := "$" + strconv.Itoa(8+i*10) + ","
+                str9 := "$" + strconv.Itoa(9+i*10) + ","
+                str10 := "$" + strconv.Itoa(10+i*10)
+                str_n := "(" + str1 + str2 + str3 + str4 + str5 + str6 + str7 + str8 + str9 + str10 + ")"
+                valueStrings = append(valueStrings, str_n)
+                valueArgs = append(valueArgs, rand_subtrade_code)
+                valueArgs = append(valueArgs, new_trade.Code)
+                valueArgs = append(valueArgs, new_trade.UserWallet)
+                valueArgs = append(valueArgs, subtrade.CreatedAt)
+                valueArgs = append(valueArgs, subtrade.Type)
+                valueArgs = append(valueArgs, subtrade.Reason)
+                valueArgs = append(valueArgs, subtrade.Quantity)
+                valueArgs = append(valueArgs, subtrade.AvgPrice)
+                valueArgs = append(valueArgs, subtrade.Total)
+                valueArgs = append(valueArgs, timeNow)
+        }</span>
+
+        <span class="cov8" title="1">smt := fmt.Sprintf(subtrade_sql, strings.Join(valueStrings, ","))
+
+        _, err = Db.Exec(smt, valueArgs...)
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "subtradepayload": new_trade.Subtrades,
+                        "custom_msg":      "Failed inserting new subtrade",
+                }).Error(err)
+                return
+        }</span>
+        <span class="cov8" title="1">return</span>
+}
+
+func CreateSubtrade(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        session, err := GetSession(r, "header")
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "customMsg": "Failed creating subtrade, wrong header",
+                }).Error(err)
+                w.WriteHeader(http.StatusUnauthorized)
+                return
+        }</span>
+
+        <span class="cov8" title="1">tradecode := mux.Vars(r)["tradecode"]
+        if tradecode == "" </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed creating subtrade, empty tradecode",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">subtrade_sql := `
+                INSERT INTO subtrades (
+                        code, tradecode, userwallet, 
+                        createdat, type, reason, 
+                        quantity, avgprice, total, updatedat)
+                VALUES (
+                        SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2,
+                        current_timestamp, 'BUY', '', 0.0001, 0.0001,
+                        0.0001, current_timestamp)
+                RETURNING code;`
+        var subtrade_code string
+        err = Db.QueryRow(
+                subtrade_sql,
+                tradecode,
+                session.UserWallet,
+        ).Scan(&amp;subtrade_code)
+        if err != nil || subtrade_code == "" </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed creating subtrade, wrong query",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+        }</span>
+
+        <span class="cov8" title="1">w.WriteHeader(http.StatusOK)</span>
+}
+
+func UpdateSubtrade(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        session, err := GetSession(r, "header")
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "customMsg": "Failed updating subtrade, wrong header",
+                }).Error(err)
+                w.WriteHeader(http.StatusUnauthorized)
+                return
+        }</span>
+
+        <span class="cov8" title="1">subtrade := struct {
+                Code      string      `json:"Code"`
+                TradeCode string      `json:"TradeCode"`
+                CreatedAt string      `json:"CreatedAt"`
+                Type      string      `json:"Type"`
+                Reason    string      `json:"Reason"`
+                Quantity  json.Number `json:"Quantity"`
+                AvgPrice  json.Number `json:"AvgPrice"`
+                Total     json.Number `json:"Total"`
+        }{}
+
+        decoder := json.NewDecoder(r.Body)
+        err = decoder.Decode(&amp;subtrade)
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed creating subtrade, empty payload",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">var subtrade_code string
+        err = Db.QueryRow(`
+                UPDATE subtrades
+                SET
+                        createdat = $1,
+                        type = $2,
+                        reason = $3,
+                        quantity = $4,
+                        avgprice = $5,
+                        total = $6
+                WHERE code = $7
+                RETURNING code;`,
+                subtrade.CreatedAt,
+                subtrade.Type,
+                subtrade.Reason,
+                subtrade.Quantity,
+                subtrade.AvgPrice,
+                subtrade.Total,
+                subtrade.Code).Scan(&amp;subtrade_code)
+        if err != nil || subtrade_code == "" </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed creating subtrade, wrong query",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+        }</span>
+
+        <span class="cov8" title="1">w.WriteHeader(http.StatusOK)</span>
+}
+
+func DeleteSubtrade(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        session, err := GetSession(r, "header")
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "customMsg": "Failed deleting subtrade, wrong header",
+                }).Error(err)
+                w.WriteHeader(http.StatusUnauthorized)
+                return
+        }</span>
+
+        <span class="cov8" title="1">subtrade_code := mux.Vars(r)["subtradecode"]
+        if subtrade_code == "" </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed deleting subtrade, empty subtradecode",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">Db.Exec(`
+                DELETE FROM subtrades
+                WHERE code = $1;
+                `, subtrade_code)
+
+        w.WriteHeader(http.StatusOK)</span>
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">package main
+
+import (
+        "encoding/json"
+        "net/http"
+        "strconv"
+
+        "github.com/gorilla/mux"
+        _ "github.com/lib/pq"
+        log "github.com/sirupsen/logrus"
+)
+
+type NewSubtrade struct {
+        CreatedAt  string      `json:"CreatedAt"`
+        Type       string      `json:"Type"`
+        Reason     string      `json:"Reason"`
+        Quantity   json.Number `json:"Quantity"`
+        AvgPrice   json.Number `json:"AvgPrice"`
+        Total      json.Number `json:"Total"`
+        UserWallet string
+}
+
+type NewTrade struct {
+        Exchange     string        `json:"Exchange"`
+        FirstPairId  int           `json:"FirstPair"`
+        SecondPairId int           `json:"SecondPair"`
+        Subtrades    []NewSubtrade `json:"Subtrades"`
+        UserWallet   string
+        Code         string
+}
+
+func CreateTrade(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        session, err := GetSession(r, "header")
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "customMsg": "Failed creating trade, wrong header",
+                }).Error(err)
+                w.WriteHeader(http.StatusUnauthorized)
+                return
+        }</span>
+
+        <span class="cov8" title="1">var new_trade NewTrade
+        decoder := json.NewDecoder(r.Body)
+        err = decoder.Decode(&amp;new_trade)
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed decoding new trade payload",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">new_trade.UserWallet = session.UserWallet
+
+        if len(new_trade.Subtrades) == 0 </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed creating trade, missing subtrades",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">err = new_trade.InsertTrade()
+        if err != nil </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">err = new_trade.InsertSubTrades()
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                }).Error(err)
+                Db.Exec(`DELETE FROM trades WHERE code = $1`, new_trade.Code)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.WriteHeader(http.StatusOK)</span>
+}
+
+func (new_trade *NewTrade) InsertTrade() (err error) <span class="cov8" title="1">{
+        trade_sql := `
+                INSERT INTO trades (
+                        code, userwallet, exchange, firstpair,
+                        secondpair, createdat, updatedat, isopen)
+                VALUES (
+                        SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2, $3, $4,
+                        current_timestamp, current_timestamp, true)
+                RETURNING code;`
+        err = Db.QueryRow(
+                trade_sql,
+                new_trade.UserWallet,
+                new_trade.Exchange,
+                new_trade.FirstPairId,
+                new_trade.SecondPairId,
+        ).Scan(&amp;new_trade.Code)
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "tradePayload": new_trade,
+                        "customMsg":    "Failed inserting new trade",
+                }).Error(err)
+                return
+        }</span>
+        <span class="cov8" title="1">return</span>
+}
+
+func ChangeTradeStatus(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        session, err := GetSession(r, "header")
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "customMsg": "Failed changing trade status, wrong header",
+                }).Error(err)
+                w.WriteHeader(http.StatusUnauthorized)
+                return
+        }</span>
+
+        <span class="cov8" title="1">tradecode := mux.Vars(r)["tradecode"]
+        if tradecode == "" </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed changing trade status, empty tradecode",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">to_status_string := mux.Vars(r)["tostatus"]
+        to_status, err := strconv.ParseBool(to_status_string)
+        if err != nil </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed changing trade status, wrong bool",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">var sentinel_1 string
+        err = Db.QueryRow(`
+                UPDATE trades
+                SET
+                        isopen = $1,
+                        updatedat = current_timestamp
+                WHERE code = $2
+                RETURNING userwallet;`, to_status, tradecode).Scan(&amp;sentinel_1)
+        if err != nil || sentinel_1 == "" </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "tradeCode":   tradecode,
+                        "customMsg":   "Failed changing trade status, UPDATE trades",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">var sentinel_2 string
+        err = Db.QueryRow(`
+                UPDATE subtrades
+                SET
+                        updatedat = current_timestamp
+                WHERE tradecode = $1
+                RETURNING userwallet;`, tradecode).Scan(&amp;sentinel_2)
+        if err != nil || sentinel_2 == "" </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "tradeCode":   tradecode,
+                        "customMsg":   "Failed changing trade status, UPDATE subtrades",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">w.WriteHeader(http.StatusOK)</span>
+}
+
+func DeleteTrade(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        session, err := GetSession(r, "header")
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "customMsg": "Failed deleting trade, wrong header",
+                }).Error(err)
+                w.WriteHeader(http.StatusUnauthorized)
+                return
+        }</span>
+
+        <span class="cov8" title="1">tradecode := mux.Vars(r)["tradecode"]
+        if tradecode == "" </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "sessionCode": session.Code,
+                        "customMsg":   "Failed deleting trade, empty tradecode",
+                }).Error(err)
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        <span class="cov8" title="1">Db.Exec(`
+                DELETE FROM trades
+                WHERE code = $1
+                RETURNING userwallet;`, tradecode)
+
+        w.WriteHeader(http.StatusOK)</span>
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">package main
+
+import (
+        "math"
+
+        log "github.com/sirupsen/logrus"
+)
+
+type UserDetails struct {
+        Username       string
+        Twitter        string
+        Github         string
+        Discord        string
+        Followers      int
+        Subscribers    int
+        ProfilePicture string
+        JoinTime       string
+}
+
+type Subtrade struct {
+        Code      string
+        TradeCode string
+        CreatedAt string
+        Type      string
+        Reason    string
+        Quantity  float64
+        AvgPrice  float64
+        Total     float64
+}
+
+type Trade struct {
+        Code              string
+        Username          string
+        Userwallet        string
+        IsOpen            string
+        Exchange          string
+        FirstPairId       int
+        SecondPairId      int
+        FirstPairName     string
+        SecondPairName    string
+        FirstPairSymbol   string
+        SecondPairSymbol  string
+        FirstPairPrice    float64
+        SecondPairPrice   float64
+        FirstPairUrlIcon  string
+        SecondPairUrlIcon string
+        CurrentPrice      float64
+        QtyBuys           float64
+        QtySells          float64
+        QtyAvailable      float64
+        TotalBuys         float64
+        TotalBuysBtc      float64
+        TotalBuysUsd      float64
+        TotalSells        float64
+        TotalSellsBtc     float64
+        TotalSellsUsd     float64
+        ActualReturn      float64
+        FutureReturn      float64
+        FutureReturnBtc   float64
+        FutureReturnUsd   float64
+        TotalReturn       float64
+        TotalReturnBtc    float64
+        TotalReturnUsd    float64
+        Roi               float64
+        BtcPrice          float64
+        Subtrades         []Subtrade
+}
+
+type PrivacyStatus struct {
+        Status string
+        Reason string
+}
+
+type TradesSnapshot struct {
+        UserDetails    UserDetails
+        PrivacyStatus  PrivacyStatus
+        Trades         []Trade
+        CountTrades    int
+        TotalReturnUsd float64
+        TotalReturnBtc float64
+        Roi            float64
+}
+
+func (user User) GetSnapshot() (snapshot TradesSnapshot) <span class="cov8" title="1">{
+        snapshot.UserDetails = UserDetails{
+                user.Username,
+                user.Twitter,
+                user.Github,
+                user.Discord,
+                user.Followers,
+                user.Subscribers,
+                user.ProfilePicture,
+                user.JoinTime,
+        }
+
+        snapshot.Trades = user.SelectUserTrades()
+        snapshot.CountTrades = len(snapshot.Trades)
+        snapshot.CalculateTradesTotals()
+        return
+}</span>
+
+func (user User) SelectUserTrades() (trades []Trade) <span class="cov8" title="1">{
+        trades_sql := `
+                WITH
+                        CURRENT_PRICE AS (
+                                SELECT
+                                        p.coinid,
+                                        c.name,
+                                        c.symbol,
+                                        p.price
+                                FROM prices p
+                                LEFT JOIN coins c ON(p.coinid = c.coinid)
+                                WHERE createdat = (SELECT MAX(createdat) FROM prices)),
+                        TRADES_MACRO AS (
+                                SELECT
+                                        t.code,
+                                        CASE WHEN u.username IS NULL THEN '' ELSE u.username END AS username,
+                                        u.wallet AS userwallet,
+                                        t.isopen,
+                                        CASE WHEN t.exchange IS NULL THEN '' ELSE t.exchange END AS exchange,
+                                        t.firstpair,
+                                        t.secondpair,
+                                        CASE
+                                                WHEN SUM(CASE WHEN s."type" = 'BUY' THEN s.quantity END) IS NULL THEN 0
+                                                ELSE SUM(CASE WHEN s."type" = 'BUY' THEN s.quantity END)
+                                        END AS qtybuys,
+                                        CASE
+                                                WHEN SUM(CASE WHEN s."type" = 'SELL' THEN s.quantity END) IS NULL THEN 0
+                                                ELSE SUM(CASE WHEN s."type" = 'SELL' THEN s.quantity END)
+                                        END AS qtysells,
+                                        CASE
+                                                WHEN SUM(CASE WHEN s."type" = 'BUY' THEN s.total END) IS NULL THEN 0
+                                                ELSE SUM(CASE WHEN s."type" = 'BUY' THEN s.total END)
+                                        END AS totalbuys,
+                                        CASE
+                                                WHEN SUM(CASE WHEN s."type" = 'SELL' THEN s.total END) IS NULL THEN 0
+                                                ELSE SUM(CASE WHEN s."type" = 'SELL' THEN s.total END)
+                                        END AS totalsells
+                                FROM trades t
+                                LEFT JOIN subtrades s ON(t.code  = s.tradecode)
+                                INNER JOIN users u ON(t.userwallet = u.wallet)
+                                WHERE u.wallet = $1
+                                GROUP BY 1, 2, 3, 4, 5, 6, 7),
+                        TRADES_MICRO AS (
+                                SELECT
+                                        t.code,
+                                        t.username,
+                                        t.userwallet,
+                                        t.isopen,
+                                        t.exchange,
+                                        t.firstpair AS firstpairid,
+                                        c1.name AS firstpairname,
+                                        c1.symbol AS firstpairsymbol,
+                                        c1.price AS firstpairprice,
+                                        'https://s2.coinmarketcap.com/static/img/coins/32x32/' || t.firstpair::TEXT || '.png' AS firstpairurlicon,
+                                        t.secondpair AS secondpairid,
+                                        c2.name AS secondpairname,
+                                        c2.symbol AS secondpairsymbol,
+                                        c2.price AS secondpairprice,
+                                        'https://s2.coinmarketcap.com/static/img/coins/32x32/' || t.secondpair::TEXT || '.png' AS secondpairurlicon,
+                                        (c2.price / c1.price) AS currentprice,
+                                        t.qtybuys,
+                                        t.qtysells,
+                                        t.qtybuys - t.qtysells AS qtyavailable,
+                                        t.totalbuys,
+                                        t.totalsells,
+                                        t.totalsells - t.totalbuys AS actualreturn,
+                                        (t.qtybuys - t.qtysells) * (c2.price / c1.price) AS futurereturn,
+                                        t.totalsells - t.totalbuys + (t.qtybuys - t.qtysells) * (c2.price / c1.price) AS totalreturn,
+                                        CASE
+                                                WHEN t.totalbuys = 0 THEN 0
+                                                ELSE (((t.qtybuys - t.qtysells) * (c2.price / c1.price) + t.totalsells) / t.totalbuys - 1) * 100
+                                        END AS roi
+                                FROM TRADES_MACRO t
+                                LEFT JOIN CURRENT_PRICE c1 ON(t.firstpair = c1.coinid)
+                                LEFT JOIN CURRENT_PRICE c2 ON(t.secondpair = c2.coinid))
+                SELECT
+                        t.code,
+                        t.username,
+                        t.userwallet,
+                        t.isopen,
+                        t.exchange,
+                        t.firstpairid,
+                        t.firstpairname,
+                        t.firstpairsymbol,
+                        t.firstpairprice,
+                        t.firstpairurlicon,
+                        t.secondpairid,
+                        t.secondpairname,
+                        t.secondpairsymbol,
+                        t.secondpairprice,
+                        t.secondpairurlicon,
+                        CASE WHEN t.currentprice &gt; 1 THEN ROUND(t.currentprice, 2) ELSE ROUND(t.currentprice, 5) END as currentprice,
+                        t.qtybuys,
+                        t.qtysells,
+                        ROUND(t.qtyavailable, 2) as qtyavailable,
+                        t.totalbuys,
+                        t.totalbuys * t.firstpairprice / c3.price AS totalbuysbtc,
+                        t.totalbuys * t.firstpairprice AS totalbuysusd,
+                        t.totalsells,
+                        t.totalsells * t.firstpairprice / c3.price AS totalsellbtc,
+                        t.totalsells * t.firstpairprice AS totalsellusd,
+                        t.actualreturn,
+                        t.futurereturn,
+                        t.futurereturn * t.firstpairprice / c3.price AS futurereturnbtc,
+                        t.futurereturn * t.firstpairprice AS futurereturnusd,
+                        ROUND(t.totalreturn, 2) as totalreturn,
+                        t.totalreturn * t.firstpairprice / c3.price AS returnbtc,
+                        t.totalreturn * t.firstpairprice AS returnusd,
+                        ROUND(t.roi, 1) AS roi,
+                        c3.price AS btcprice
+                FROM TRADES_MICRO t
+                LEFT JOIN CURRENT_PRICE c3 ON(c3.coinid = 1);`
+
+        trades_rows, err := Db.Query(
+                trades_sql,
+                user.Wallet)
+        defer trades_rows.Close()
+        if err != nil </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "wallet":     user.Wallet,
+                        "custom_msg": "Failed running trades_sql",
+                }).Error(err)
+        }</span>
+        <span class="cov8" title="1">for trades_rows.Next() </span><span class="cov8" title="1">{
+                trade := Trade{}
+                if err = trades_rows.Scan(
+                        &amp;trade.Code,
+                        &amp;trade.Username,
+                        &amp;trade.Userwallet,
+                        &amp;trade.IsOpen,
+                        &amp;trade.Exchange,
+                        &amp;trade.FirstPairId,
+                        &amp;trade.FirstPairName,
+                        &amp;trade.FirstPairSymbol,
+                        &amp;trade.FirstPairPrice,
+                        &amp;trade.FirstPairUrlIcon,
+                        &amp;trade.SecondPairId,
+                        &amp;trade.SecondPairName,
+                        &amp;trade.SecondPairSymbol,
+                        &amp;trade.SecondPairPrice,
+                        &amp;trade.SecondPairUrlIcon,
+                        &amp;trade.CurrentPrice,
+                        &amp;trade.QtyBuys,
+                        &amp;trade.QtySells,
+                        &amp;trade.QtyAvailable,
+                        &amp;trade.TotalBuys,
+                        &amp;trade.TotalBuysBtc,
+                        &amp;trade.TotalBuysUsd,
+                        &amp;trade.TotalSells,
+                        &amp;trade.TotalSellsBtc,
+                        &amp;trade.TotalSellsUsd,
+                        &amp;trade.ActualReturn,
+                        &amp;trade.FutureReturn,
+                        &amp;trade.FutureReturnBtc,
+                        &amp;trade.FutureReturnUsd,
+                        &amp;trade.TotalReturn,
+                        &amp;trade.TotalReturnBtc,
+                        &amp;trade.TotalReturnUsd,
+                        &amp;trade.Roi,
+                        &amp;trade.BtcPrice,
+                ); err != nil </span><span class="cov0" title="0">{
+                        log.WithFields(log.Fields{
+                                "wallet":     user.Wallet,
+                                "custom_msg": "Failed parsing trades_sql",
+                        }).Error(err)
+                }</span>
+
+                <span class="cov8" title="1">subtrades := trade.SelectTradeSubtrades()
+                trade.Subtrades = subtrades
+
+                trades = append(trades, trade)</span>
+        }
+        <span class="cov8" title="1">return</span>
+}
+
+func (trade Trade) SelectTradeSubtrades() (subtrades []Subtrade) <span class="cov8" title="1">{
+        subtrades_sql := `
+                        SELECT
+                                code,
+                                tradecode,
+                                CASE WHEN type IS NULL THEN '' ELSE type END AS type,
+                                CASE WHEN reason IS NULL THEN '' ELSE reason END AS reason,
+                                TO_CHAR(createdat, 'YYYY-MM-DD"T"HH24:MI'),
+                                quantity,
+                                ROUND(avgprice, 6) AS avgprice,
+                                total
+                        FROM subtrades
+                        WHERE tradecode = $1
+                        ORDER BY 5;`
+
+        subtrades_rows, err := Db.Query(
+                subtrades_sql,
+                trade.Code)
+        defer subtrades_rows.Close()
+        if err != nil </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "username":   trade.Username,
+                        "custom_msg": "Failed running subtrades_sql",
+                }).Error(err)
+        }</span>
+
+        <span class="cov8" title="1">for subtrades_rows.Next() </span><span class="cov8" title="1">{
+                subtrade := Subtrade{}
+                if err = subtrades_rows.Scan(
+                        &amp;subtrade.Code,
+                        &amp;subtrade.TradeCode,
+                        &amp;subtrade.Type,
+                        &amp;subtrade.Reason,
+                        &amp;subtrade.CreatedAt,
+                        &amp;subtrade.Quantity,
+                        &amp;subtrade.AvgPrice,
+                        &amp;subtrade.Total); err != nil </span><span class="cov0" title="0">{
+                        log.WithFields(log.Fields{
+                                "username":   trade.Username,
+                                "custom_msg": "Failed parsing subtrades_sql",
+                        }).Error(err)
+                }</span>
+
+                <span class="cov8" title="1">subtrades = append(subtrades, subtrade)</span>
+        }
+        <span class="cov8" title="1">return</span>
+}
+
+func (snapshot *TradesSnapshot) CalculateTradesTotals() <span class="cov8" title="1">{
+        var (
+                totalReturnBtc  float64
+                totalReturnUsd  float64
+                totalBuysBtc    float64
+                totalSellBtc    float64
+                futureReturnBtc float64
+        )
+        for _, trade := range snapshot.Trades </span><span class="cov8" title="1">{
+                totalReturnBtc = totalReturnBtc + trade.TotalReturnBtc
+                totalReturnUsd = totalReturnUsd + trade.TotalReturnUsd
+                totalBuysBtc = totalBuysBtc + trade.TotalBuysBtc
+                totalSellBtc = totalSellBtc + trade.TotalSellsBtc
+                futureReturnBtc = futureReturnBtc + trade.FutureReturnBtc
+        }</span>
+        <span class="cov8" title="1">snapshot.TotalReturnBtc = math.Round(totalReturnBtc*100) / 100
+        snapshot.TotalReturnUsd = math.Round(totalReturnUsd*100) / 100
+        snapshot.Roi = math.Round(((futureReturnBtc+totalSellBtc)/totalBuysBtc-1)*100*100) / 100
+        if math.IsNaN(snapshot.Roi) || math.IsInf(snapshot.Roi, 0) </span><span class="cov8" title="1">{
+                snapshot.Roi = 0
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package main
+
+import (
+        "errors"
+        "net/http"
+        "strings"
+
+        "github.com/gorilla/websocket"
+        log "github.com/sirupsen/logrus"
+)
+
+type WsTrade struct {
+        Observer  User
+        Observed  User
+        SessionId string
+        Channel   chan TradesSnapshot
+        Ws        *websocket.Conn
+}
+
+func StartTradesWs(w http.ResponseWriter, r *http.Request) <span class="cov8" title="1">{
+        url_split := strings.Split(r.URL.Path, "/")
+
+        // UNDERSTAND WHICH USER PROFILE NEEDS TO BE DISPLAYED
+        if len(url_split) &lt; 4 </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "urlPath": r.URL.Path,
+                }).Warn("Failed starting ws, wrong url")
+                w.WriteHeader(http.StatusUnauthorized)
+                return
+        }</span>
+        <span class="cov8" title="1">wallet := url_split[2]
+
+        observed, err := SelectUser("wallet", wallet)
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "urlPath":  r.URL.Path,
+                        "observed": observed,
+                }).Warn("Failed starting ws, user not found")
+                w.WriteHeader(http.StatusBadRequest)
+                return
+        }</span>
+
+        // UNDERSTAND WHICH USER WANTS TO RECEIVE THE DATA
+        <span class="cov8" title="1">session_id := url_split[3]
+        session := Session{}
+        observer := User{}
+        session.Code = session_id
+        err = session.Select()
+        if err == nil </span><span class="cov8" title="1">{
+                observer, err = SelectUser("wallet", session.UserWallet)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.WithFields(log.Fields{
+                                "urlPath": r.URL.Path,
+                        }).Error("Failed starting ws, user has cookie but not found")
+                        w.WriteHeader(http.StatusBadRequest)
+                        return
+                }</span>
+        } else <span class="cov8" title="1">{
+                // USER HAS NOT BEEN FOUND
+        }</span>
+
+        // INSTANCIATE WS
+        <span class="cov8" title="1">ws, err := InstanciateTradeWs(w, r)
+        if err != nil </span><span class="cov8" title="1">{
+                log.WithFields(log.Fields{
+                        "custom_msg": "Failed instanciating TradeWs",
+                }).Error(err)
+                w.WriteHeader(http.StatusNotFound)
+                return
+        }</span>
+
+        <span class="cov8" title="1">c := make(chan TradesSnapshot)
+        ws_trade := WsTrade{observer, observed, session_id, c, ws}
+        snapshot := observed.GetSnapshot()
+
+        snapshot.CheckPrivacy(observer, observed)
+
+        if snapshot.PrivacyStatus.Status == "KO" </span><span class="cov8" title="1">{
+                snapshot.Trades = nil
+                ws_trade.SendInitialSnapshot(snapshot)
+                return
+        }</span>
+
+        <span class="cov8" title="1">ws_trade.SendInitialSnapshot(snapshot)
+        trades_wss[wallet] = append(trades_wss[wallet], ws_trade)
+        go ws_trade.WaitToTerminate()
+        go ws_trade.WaitToSendMessage()</span>
+}
+
+func (snapshot *TradesSnapshot) CheckPrivacy(observer User, observed User) <span class="cov8" title="1">{
+        if observed.Privacy == "all" </span><span class="cov8" title="1">{
+                snapshot.PrivacyStatus.Status = "OK"
+                snapshot.PrivacyStatus.Reason = "observed ALL"
+                return
+        }</span>
+
+        <span class="cov8" title="1">if observer.Wallet == "" </span><span class="cov8" title="1">{
+                snapshot.PrivacyStatus.Status = "KO"
+                snapshot.PrivacyStatus.Reason = "user is not logged in"
+                return
+        }</span>
+
+        <span class="cov8" title="1">if observer.Wallet == observed.Wallet </span><span class="cov8" title="1">{
+                snapshot.PrivacyStatus.Status = "OK"
+                snapshot.PrivacyStatus.Reason = "user access its own profile"
+                return
+        }</span>
+
+        <span class="cov8" title="1">switch observed.Privacy </span>{
+        case "private":<span class="cov8" title="1">
+                snapshot.PrivacyStatus.Status = "KO"
+                snapshot.PrivacyStatus.Reason = "private"
+                return</span>
+        case "followers":<span class="cov8" title="1">
+                var isfollower bool
+                _ = Db.QueryRow(`
+                                        SELECT TRUE
+                                        FROM followers
+                                        WHERE followfrom = $1
+                                        AND followto = $2;`, observer.Wallet, observed.Wallet).Scan(
+                        &amp;isfollower,
+                )
+                if isfollower </span><span class="cov8" title="1">{
+                        snapshot.PrivacyStatus.Status = "OK"
+                        snapshot.PrivacyStatus.Reason = "user is follower"
+                        return
+                }</span> else<span class="cov8" title="1"> {
+                        snapshot.PrivacyStatus.Status = "KO"
+                        snapshot.PrivacyStatus.Reason = "user is not follower"
+                        return
+                }</span>
+        case "subscribers":<span class="cov8" title="1">
+                var issubscriber bool
+                _ = Db.QueryRow(`
+                                        SELECT TRUE
+                                        FROM subscribers
+                                        WHERE subscribefrom = $1
+                                        AND subscribeto = $2;`, observer.Wallet, observed.Wallet).Scan(
+                        &amp;issubscriber,
+                )
+                if issubscriber </span><span class="cov8" title="1">{
+                        snapshot.PrivacyStatus.Status = "OK"
+                        snapshot.PrivacyStatus.Reason = "user is subscriber"
+                        return
+                }</span> else<span class="cov8" title="1"> {
+                        snapshot.PrivacyStatus.Status = "KO"
+                        snapshot.PrivacyStatus.Reason = "user is not subscriber"
+                        return
+                }</span>
+        default:<span class="cov0" title="0">
+                log.WithFields(log.Fields{
+                        "observed": observed.Wallet,
+                        "observer": observer.Wallet,
+                }).Warn("Not possible to determine user's privacy")
+                snapshot.PrivacyStatus.Status = "KO"
+                snapshot.PrivacyStatus.Reason = "unknown reason"
+                return</span>
+        }
+}
+
+func InstanciateTradeWs(w http.ResponseWriter, r *http.Request) (ws *websocket.Conn, err error) <span class="cov8" title="1">{
+        upgrader := websocket.Upgrader{
+                ReadBufferSize:  1024,
+                WriteBufferSize: 1024,
+        }
+        upgrader.CheckOrigin = func(r *http.Request) bool </span><span class="cov8" title="1">{
+                for _, origin := range Origins </span><span class="cov8" title="1">{
+                        if origin == r.Header["Origin"][0] </span><span class="cov8" title="1">{
+                                return true
+                        }</span>
+                }
+                <span class="cov8" title="1">return false</span>
+        }
+        <span class="cov8" title="1">if upgrader.CheckOrigin(r) </span><span class="cov8" title="1">{
+                ws, err = upgrader.Upgrade(w, r, nil)
+        }</span> else<span class="cov8" title="1"> {
+                err = errors.New("CheckOrigin not accepted")
+        }</span>
+        <span class="cov8" title="1">return</span>
+}
+
+func (ws_trade *WsTrade) SendInitialSnapshot(snapshot TradesSnapshot) <span class="cov8" title="1">{
+        err := ws_trade.Ws.WriteJSON(snapshot)
+        if err != nil </span><span class="cov8" title="1">{
+                ws_trade.Ws.Close()
+                log.WithFields(log.Fields{
+                        "sessionId":  ws_trade.SessionId,
+                        "custom_msg": "Failed running sending initial snapshot",
+                }).Error(err)
+                return
+        }</span>
+}
+
+func (ws_trade *WsTrade) WaitToTerminate() <span class="cov8" title="1">{
+        for </span><span class="cov8" title="1">{
+                _, message, err := ws_trade.Ws.ReadMessage()
+                if string(message) == "ping" </span><span class="cov0" title="0">{
+                        continue</span>
+                } else<span class="cov8" title="1"> if err != nil </span><span class="cov8" title="1">{
+                        observers := []WsTrade{}
+                        for _, observer := range trades_wss[ws_trade.Observed.Wallet] </span><span class="cov8" title="1">{
+                                if observer.SessionId != ws_trade.SessionId </span><span class="cov8" title="1">{
+                                        observers = append(observers, observer)
+                                }</span>
+                        }
+                        <span class="cov8" title="1">trades_wss[ws_trade.Observed.Wallet] = observers
+
+                        if len(trades_wss[ws_trade.Observed.Wallet]) == 0 </span><span class="cov8" title="1">{
+                                delete(trades_wss, ws_trade.Observed.Wallet)
+                        }</span>
+
+                        <span class="cov8" title="1">ws_trade.Ws.Close()
+                        return</span>
+                } else<span class="cov0" title="0"> {
+                        ws_trade.Ws.Close()
+                        log.WithFields(log.Fields{
+                                "sessionId":  ws_trade.SessionId,
+                                "custom_msg": "Failed terminating trade ws",
+                        }).Error(err)
+                        return
+                }</span>
+        }
+}
+
+func (ws_trade *WsTrade) WaitToSendMessage() <span class="cov8" title="1">{
+        for </span><span class="cov8" title="1">{
+                s1 := &lt;-ws_trade.Channel
+                err := ws_trade.Ws.WriteJSON(s1)
+                if err != nil </span><span class="cov0" title="0">{
+                        ws_trade.Ws.Close()
+                        log.WithFields(log.Fields{
+                                "sessionId":  ws_trade.SessionId,
+                                "custom_msg": "Failed running sending snapshot",
+                        }).Error(err)
+                        return
+                }</span>
+        }
+}
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">package main
+
+import (
+        "crypto/rand"
+        "crypto/sha1"
+        "errors"
+        "fmt"
+        mathrand "math/rand"
+        "time"
+
+        _ "github.com/lib/pq"
+        log "github.com/sirupsen/logrus"
+)
+
+func Encrypt(plaintext string) (cryptext string, err error) <span class="cov8" title="1">{
+        if plaintext == "" </span><span class="cov8" title="1">{
+                err = errors.New("Empty string")
+                return
+        }</span>
+        <span class="cov8" title="1">cryptext = fmt.Sprintf("%x", sha1.Sum([]byte(plaintext)))
+        return</span>
+}
+
+func CreateUUID() (uuid string, err error) <span class="cov8" title="1">{
+        u := new([16]byte)
+        _, err = rand.Read(u[:])
+        if err != nil </span><span class="cov0" title="0">{
+                log.WithFields(log.Fields{
+                        "custom_msg": "Error during UUID creation",
+                }).Error(err)
+                err = errors.New("Error creating UUID")
+                return
+        }</span>
+
+        // 0x40 is reserved variant from RFC 4122
+        <span class="cov8" title="1">u[8] = (u[8] | 0x40) &amp; 0x7F
+        // Set the four most significant bits (bits 12 through 15) of the
+        // time_hi_and_version field to the 4-bit version number.
+        u[6] = (u[6] &amp; 0xF) | (0x4 &lt;&lt; 4)
+        uuid = fmt.Sprintf("%x-%x-%x-%x-%x", u[0:4], u[4:6], u[6:8], u[8:10], u[10:])
+        return</span>
+}
+
+func RandStringBytes(n int) string <span class="cov8" title="1">{
+        r := mathrand.New(mathrand.NewSource(time.Now().UnixNano()))
+        const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        b := make([]byte, n)
+        for i := range b </span><span class="cov8" title="1">{
+                b[i] = letterBytes[r.Intn(len(letterBytes))]
+        }</span>
+        <span class="cov8" title="1">return string(b)</span>
+}
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">package main
+
+import (
+        "errors"
+        "fmt"
+        "net/http"
+        "os"
+        "strings"
+        "time"
+
+        log "github.com/sirupsen/logrus"
+)
+
+type Session struct {
+        Code       string
+        UserWallet string
+        CreatedAt  time.Time
+}
+
+type User struct {
+        Wallet         string
+        JoinTime       string
+        Username       string
+        Twitter        string
+        Discord        string
+        Github         string
+        Privacy        string
+        Plan           string
+        ProfilePicture string
+        Followers      int
+        Subscribers    int
+}
+
+func (user *User) InsertSession() (session Session, err error) <span class="cov8" title="1">{
+        uuid, err := CreateUUID()
+        if err != nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+
+        <span class="cov8" title="1">session_sql := `
+                INSERT INTO sessions (code, userwallet, createdat)
+                VALUES ($1, $2, $3)
+                RETURNING code, userwallet, createdat;`
+
+        err = Db.QueryRow(
+                session_sql,
+                uuid,
+                user.Wallet,
+                time.Now()).Scan(
+                &amp;session.Code,
+                &amp;session.UserWallet,
+                &amp;session.CreatedAt,
+        )
+        if err != nil </span><span class="cov8" title="1">{
+                err = errors.New("Error inserting new session in db")
+                return
+        }</span>
+        <span class="cov8" title="1">return</span>
+}
+
+func GetSession(r *http.Request, using string) (session Session, err error) <span class="cov8" title="1">{
+        err = session.ExtractFromRequest(r, using)
+        if err != nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+        <span class="cov8" title="1">err = session.Select()
+        return</span>
+}
+
+func (session *Session) ExtractFromRequest(r *http.Request, using string) (err error) <span class="cov8" title="1">{
+        switch using </span>{
+        case "header":<span class="cov8" title="1">
+                err = session.ExtractFromHeader(r)
+                if err != nil </span><span class="cov0" title="0">{
+                        return
+                }</span>
+        case "cookie":<span class="cov0" title="0">
+                err = session.ExtractFromCookie(r)
+                if err != nil </span><span class="cov0" title="0">{
+                        return
+                }</span>
+        }
+        <span class="cov8" title="1">return</span>
+}
+
+func (session *Session) ExtractFromHeader(r *http.Request) (err error) <span class="cov8" title="1">{
+        if len(r.Header["Authorization"]) &gt; 0 </span><span class="cov8" title="1">{
+                split_auth := strings.Split(r.Header["Authorization"][0], "sessionId=")
+                if len(split_auth) &gt;= 1 </span><span class="cov8" title="1">{
+                        session.Code = split_auth[1]
+                        return
+                }</span> else<span class="cov0" title="0"> {
+                        err = errors.New("Could not find sessionId in header")
+                        return
+                }</span>
+        } else<span class="cov0" title="0"> {
+                err = errors.New("Could not find authorization in header")
+                return
+        }</span>
+}
+
+func (session *Session) ExtractFromCookie(r *http.Request) (err error) <span class="cov0" title="0">{
+        for _, cookie := range r.Cookies() </span><span class="cov0" title="0">{
+                if cookie.Name == "sessionId" </span><span class="cov0" title="0">{
+                        session.Code = cookie.Value
+                }</span>
+        }
+        <span class="cov0" title="0">if session.Code == "" </span><span class="cov0" title="0">{
+                err = errors.New("Empty sessionId in cookie")
+        }</span>
+        <span class="cov0" title="0">return</span>
+}
+
+func (session *Session) Select() (err error) <span class="cov8" title="1">{
+        err = Db.QueryRow(`
+                        SELECT
+                                userwallet
+                        FROM sessions
+                        WHERE code = $1;`, session.Code).Scan(
+                &amp;session.UserWallet,
+        )
+        return
+}</span>
+
+func InsertUser(wallet string) <span class="cov0" title="0">{
+        default_profile_picture := os.Getenv("CDN_PATH") + "/profile_pictures/default_picture.png"
+        statement := `
+                INSERT INTO users (
+                        wallet, profilepicture, username, privacy,
+                        plan, createdat, updatedat)
+                VALUES (
+                        $1, $2, '', 'all', 'basic',
+                        current_timestamp, current_timestamp);`
+        _, err := Db.Exec(statement, wallet, default_profile_picture)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Error(err)
+                return
+        }</span>
+}
+
+func SelectUser(by string, value string) (user User, err error) <span class="cov8" title="1">{
+        user_sql := fmt.Sprintf(`
+                SELECT
+                        wallet,
+                        TO_CHAR(createdat, 'Month') || ' ' || TO_CHAR(createdat, 'YYYY') AS jointime,
+                        CASE WHEN username IS NULL THEN '' ELSE username END AS username,
+                        CASE WHEN twitter IS NULL THEN '' ELSE twitter END AS twitter,
+                        CASE WHEN discord IS NULL THEN '' ELSE discord END AS discord,
+                        CASE WHEN github IS NULL THEN '' ELSE github END AS github,
+                        privacy,
+                        plan,
+                        CASE WHEN profilepicture IS NULL THEN '' ELSE profilepicture END AS profilepicture,
+                        f.count_followers,
+                        s.count_subscribers
+                FROM users
+                LEFT JOIN (
+                        SELECT
+                                COUNT(*) AS count_followers
+                        FROM followers
+                        WHERE followto = $1) f ON(1=1)
+                LEFT JOIN (
+                        SELECT
+                                COUNT(*) AS count_subscribers
+                        FROM subscribers
+                        WHERE subscribeto = $1) s ON(1=1)
+                WHERE %s = $1;`, by)
+        err = Db.QueryRow(user_sql, value).Scan(
+                &amp;user.Wallet,
+                &amp;user.JoinTime,
+                &amp;user.Username,
+                &amp;user.Twitter,
+                &amp;user.Discord,
+                &amp;user.Github,
+                &amp;user.Privacy,
+                &amp;user.Plan,
+                &amp;user.ProfilePicture,
+                &amp;user.Followers,
+                &amp;user.Subscribers,
+        )
+
+        return
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
