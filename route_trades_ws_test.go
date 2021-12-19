@@ -482,6 +482,9 @@ func TestStartTradesWsIntegration(t *testing.T) {
 
 func TestVisitPrivateUserNotCreareWebSocket(t *testing.T) {
 	// <setup code>
+
+	trades_wss = make(map[string][]WsTrade)
+
 	Db.Exec(
 		`INSERT INTO users (
 			wallet, username, privacy,
@@ -522,7 +525,6 @@ func TestVisitPrivateUserNotCreareWebSocket(t *testing.T) {
 	t.Run(fmt.Sprintf("Test web socket not create when user is private"), func(t *testing.T) {
 		go InstanciateActivityMonitor()
 
-		// test 1
 		server_a := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer server_a.Close()
 		url_a := strings.TrimPrefix(server_a.URL, "http://")
@@ -531,8 +533,15 @@ func TestVisitPrivateUserNotCreareWebSocket(t *testing.T) {
 		header_a.Set("Origin", "http://127.0.0.1")
 		_, _, _ = websocket.DefaultDialer.Dial(u_new_a.String(), header_a)
 
-		if len(trades_wss) != 0 {
-			t.Fatal("Test failed web socket not creare when user is private")
+		// LEAVE LIKE THIS OTHERWISE RACE CONDITION (not sure why)
+		temp_trade_wss := trades_wss
+		counter := 0
+		for _ = range temp_trade_wss {
+			counter++
+		}
+
+		if counter != 0 {
+			t.Fatal("Test failed web socket not create when user is private")
 		}
 	})
 

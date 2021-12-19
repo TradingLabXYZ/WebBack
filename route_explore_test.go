@@ -119,7 +119,7 @@ func TestSelectExplore(t *testing.T) {
 			t.Fatal("Failed valid explore response, second pair symold")
 		}
 		timeago := slice[0]["timeago"]
-		if timeago != "0 seconds ago" {
+		if timeago != "0 seconds ago" && timeago != "1 seconds ago" {
 			t.Fatal("Failed valid explore response, time ago")
 		}
 	})

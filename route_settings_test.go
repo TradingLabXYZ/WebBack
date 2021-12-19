@@ -180,13 +180,12 @@ func TestUpdateUserSettings(t *testing.T) {
 	Db.Exec(
 		`INSERT INTO users (
 			wallet, username, privacy, plan,
-			twitter, website, createdat, updatedat)
+			twitter, discord, github, createdat, updatedat)
 		VALUES (
-			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'jsjsjsj', 'all',
-			'basic', 'thisistwitter', 'thisiswebsite',
+			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B', 'jsjsjsj', 'all',
+			'basic', 'thisistwitter', 'thisisdiscord', 'thisisgithub',
 			current_timestamp, current_timestamp);`)
-
-	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
+	user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"}
 	session, _ := user.InsertSession()
 
 	// <test code>
@@ -202,11 +201,7 @@ func TestUpdateUserSettings(t *testing.T) {
 	})
 
 	t.Run(fmt.Sprintf("Test invalid user"), func(t *testing.T) {
-		params := []byte(`{
-			"Twitter": "new_twitter",
-			"Website": "new_website",
-		}`)
-		req := httptest.NewRequest("POST", "/user_settings", bytes.NewBuffer(params))
+		req := httptest.NewRequest("POST", "/user_settings", nil)
 		req.Header.Set("Authorization", "Bearer sessionId=thisisaninvalid")
 		w := httptest.NewRecorder()
 		UpdateUserSettings(w, req)
@@ -216,18 +211,19 @@ func TestUpdateUserSettings(t *testing.T) {
 		}
 	})
 
-	t.Run(fmt.Sprintf("Test already present website"), func(t *testing.T) {
+	t.Run(fmt.Sprintf("Test already present username"), func(t *testing.T) {
 		Db.Exec(
 			`INSERT INTO users (
-				wallet, username, privacy, plan, 
-				twitter, website, createdat, updatedat)
-			VALUES (
-				'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'jdjadew',
-				'all', 'basic', 'thisistwitter', 'websitealreadytaken',
+			wallet, username, privacy, plan,
+			twitter, createdat, updatedat)
+		VALUES (
+			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9D', 'ququqj', 'all',
+			'basic', 'twitterhdhd',
 			current_timestamp, current_timestamp);`)
+		user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9D"}
+		session, _ := user.InsertSession()
 		params := []byte(`{
-			"Twitter": "new_twitter",
-			"Website": "websitealreadytaken"
+			"Username": "jsjsjsj"
 		}`)
 		req := httptest.NewRequest("POST", "/user_settings", bytes.NewBuffer(params))
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
@@ -235,7 +231,7 @@ func TestUpdateUserSettings(t *testing.T) {
 		UpdateUserSettings(w, req)
 		res := w.Result()
 		if res.StatusCode != 400 {
-			t.Fatal("Failed test update users settings, website already presents")
+			t.Fatal("Failed test update users settings, username already presents")
 		}
 	})
 
@@ -243,14 +239,15 @@ func TestUpdateUserSettings(t *testing.T) {
 		Db.Exec(
 			`INSERT INTO users (
 			wallet, username, privacy, plan,
-			twitter, website, createdat, updatedat)
+			twitter, createdat, updatedat)
 		VALUES (
-			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', 'wpskdhj',
-			'all', 'basic', 'twitteralreadytaken', 'thisiswebsite',
+			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9C', 'xlxlxlx', 'all',
+			'basic', 'twitteraaa',
 			current_timestamp, current_timestamp);`)
+		user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9C"}
+		session, _ := user.InsertSession()
 		params := []byte(`{
-			"Twitter": "twitteralreadytaken",
-			"Website": "werbsiterandom"
+			"Twitter": "thisistwitter"
 		}`)
 		req := httptest.NewRequest("POST", "/user_settings", bytes.NewBuffer(params))
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
@@ -262,30 +259,87 @@ func TestUpdateUserSettings(t *testing.T) {
 		}
 	})
 
-	t.Run(fmt.Sprintf("Test successfully update user settings"), func(t *testing.T) {
+	t.Run(fmt.Sprintf("Test already present discord"), func(t *testing.T) {
+		Db.Exec(
+			`INSERT INTO users (
+			wallet, username, privacy, plan,
+			discord, createdat, updatedat)
+		VALUES (
+			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9Q', 'jdhshd', 'all',
+			'basic', 'discordssss',
+			current_timestamp, current_timestamp);`)
+		user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9Q"}
+		session, _ := user.InsertSession()
 		params := []byte(`{
-			"Twitter": "twitterresult",
-			"Website": "websiteresult"
+			"Discord": "thisisdiscord"
 		}`)
 		req := httptest.NewRequest("POST", "/user_settings", bytes.NewBuffer(params))
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		w := httptest.NewRecorder()
 		UpdateUserSettings(w, req)
-		var twitter_result, website_result string
+		res := w.Result()
+		if res.StatusCode != 400 {
+			t.Fatal("Failed test update users settings, discord already presents")
+		}
+	})
+
+	t.Run(fmt.Sprintf("Test already present github"), func(t *testing.T) {
+		Db.Exec(
+			`INSERT INTO users (
+			wallet, username, privacy, plan,
+			discord, createdat, updatedat)
+		VALUES (
+			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9Z', 'pqoskjd', 'all',
+			'basic', 'githubllll',
+			current_timestamp, current_timestamp);`)
+		user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9Z"}
+		session, _ := user.InsertSession()
+		params := []byte(`{
+			"Github": "thisisgithub"
+		}`)
+		req := httptest.NewRequest("POST", "/user_settings", bytes.NewBuffer(params))
+		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
+		w := httptest.NewRecorder()
+		UpdateUserSettings(w, req)
+		res := w.Result()
+		if res.StatusCode != 400 {
+			t.Fatal("Failed test update users settings, discord already presents")
+		}
+	})
+
+	t.Run(fmt.Sprintf("Test successfully update user settings"), func(t *testing.T) {
+		params := []byte(`{
+			"Username": "usernamenewnew",
+			"Twitter": "twitternewnew",
+			"Discord": "discordnewnew",
+			"Github": "githubnewnew"
+		}`)
+		req := httptest.NewRequest("POST", "/user_settings", bytes.NewBuffer(params))
+		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
+		w := httptest.NewRecorder()
+		UpdateUserSettings(w, req)
+		var username_result, twitter_result, discord_result, github_result string
 		_ = Db.QueryRow(`
 			SELECT
+				username,
 				twitter,
-				website
+				discord,
+				github
 			FROM users
 			WHERE wallet = $1;`,
 			session.UserWallet).Scan(
-			&twitter_result,
-			&website_result)
-		if website_result != "websiteresult" {
-			t.Fatal("Failed updating user settings, website")
+			&username_result, &twitter_result, &discord_result, &github_result)
+		if username_result != "usernamenewnew" {
+			t.Fatal("Failed updating user settings, username")
 		}
-		if twitter_result != "twitterresult" {
+		if twitter_result != "twitternewnew" {
 			t.Fatal("Failed updating user settings, twitter")
+		}
+		if discord_result != "discordnewnew" {
+			t.Fatal("Failed updating user settings, discord")
+		}
+		if github_result != "githubnewnew" {
+			t.Fatal("Failed updating user settings, github")
 		}
 	})
 
@@ -298,13 +352,13 @@ func TestUpdateUserPrivacy(t *testing.T) {
 	Db.Exec(
 		`INSERT INTO users (
 			wallet, username, privacy, plan,
-			twitter, website, createdat, updatedat)
+			twitter, createdat, updatedat)
 		VALUES (
-			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'jsjsjsj',
-			'all', 'basic', 'thisistwitter', 'thisiswebsite',
+			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B', 'jsjsjsj',
+			'all', 'basic', 'thisistwitter',
 			current_timestamp, current_timestamp);`)
 
-	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
+	user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"}
 	session, _ := user.InsertSession()
 	_ = session
 
