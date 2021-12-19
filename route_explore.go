@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -97,7 +96,6 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 	var explore_json string
 	err = Db.QueryRow(explore_sql, offset).Scan(&explore_json)
 	if err != nil {
-		fmt.Println(err)
 		w.Write([]byte("{}"))
 		return
 	}

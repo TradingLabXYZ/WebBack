@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/lib/pq"
@@ -46,13 +45,11 @@ func (db_listener *DbListener) Listen() {
 func DistpachSnapshots(user_wallet string) {
 	observed, _ := SelectUser("wallet", user_wallet)
 	snapshot := observed.GetSnapshot()
-	fmt.Println(snapshot)
 	for _, q := range trades_wss[observed.Wallet] {
 		snapshot.CheckPrivacy(q.Observer, observed)
 		if snapshot.PrivacyStatus.Status == "KO" {
 			snapshot.Trades = nil
 		}
-		fmt.Println(snapshot)
 		q.Channel <- snapshot
 	}
 }
