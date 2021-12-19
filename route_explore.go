@@ -12,7 +12,7 @@ import (
 func SelectExplore(w http.ResponseWriter, r *http.Request) {
 	offset_string := mux.Vars(r)["offset"]
 	offset, err := strconv.Atoi(offset_string)
-	if offset%10 != 0 {
+	if offset%10 != 0 || err != nil {
 		log.Warn("Attempted accessing Explore with invalid offset")
 		w.WriteHeader(http.StatusBadRequest)
 		return
