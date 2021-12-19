@@ -52,6 +52,15 @@ func SelectPairRatio(w http.ResponseWriter, r *http.Request) {
 	first_coin_id := mux.Vars(r)["firstPairCoinId"]
 	second_coin_id := mux.Vars(r)["secondPairCoinId"]
 
+	if first_coin_id == "" || second_coin_id == "" {
+		log.WithFields(log.Fields{
+			"firstPairCoinId":  first_coin_id,
+			"secondPairCoinId": second_coin_id,
+		}).Error("Failed extracting pair ratio, empty value")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	ratio_sql := `
 		SELECT
 			y.price / x.price

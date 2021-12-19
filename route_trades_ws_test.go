@@ -166,8 +166,22 @@ func TestCheckPrivacy(t *testing.T) {
 		}
 	})
 
+	t.Run(fmt.Sprintf("Test user with privacy not legit"), func(t *testing.T) {
+		observed, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A")
+		observer := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B"}
+		observed.Privacy = "random"
+		c := make(chan TradesSnapshot)
+		ws := WebsocketServer{}
+		ws_trade := WsTrade{observer, observed, "testRequest", c, ws.conn}
+		ws_trade_output := ws_trade.Observed.GetSnapshot()
+		ws_trade_output.CheckPrivacy(observer, observed)
+		if ws_trade_output.PrivacyStatus.Reason != "unknown reason" {
+			t.Fatal("Failed user with privacy not legit")
+		}
+	})
+
 	// <tear-down code>
-	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
+	// Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 }
 
 func TestInstanciateTradeWs(t *testing.T) {
@@ -479,3 +493,74 @@ func TestStartTradesWsIntegration(t *testing.T) {
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 	Db.Exec(`DELETE FROM coins WHERE 1 = 1;`)
 }
+
+// This test creates problem, need to investigate
+/* func TestVisitPrivateUserNotCreareWebSocket(t *testing.T) {
+	// <setup code>
+
+	trades_wss = make(map[string][]WsTrade)
+
+	Db.Exec(
+		`INSERT INTO users (
+			wallet, username, privacy,
+			plan, createdat, updatedat)
+		VALUES
+			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera',
+			'all', 'basic', current_timestamp, current_timestamp),
+			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb',
+			'private', 'basic', current_timestamp, current_timestamp);`)
+
+	Db.Exec(`
+		INSERT INTO coins (
+			coinid, name, symbol, slug)
+		VALUES
+			(1, 'Bitcoin', 'BTC', 'Bitcoin'),
+			(2, 'USDC', 'USDC', 'usdc');`)
+	Db.Exec(`
+		INSERT INTO prices (
+			createdat, coinid, price)
+		VALUES
+			(current_timestamp, 1, 65000),
+			(current_timestamp, 2, 1);`)
+
+	Db.Exec(`
+		INSERT INTO trades(
+			code, userwallet, createdat, updatedat,
+			firstpair, secondpair, isopen)
+		VALUES
+		('userb', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', current_timestamp, current_timestamp, 2, 1, TRUE);`)
+	Db.Exec(`
+		INSERT INTO subtrades(
+			code, userwallet, tradecode, createdat, updatedat,
+			type, quantity, avgprice, total, reason)
+		VALUES
+		('userb', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', current_timestamp, current_timestamp, 'BUY', 1, 10000, 10000, 'TESTART')`)
+
+	// <test code>
+	t.Run(fmt.Sprintf("Test web socket not create when user is private"), func(t *testing.T) {
+		go InstanciateActivityMonitor()
+
+		server_a := httptest.NewServer(http.HandlerFunc(StartTradesWs))
+		defer server_a.Close()
+		url_a := strings.TrimPrefix(server_a.URL, "http://")
+		u_new_a := url.URL{Scheme: "ws", Host: url_a, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B/undefined"}
+		header_a := http.Header{}
+		header_a.Set("Origin", "http://127.0.0.1")
+		_, _, _ = websocket.DefaultDialer.Dial(u_new_a.String(), header_a)
+
+		// LEAVE LIKE THIS OTHERWISE RACE CONDITION (not sure why)
+		temp_trade_wss := trades_wss
+		counter := 0
+		for _ = range temp_trade_wss {
+			counter++
+		}
+
+		if counter != 0 {
+			t.Fatal("Test failed web socket not create when user is private")
+		}
+	})
+
+	// <tear-down code>
+	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
+	Db.Exec(`DELETE FROM coins WHERE 1 = 1;`)
+} */
