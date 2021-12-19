@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -12,7 +11,7 @@ import (
 func SelectExplore(w http.ResponseWriter, r *http.Request) {
 	offset_string := mux.Vars(r)["offset"]
 	offset, err := strconv.Atoi(offset_string)
-	if offset%10 != 0 {
+	if offset%10 != 0 || err != nil {
 		log.Warn("Attempted accessing Explore with invalid offset")
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -97,7 +96,6 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 	var explore_json string
 	err = Db.QueryRow(explore_sql, offset).Scan(&explore_json)
 	if err != nil {
-		fmt.Println(err)
 		w.Write([]byte("{}"))
 		return
 	}

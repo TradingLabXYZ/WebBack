@@ -83,6 +83,7 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 
 	ws_trade.SendInitialSnapshot(snapshot)
 	trades_wss[wallet] = append(trades_wss[wallet], ws_trade)
+
 	go ws_trade.WaitToTerminate()
 	go ws_trade.WaitToSendMessage()
 }

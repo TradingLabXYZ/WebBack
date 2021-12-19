@@ -10,7 +10,7 @@ import (
 )
 
 type UserWallet struct {
-	Wallet string `validate="eth_addr"`
+	Wallet string `validate:"eth_addr"`
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
@@ -23,9 +23,11 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	validate := validator.New()
 	err := validate.Struct(user_wallet)
 	if err != nil {
-		validationErrors := err.(validator.ValidationErrors)
-		first_error := validationErrors[0].Tag()
-		w.Write([]byte(first_error))
+		log.WithFields(log.Fields{
+			"wallet":     wallet,
+			"custom_msg": "Attemped accessing with invald wallet",
+		}).Warn(err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 

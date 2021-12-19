@@ -3,4 +3,6 @@ WebBack
 WebBack.test
 set_env_variables.sh
 *.log
+cover.html
+cover.out
 go.sum
