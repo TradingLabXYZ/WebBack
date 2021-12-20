@@ -32,7 +32,6 @@ type Trade struct {
 	Code              string
 	Username          string
 	Userwallet        string
-	IsOpen            string
 	Exchange          string
 	FirstPairId       int
 	SecondPairId      int
@@ -116,7 +115,6 @@ func (user User) SelectUserTrades() (trades []Trade) {
 					t.code,
 					CASE WHEN u.username IS NULL THEN '' ELSE u.username END AS username,
 					u.wallet AS userwallet,
-					t.isopen,
 					CASE WHEN t.exchange IS NULL THEN '' ELSE t.exchange END AS exchange,
 					t.firstpair,
 					t.secondpair,
@@ -140,13 +138,12 @@ func (user User) SelectUserTrades() (trades []Trade) {
 				LEFT JOIN subtrades s ON(t.code  = s.tradecode)
 				INNER JOIN users u ON(t.userwallet = u.wallet)
 				WHERE u.wallet = $1
-				GROUP BY 1, 2, 3, 4, 5, 6, 7),
+				GROUP BY 1, 2, 3, 4, 5, 6),
 			TRADES_MICRO AS (
 				SELECT
 					t.code,
 					t.username,
 					t.userwallet,
-					t.isopen,
 					t.exchange,
 					t.firstpair AS firstpairid,
 					c1.name AS firstpairname,
@@ -178,7 +175,6 @@ func (user User) SelectUserTrades() (trades []Trade) {
 			t.code,
 			t.username,
 			t.userwallet,
-			t.isopen,
 			t.exchange,
 			t.firstpairid,
 			t.firstpairname,
@@ -228,7 +224,6 @@ func (user User) SelectUserTrades() (trades []Trade) {
 			&trade.Code,
 			&trade.Username,
 			&trade.Userwallet,
-			&trade.IsOpen,
 			&trade.Exchange,
 			&trade.FirstPairId,
 			&trade.FirstPairName,
