@@ -73,6 +73,8 @@ type PrivacyStatus struct {
 type TradesSnapshot struct {
 	UserDetails    UserDetails
 	PrivacyStatus  PrivacyStatus
+	IsFollower     bool
+	IsSubscriber   bool
 	Trades         []Trade
 	CountTrades    int
 	TotalReturnUsd float64
