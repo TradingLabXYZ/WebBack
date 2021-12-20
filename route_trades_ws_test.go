@@ -228,10 +228,10 @@ func TestStartTradesWs(t *testing.T) {
 	Db.Exec(`
 		INSERT INTO trades(
 			code, userwallet, createdat, updatedat,
-			firstpair, secondpair, isopen)
+			firstpair, secondpair)
 		VALUES
-		('useratr', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', current_timestamp, current_timestamp, 1000, 1, TRUE),
-		('userbtr', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', current_timestamp,current_timestamp, 1000, 1, TRUE);`)
+		('useratr', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', current_timestamp, current_timestamp, 1000, 1),
+		('userbtr', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', current_timestamp,current_timestamp, 1000, 1);`)
 
 	Db.Exec(`
 		INSERT INTO subtrades(
@@ -418,12 +418,12 @@ func TestStartTradesWsIntegration(t *testing.T) {
 	Db.Exec(`
 		INSERT INTO trades(
 			code, userwallet, createdat, updatedat,
-			firstpair, secondpair, isopen)
+			firstpair, secondpair)
 		VALUES
-		('usera', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', current_timestamp, current_timestamp, 2, 1, TRUE),
-		('userb', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', current_timestamp, current_timestamp, 2, 4, TRUE),
-		('userc', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', current_timestamp, current_timestamp, 3, 1, TRUE),
-		('userd', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', current_timestamp, current_timestamp, 5, 2, TRUE);`)
+		('usera', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', current_timestamp, current_timestamp, 2, 1),
+		('userb', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', current_timestamp, current_timestamp, 2, 4),
+		('userc', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', current_timestamp, current_timestamp, 3, 1),
+		('userd', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', current_timestamp, current_timestamp, 5, 2);`)
 
 	Db.Exec(`
 		INSERT INTO subtrades(
@@ -526,9 +526,9 @@ func TestStartTradesWsIntegration(t *testing.T) {
 	Db.Exec(`
 		INSERT INTO trades(
 			code, userwallet, createdat, updatedat,
-			firstpair, secondpair, isopen)
+			firstpair, secondpair)
 		VALUES
-		('userb', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', current_timestamp, current_timestamp, 2, 1, TRUE);`)
+		('userb', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', current_timestamp, current_timestamp, 2, 1);`)
 	Db.Exec(`
 		INSERT INTO subtrades(
 			code, userwallet, tradecode, createdat, updatedat,

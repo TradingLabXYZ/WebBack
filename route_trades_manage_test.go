@@ -236,129 +236,6 @@ func TestInsertTrade(t *testing.T) {
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 }
 
-func TestChangeTradeStatus(t *testing.T) {
-	// <setup code>
-	Db.Exec(`
-		INSERT INTO coins (coinid, name, symbol, slug)
-		VALUES
-			(9999, 'TestCoin', 'TC', 'testcoin'),
-			(8888, 'TestCoin2', 'TC2', 'testcoin')`)
-
-	Db.Exec(
-		`INSERT INTO users (
-			wallet, username, privacy,
-			plan, createdat, updatedat)
-		VALUES (
-			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'pqpqpqp',
-			'all', 'basic', current_timestamp, current_timestamp);`)
-
-	Db.Exec(`
-		INSERT INTO trades(
-			code, userwallet, createdat, updatedat,
-			firstpair, secondpair, isopen
-		) VALUES (
-			'PQPQP', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
-			current_timestamp, 9999, 8888, TRUE);`)
-
-	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
-	session, _ := user.InsertSession()
-
-	// <test-code>
-	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/change_trade", nil)
-		req.Header.Set("Authorization", "Bearer sessionId=")
-		w := httptest.NewRecorder()
-		ChangeTradeStatus(w, req)
-		res := w.Result()
-		if res.StatusCode != 401 {
-			t.Fatal("Failed test change trade status, wrong header")
-		}
-	})
-
-	t.Run(fmt.Sprintf("Test empty tradecode"), func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/change_trade", nil)
-		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
-		w := httptest.NewRecorder()
-		ChangeTradeStatus(w, req)
-		res := w.Result()
-		if res.StatusCode != 400 {
-			t.Fatal("Failed test change trade status, empty tradecode")
-		}
-	})
-
-	t.Run(fmt.Sprintf("Test not existing tradecode"), func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/change_trade", nil)
-		vars := map[string]string{
-			"tradecode": "TEGDGDHGKJEHS",
-			"tostatus":  "true",
-		}
-		req = mux.SetURLVars(req, vars)
-		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
-		w := httptest.NewRecorder()
-		ChangeTradeStatus(w, req)
-		res := w.Result()
-		if res.StatusCode != 400 {
-			t.Fatal("Failed test change trade status, not existing tradecode")
-		}
-	})
-
-	t.Run(fmt.Sprintf("Test change trade status to false"), func(t *testing.T) {
-		Db.Exec(`
-			INSERT INTO trades(
-				code, userwallet, createdat, updatedat,
-				firstpair, secondpair, isopen
-			) VALUES (
-				'XYXYXY', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
-				current_timestamp, 9999, 8888, TRUE);`)
-		Db.Exec(`
-			INSERT INTO subtrades(
-				code, tradecode, userwallet, createdat, updatedat)
-				VALUES ('PPPPPP', 'XYXYXY', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X',
-				current_timestamp, current_timestamp);`)
-		req := httptest.NewRequest("GET", "/change_trade", nil)
-		vars := map[string]string{"tradecode": "XYXYXY", "tostatus": "false"}
-		req = mux.SetURLVars(req, vars)
-		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
-		w := httptest.NewRecorder()
-		ChangeTradeStatus(w, req)
-		isopen := false
-		_ = Db.QueryRow(`SELECT isopen FROM trades WHERE code = 'XYXYXY'`).Scan(isopen)
-		if isopen {
-			t.Fatal("Failed test change trade status, true to false")
-		}
-	})
-
-	t.Run(fmt.Sprintf("Test change trade status to true"), func(t *testing.T) {
-		Db.Exec(`
-			INSERT INTO trades(
-				code, userwallet, createdat, updatedat,
-				firstpair, secondpair, isopen
-			) VALUES (
-				'YXYXYXY', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
-				current_timestamp, 9999, 8888, FALSE);`)
-		Db.Exec(`
-			INSERT INTO subtrades(
-				code, tradecode, userwallet, createdat, updatedat)
-				VALUES ('OOOOOO', 'YXYXYXY', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X',
-				current_timestamp, current_timestamp);`)
-		req := httptest.NewRequest("GET", "/change_trade", nil)
-		vars := map[string]string{"tradecode": "YXYXYXY", "tostatus": "true"}
-		req = mux.SetURLVars(req, vars)
-		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
-		w := httptest.NewRecorder()
-		ChangeTradeStatus(w, req)
-		isopen := true
-		err := Db.QueryRow(`SELECT isopen FROM trades WHERE code = 'YXYXYXY'`).Scan(&isopen)
-		if err != nil || !isopen {
-			t.Fatal("Failed test change trade status, false to true")
-		}
-	})
-
-	// <tear-down code>
-	Db.Exec(`DELETE FROM coins WHERE 1 = 1;`)
-	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
-}
-
 func TestDeleteTrade(t *testing.T) {
 	// <setup code>
 	Db.Exec(`
@@ -404,10 +281,10 @@ func TestDeleteTrade(t *testing.T) {
 		Db.Exec(`
 			INSERT INTO trades(
 				code, userwallet, createdat, updatedat,
-				firstpair, secondpair, isopen
+				firstpair, secondpair
 			) VALUES (
 				'IUIUIUIU', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
-				current_timestamp, 9999, 8888, TRUE);`)
+				current_timestamp, 9999, 8888);`)
 		Db.Exec(`
 			INSERT INTO subtrades(
 				code, tradecode, userwallet, createdat, updatedat)
