@@ -47,7 +47,6 @@ BEGIN;
     exchange VARCHAR(64),
     firstpair NUMERIC NOT NULL REFERENCES coins(coinid),
     secondpair NUMERIC NOT NULL REFERENCES coins(coinid),
-    isopen BOOLEAN,
     CONSTRAINT users_wallet_fkey FOREIGN KEY (userwallet)
       REFERENCES users (wallet) ON DELETE CASCADE
   );

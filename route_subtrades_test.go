@@ -29,10 +29,10 @@ func TestInsertSubTrade(t *testing.T) {
 	Db.Exec(`
 		INSERT INTO trades(
 			code, userwallet, createdat, updatedat,
-			firstpair, secondpair, isopen)
+			firstpair, secondpair)
 		VALUES (
 			'MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
-			current_timestamp, 1000, 1001, TRUE);`)
+			current_timestamp, 1000, 1001);`)
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test successfully insert subtrade"), func(t *testing.T) {
@@ -141,10 +141,10 @@ func TestCreateSubTrade(t *testing.T) {
 	Db.Exec(`
 		INSERT INTO trades(
 			code, userwallet, createdat, updatedat,
-			firstpair, secondpair, isopen)
+			firstpair, secondpair)
 		VALUES (
 			'MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
-			current_timestamp, 1000, 1001, TRUE);`)
+			current_timestamp, 1000, 1001);`)
 
 	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
 	session, _ := user.InsertSession()
@@ -217,10 +217,10 @@ func TestUpdateSubTrade(t *testing.T) {
 	Db.Exec(`
 		INSERT INTO trades(
 			code, userwallet, createdat, updatedat,
-			firstpair, secondpair, isopen)
+			firstpair, secondpair)
 		VALUES (
 			'MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
-			current_timestamp, 1000, 1001, TRUE);`)
+			current_timestamp, 1000, 1001);`)
 
 	Db.Exec(`
 		INSERT INTO subtrades(
@@ -325,10 +325,10 @@ func TestDeleteSubTrade(t *testing.T) {
 	Db.Exec(`
 		INSERT INTO trades(
 			code, userwallet, createdat, updatedat,
-			firstpair, secondpair, isopen)
+			firstpair, secondpair)
 		VALUES (
 			'MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
-			current_timestamp, 1000, 1001, TRUE);`)
+			current_timestamp, 1000, 1001);`)
 
 	Db.Exec(`
 		INSERT INTO subtrades(

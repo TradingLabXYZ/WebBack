@@ -37,10 +37,10 @@ func TestSelectExplore(t *testing.T) {
 	Db.Exec(`
 		INSERT INTO trades(
 			code, userwallet, createdat, updatedat,
-			firstpair, secondpair, isopen)
+			firstpair, secondpair)
 		VALUES
-		('useratr1', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', current_timestamp, current_timestamp, 1000, 1, TRUE),
-		('useratr2', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', current_timestamp,current_timestamp, 1, 1000, TRUE);`)
+		('useratr1', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', current_timestamp, current_timestamp, 1000, 1),
+		('useratr2', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', current_timestamp,current_timestamp, 1, 1000);`)
 
 	Db.Exec(`
 		INSERT INTO subtrades(

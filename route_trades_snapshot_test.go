@@ -35,10 +35,10 @@ func TestGetSnapshot(t *testing.T) {
 		Db.Exec(`
 		INSERT INTO trades(
 			code, userwallet, createdat, updatedat,
-			firstpair, secondpair, isopen)
+			firstpair, secondpair)
 		VALUES (
 			'MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
-			current_timestamp, 1001, 1, TRUE);`)
+			current_timestamp, 1001, 1);`)
 		Db.Exec(`
 		INSERT INTO subtrades(
 			code, userwallet, tradecode, createdat, updatedat,
@@ -88,10 +88,10 @@ func TestGetSnapshot(t *testing.T) {
 		Db.Exec(`
 		INSERT INTO trades(
 			code, userwallet, createdat, updatedat,
-			firstpair, secondpair, isopen)
+			firstpair, secondpair)
 		VALUES (
 			'MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
-			current_timestamp, 1001, 1, TRUE);`)
+			current_timestamp, 1001, 1);`)
 		Db.Exec(`
 		INSERT INTO subtrades(
 			code, userwallet, tradecode, createdat, updatedat,
@@ -142,10 +142,10 @@ func TestGetSnapshot(t *testing.T) {
 		Db.Exec(`
 			INSERT INTO trades(
 				code, userwallet, createdat, updatedat,
-				firstpair, secondpair, isopen)
+				firstpair, secondpair)
 			VALUES (
 				'MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
-				current_timestamp, 1001, 1, TRUE);`)
+				current_timestamp, 1001, 1);`)
 		Db.Exec(`
 			INSERT INTO subtrades(
 				code, userwallet, tradecode, createdat, updatedat,
@@ -197,12 +197,12 @@ func TestGetSnapshot(t *testing.T) {
 		Db.Exec(`
 			INSERT INTO trades(
 				code, userwallet, createdat, updatedat,
-				firstpair, secondpair, isopen)
+				firstpair, secondpair)
 			VALUES
 				('MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
-				current_timestamp, 1001, 1, TRUE),
+				current_timestamp, 1001, 1),
 				('MBMBMBM2', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
-				current_timestamp, 1001, 1, TRUE);`)
+				current_timestamp, 1001, 1);`)
 		Db.Exec(`
 			INSERT INTO subtrades(
 				code, userwallet, tradecode, createdat, updatedat,
@@ -257,12 +257,12 @@ func TestGetSnapshot(t *testing.T) {
 		Db.Exec(`
 			INSERT INTO trades(
 				code, userwallet, createdat, updatedat,
-				firstpair, secondpair, isopen)
+				firstpair, secondpair)
 			VALUES
 				('MBMBMBM', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
-				current_timestamp, 2, 3, TRUE),
+				current_timestamp, 2, 3),
 				('MBMBMBM2', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', current_timestamp,
-				current_timestamp, 4, 5, TRUE);`)
+				current_timestamp, 4, 5);`)
 		Db.Exec(`
 			INSERT INTO subtrades(
 				code, userwallet, tradecode, createdat, updatedat,
