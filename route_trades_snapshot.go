@@ -12,6 +12,7 @@ type UserDetails struct {
 	Github         string
 	Discord        string
 	Followers      int
+	Followings     int
 	Subscribers    int
 	ProfilePicture string
 	JoinTime       string
@@ -89,6 +90,7 @@ func (user User) GetSnapshot() (snapshot TradesSnapshot) {
 		user.Github,
 		user.Discord,
 		user.Followers,
+		user.Followings,
 		user.Subscribers,
 		user.ProfilePicture,
 		user.JoinTime,
