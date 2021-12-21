@@ -28,6 +28,7 @@ type User struct {
 	Plan           string
 	ProfilePicture string
 	Followers      int
+	Followings     int
 	Subscribers    int
 }
 
@@ -151,6 +152,7 @@ func SelectUser(by string, value string) (user User, err error) {
 			plan,
 			CASE WHEN profilepicture IS NULL THEN '' ELSE profilepicture END AS profilepicture,
 			f.count_followers,
+			fo.count_followings,
 			s.count_subscribers
 		FROM users
 		LEFT JOIN (
@@ -158,6 +160,11 @@ func SelectUser(by string, value string) (user User, err error) {
 				COUNT(*) AS count_followers
 			FROM followers
 			WHERE followto = $1) f ON(1=1)
+		LEFT JOIN (
+			SELECT
+				COUNT(*) AS count_followings
+			FROM followers
+			WHERE followfrom = $1) fo ON(1=1)
 		LEFT JOIN (
 			SELECT
 				COUNT(*) AS count_subscribers
@@ -175,6 +182,7 @@ func SelectUser(by string, value string) (user User, err error) {
 		&user.Plan,
 		&user.ProfilePicture,
 		&user.Followers,
+		&user.Followings,
 		&user.Subscribers,
 	)
 
