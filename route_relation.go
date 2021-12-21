@@ -46,6 +46,9 @@ func UpdateFollower(w http.ResponseWriter, r *http.Request) {
 }
 
 func SelectRelations(w http.ResponseWriter, r *http.Request) {
+	// IF USER HAS PRIVACY ALL THEN SHOW EVERYTHING
+	// OTHERWISE FOLLOW SAME LOGIC AS WS
+
 	type Follower struct {
 		ProfilePicture string
 		CountTrades    int
