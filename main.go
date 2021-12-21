@@ -56,6 +56,8 @@ func SetupRoutes() (router *mux.Router) {
 
 	router.HandleFunc("/admin/{token}", SelectActivity).Methods("GET")
 
+	router.HandleFunc("/follow/{wallet}/{status}", UpdateFollower).Methods("GET")
+
 	files := http.FileServer(http.Dir("templates/public"))
 	s := http.StripPrefix("/static/", files)
 	router.PathPrefix("/static/").Handler(s)

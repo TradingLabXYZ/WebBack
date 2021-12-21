@@ -46,6 +46,7 @@ func DistpachSnapshots(user_wallet string) {
 	observed, _ := SelectUser("wallet", user_wallet)
 	snapshot := observed.GetSnapshot()
 	for _, q := range trades_wss[observed.Wallet] {
+		snapshot.CheckRelation(q.Observer, observed)
 		snapshot.CheckPrivacy(q.Observer, observed)
 		if snapshot.PrivacyStatus.Status == "KO" {
 			snapshot.Trades = nil
