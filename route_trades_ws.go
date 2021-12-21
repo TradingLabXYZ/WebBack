@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -73,6 +74,7 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 	ws_trade := WsTrade{observer, observed, session_id, c, ws}
 	snapshot := observed.GetSnapshot()
 
+	snapshot.CheckRelation(observer, observed)
 	snapshot.CheckPrivacy(observer, observed)
 
 	if snapshot.PrivacyStatus.Status == "KO" {
@@ -86,6 +88,34 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 
 	go ws_trade.WaitToTerminate()
 	go ws_trade.WaitToSendMessage()
+}
+
+func (snapshot *TradesSnapshot) CheckRelation(observer User, observed User) {
+	follow_sql := func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		_ = Db.QueryRow(`
+					SELECT TRUE
+					FROM followers
+					WHERE followfrom = $1
+					AND followto = $2;`, observer.Wallet, observed.Wallet).Scan(
+			&snapshot.IsFollower,
+		)
+	}
+	subscribe_sql := func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		_ = Db.QueryRow(`
+					SELECT TRUE
+					FROM subscribers
+					WHERE subscribefrom = $1
+					AND subscribeto = $2;`, observer.Wallet, observed.Wallet).Scan(
+			&snapshot.IsSubscriber,
+		)
+	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go follow_sql(&wg)
+	go subscribe_sql(&wg)
+	wg.Wait()
 }
 
 func (snapshot *TradesSnapshot) CheckPrivacy(observer User, observed User) {
@@ -113,15 +143,7 @@ func (snapshot *TradesSnapshot) CheckPrivacy(observer User, observed User) {
 		snapshot.PrivacyStatus.Reason = "private"
 		return
 	case "followers":
-		var isfollower bool
-		_ = Db.QueryRow(`
-					SELECT TRUE
-					FROM followers
-					WHERE followfrom = $1
-					AND followto = $2;`, observer.Wallet, observed.Wallet).Scan(
-			&isfollower,
-		)
-		if isfollower {
+		if snapshot.IsFollower {
 			snapshot.PrivacyStatus.Status = "OK"
 			snapshot.PrivacyStatus.Reason = "user is follower"
 			return
@@ -131,15 +153,7 @@ func (snapshot *TradesSnapshot) CheckPrivacy(observer User, observed User) {
 			return
 		}
 	case "subscribers":
-		var issubscriber bool
-		_ = Db.QueryRow(`
-					SELECT TRUE
-					FROM subscribers
-					WHERE subscribefrom = $1
-					AND subscribeto = $2;`, observer.Wallet, observed.Wallet).Scan(
-			&issubscriber,
-		)
-		if issubscriber {
+		if snapshot.IsSubscriber {
 			snapshot.PrivacyStatus.Status = "OK"
 			snapshot.PrivacyStatus.Reason = "user is subscriber"
 			return
