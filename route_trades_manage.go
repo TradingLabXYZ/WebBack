@@ -9,25 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type NewSubtrade struct {
-	CreatedAt  string      `json:"CreatedAt"`
-	Type       string      `json:"Type"`
-	Reason     string      `json:"Reason"`
-	Quantity   json.Number `json:"Quantity"`
-	AvgPrice   json.Number `json:"AvgPrice"`
-	Total      json.Number `json:"Total"`
-	UserWallet string
-}
-
-type NewTrade struct {
-	Exchange     string        `json:"Exchange"`
-	FirstPairId  int           `json:"FirstPair"`
-	SecondPairId int           `json:"SecondPair"`
-	Subtrades    []NewSubtrade `json:"Subtrades"`
-	UserWallet   string
-	Code         string
-}
-
 func CreateTrade(w http.ResponseWriter, r *http.Request) {
 	session, err := GetSession(r, "header")
 	if err != nil {
