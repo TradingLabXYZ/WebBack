@@ -69,19 +69,19 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user_relation := Relation{
+	user_connection := Connection{
 		Observer: observer,
 		Observed: observed,
 	}
-	user_relation.CheckRelation()
-	user_relation.CheckPrivacy()
+	user_connection.CheckConnection()
+	user_connection.CheckPrivacy()
 
 	c := make(chan TradesSnapshot)
 	ws_trade := WsTrade{observer, observed, session_id, c, ws}
 	snapshot := observed.GetSnapshot()
-	snapshot.IsFollower = user_relation.IsFollower
-	snapshot.IsSubscriber = user_relation.IsSubscriber
-	snapshot.PrivacyStatus = user_relation.Privacy
+	snapshot.IsFollower = user_connection.IsFollower
+	snapshot.IsSubscriber = user_connection.IsSubscriber
+	snapshot.PrivacyStatus = user_connection.Privacy
 
 	if snapshot.PrivacyStatus.Status == "KO" {
 		snapshot.Trades = nil
