@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	mathrand "math/rand"
+	"sync"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -49,4 +50,95 @@ func RandStringBytes(n int) string {
 		b[i] = letterBytes[r.Intn(len(letterBytes))]
 	}
 	return string(b)
+}
+
+type Relation struct {
+	Observer     User
+	Observed     User
+	Privacy      PrivacyStatus
+	IsFollower   bool
+	IsSubscriber bool
+}
+
+func (relation *Relation) CheckRelation() {
+	follow_sql := func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		_ = Db.QueryRow(`
+					SELECT TRUE
+					FROM followers
+					WHERE followfrom = $1
+					AND followto = $2;`, relation.Observer.Wallet, relation.Observed.Wallet).Scan(
+			&relation.IsFollower,
+		)
+	}
+	subscribe_sql := func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		_ = Db.QueryRow(`
+					SELECT TRUE
+					FROM subscribers
+					WHERE subscribefrom = $1
+					AND subscribeto = $2;`, relation.Observer.Wallet, relation.Observed.Wallet).Scan(
+			&relation.IsSubscriber,
+		)
+	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go follow_sql(&wg)
+	go subscribe_sql(&wg)
+	wg.Wait()
+}
+
+func (relation *Relation) CheckPrivacy() {
+	if relation.Observer.Privacy == "all" {
+		relation.Privacy.Status = "OK"
+		relation.Privacy.Reason = "observed ALL"
+		return
+	}
+
+	if relation.Observer.Wallet == "" {
+		relation.Privacy.Status = "KO"
+		relation.Privacy.Reason = "user is not logged in"
+		return
+	}
+
+	if relation.Observer.Wallet == relation.Observed.Wallet {
+		relation.Privacy.Status = "OK"
+		relation.Privacy.Reason = "user access its own profile"
+		return
+	}
+
+	switch relation.Observed.Privacy {
+	case "private":
+		relation.Privacy.Status = "KO"
+		relation.Privacy.Reason = "private"
+		return
+	case "followers":
+		if relation.IsFollower {
+			relation.Privacy.Status = "OK"
+			relation.Privacy.Reason = "user is follower"
+			return
+		} else {
+			relation.Privacy.Status = "KO"
+			relation.Privacy.Reason = "user is not follower"
+			return
+		}
+	case "subscribers":
+		if relation.IsSubscriber {
+			relation.Privacy.Status = "OK"
+			relation.Privacy.Reason = "user is subscriber"
+			return
+		} else {
+			relation.Privacy.Status = "KO"
+			relation.Privacy.Reason = "user is not subscriber"
+			return
+		}
+	default:
+		log.WithFields(log.Fields{
+			"observed": relation.Observer.Wallet,
+			"observer": relation.Observer.Wallet,
+		}).Warn("Not possible to determine user's privacy")
+		relation.Privacy.Status = "KO"
+		relation.Privacy.Reason = "unknown reason"
+		return
+	}
 }
