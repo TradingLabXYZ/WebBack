@@ -9,10 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type UserWallet struct {
-	Wallet string `validate:"eth_addr"`
-}
-
 func Login(w http.ResponseWriter, r *http.Request) {
 	wallet := mux.Vars(r)["wallet"]
 

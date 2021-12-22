@@ -9,16 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type OnlineUser struct {
-	Wallet   string
-	Observed []string
-}
-
-type OnlineUsers struct {
-	Count int
-	Users []OnlineUser
-}
-
 func SelectActivity(w http.ResponseWriter, r *http.Request) {
 	token := mux.Vars(r)["token"]
 	admin_token := os.Getenv("ADMIN_TOKEN")
