@@ -42,7 +42,10 @@ func DistpachSnapshots(user_wallet string) {
 		}
 		user_connection.CheckConnection()
 		user_connection.CheckPrivacy()
-		if user_connection.Privacy.Status == "KO" {
+		snapshot.IsFollower = user_connection.IsFollower
+		snapshot.IsSubscriber = user_connection.IsSubscriber
+		snapshot.PrivacyStatus = user_connection.Privacy
+		if snapshot.PrivacyStatus.Status == "KO" {
 			snapshot.Trades = nil
 		}
 		q.Channel <- snapshot
