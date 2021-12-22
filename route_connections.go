@@ -73,6 +73,7 @@ func SelectConnections(w http.ResponseWriter, r *http.Request) {
 	}
 	user_connection.CheckConnection()
 	user_connection.CheckPrivacy()
+  
 	var relations Relations
 
 	relations.Privacy = user_connection.Privacy
