@@ -67,8 +67,9 @@ type Trade struct {
 }
 
 type PrivacyStatus struct {
-	Status string
-	Reason string
+	Status  string
+	Reason  string
+	Message string
 }
 
 type TradesSnapshot struct {

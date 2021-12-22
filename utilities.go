@@ -52,7 +52,7 @@ func RandStringBytes(n int) string {
 	return string(b)
 }
 
-type Relation struct {
+type Connection struct {
 	Observer     User
 	Observed     User
 	Privacy      PrivacyStatus
@@ -60,15 +60,15 @@ type Relation struct {
 	IsSubscriber bool
 }
 
-func (relation *Relation) CheckRelation() {
+func (connection *Connection) CheckConnection() {
 	follow_sql := func(wg *sync.WaitGroup) {
 		defer wg.Done()
 		_ = Db.QueryRow(`
 					SELECT TRUE
 					FROM followers
 					WHERE followfrom = $1
-					AND followto = $2;`, relation.Observer.Wallet, relation.Observed.Wallet).Scan(
-			&relation.IsFollower,
+					AND followto = $2;`, connection.Observer.Wallet, connection.Observed.Wallet).Scan(
+			&connection.IsFollower,
 		)
 	}
 	subscribe_sql := func(wg *sync.WaitGroup) {
@@ -77,8 +77,8 @@ func (relation *Relation) CheckRelation() {
 					SELECT TRUE
 					FROM subscribers
 					WHERE subscribefrom = $1
-					AND subscribeto = $2;`, relation.Observer.Wallet, relation.Observed.Wallet).Scan(
-			&relation.IsSubscriber,
+					AND subscribeto = $2;`, connection.Observer.Wallet, connection.Observed.Wallet).Scan(
+			&connection.IsSubscriber,
 		)
 	}
 	var wg sync.WaitGroup
@@ -88,57 +88,61 @@ func (relation *Relation) CheckRelation() {
 	wg.Wait()
 }
 
-func (relation *Relation) CheckPrivacy() {
-	if relation.Observed.Privacy == "all" {
-		relation.Privacy.Status = "OK"
-		relation.Privacy.Reason = "observed ALL"
+func (connection *Connection) CheckPrivacy() {
+	if connection.Observed.Privacy == "all" {
+		connection.Privacy.Status = "OK"
+		connection.Privacy.Reason = "observed ALL"
 		return
 	}
 
-	if relation.Observer.Wallet == "" {
-		relation.Privacy.Status = "KO"
-		relation.Privacy.Reason = "user is not logged in"
+	if connection.Observer.Wallet == "" {
+		connection.Privacy.Status = "KO"
+		connection.Privacy.Reason = "user is not logged in"
+		connection.Privacy.Message = "You need to login to visualise these infos!"
 		return
 	}
 
-	if relation.Observer.Wallet == relation.Observed.Wallet {
-		relation.Privacy.Status = "OK"
-		relation.Privacy.Reason = "user access its own profile"
+	if connection.Observer.Wallet == connection.Observed.Wallet {
+		connection.Privacy.Status = "OK"
+		connection.Privacy.Reason = "user access its own profile"
 		return
 	}
 
-	switch relation.Observed.Privacy {
+	switch connection.Observed.Privacy {
 	case "private":
-		relation.Privacy.Status = "KO"
-		relation.Privacy.Reason = "private"
+		connection.Privacy.Status = "KO"
+		connection.Privacy.Reason = "private"
+		connection.Privacy.Message = "This user prefers to keep things private!"
 		return
 	case "followers":
-		if relation.IsFollower {
-			relation.Privacy.Status = "OK"
-			relation.Privacy.Reason = "user is follower"
+		if connection.IsFollower {
+			connection.Privacy.Status = "OK"
+			connection.Privacy.Reason = "user is follower"
 			return
 		} else {
-			relation.Privacy.Status = "KO"
-			relation.Privacy.Reason = "user is not follower"
+			connection.Privacy.Status = "KO"
+			connection.Privacy.Reason = "user is not follower"
+			connection.Privacy.Message = "This user shares infos only with followers!"
 			return
 		}
 	case "subscribers":
-		if relation.IsSubscriber {
-			relation.Privacy.Status = "OK"
-			relation.Privacy.Reason = "user is subscriber"
+		if connection.IsSubscriber {
+			connection.Privacy.Status = "OK"
+			connection.Privacy.Reason = "user is subscriber"
 			return
 		} else {
-			relation.Privacy.Status = "KO"
-			relation.Privacy.Reason = "user is not subscriber"
+			connection.Privacy.Status = "KO"
+			connection.Privacy.Reason = "user is not subscriber"
+			connection.Privacy.Message = "This user shares infos only with subscribers!"
 			return
 		}
 	default:
 		log.WithFields(log.Fields{
-			"observed": relation.Observer.Wallet,
-			"observer": relation.Observer.Wallet,
+			"observed": connection.Observer.Wallet,
+			"observer": connection.Observer.Wallet,
 		}).Warn("Not possible to determine user's privacy")
-		relation.Privacy.Status = "KO"
-		relation.Privacy.Reason = "unknown reason"
+		connection.Privacy.Status = "KO"
+		connection.Privacy.Reason = "unknown reason"
 		return
 	}
 }

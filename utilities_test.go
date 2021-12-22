@@ -43,60 +43,60 @@ func TestCheckRelation(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user not follow when userid is null"), func(t *testing.T) {
 		observed, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B")
 		observer := User{Wallet: ""}
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		if user_relation.IsFollower || user_relation.IsSubscriber {
+		user_connection.CheckConnection()
+		if user_connection.IsFollower || user_connection.IsSubscriber {
 			t.Fatal("Failed user not follow when userid is null")
 		}
 	})
 	t.Run(fmt.Sprintf("Test usera follows userb"), func(t *testing.T) {
 		observed, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B")
 		observer := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		if !user_relation.IsFollower {
+		user_connection.CheckConnection()
+		if !user_connection.IsFollower {
 			t.Fatal("Failed test usera follows userb")
 		}
 	})
 	t.Run(fmt.Sprintf("Test userc does not follows userb"), func(t *testing.T) {
 		observed, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B")
 		observer := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C"}
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		if user_relation.IsFollower {
+		user_connection.CheckConnection()
+		if user_connection.IsFollower {
 			t.Fatal("Failed test userc does not follows userb")
 		}
 	})
 	t.Run(fmt.Sprintf("Test userb is subscribed to userc"), func(t *testing.T) {
 		observed, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C")
 		observer := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B"}
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		if !user_relation.IsSubscriber {
+		user_connection.CheckConnection()
+		if !user_connection.IsSubscriber {
 			t.Fatal("Failed test userb is subscibed to userc")
 		}
 	})
 	t.Run(fmt.Sprintf("Test usera is not subscribed to userc"), func(t *testing.T) {
 		observed, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C")
 		observer := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		if user_relation.IsSubscriber {
+		user_connection.CheckConnection()
+		if user_connection.IsSubscriber {
 			t.Fatal("Failed test usera is not subscribed to userc")
 		}
 	})
@@ -117,13 +117,13 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user with privacy ALL is fully visibile"), func(t *testing.T) {
 		observed, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A")
 		observer := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B"}
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		user_relation.CheckPrivacy()
-		if user_relation.Privacy.Status != "OK" {
+		user_connection.CheckConnection()
+		user_connection.CheckPrivacy()
+		if user_connection.Privacy.Status != "OK" {
 			t.Fatal("Failed test user with privacy ALL is fully visibile")
 		}
 	})
@@ -131,13 +131,13 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user not authenticated try to access not ALL users"), func(t *testing.T) {
 		observed, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B")
 		observer := User{Wallet: ""}
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		user_relation.CheckPrivacy()
-		if user_relation.Privacy.Status != "KO" {
+		user_connection.CheckConnection()
+		user_connection.CheckPrivacy()
+		if user_connection.Privacy.Status != "KO" {
 			t.Fatal("Failed user not authenticated try to access not ALL users")
 		}
 	})
@@ -145,13 +145,13 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user PRIVATE always able to see its profile if authenticated"), func(t *testing.T) {
 		observed, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B")
 		observer := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B"}
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		user_relation.CheckPrivacy()
-		if user_relation.Privacy.Status != "OK" {
+		user_connection.CheckConnection()
+		user_connection.CheckPrivacy()
+		if user_connection.Privacy.Status != "OK" {
 			t.Fatal("Failed user PRIVATE always able to see its profile if authenticated")
 		}
 	})
@@ -159,13 +159,13 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user FOLLOWERS always able to see its profile if authenticated"), func(t *testing.T) {
 		observed, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C")
 		observer := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C"}
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		user_relation.CheckPrivacy()
-		if user_relation.Privacy.Status != "OK" {
+		user_connection.CheckConnection()
+		user_connection.CheckPrivacy()
+		if user_connection.Privacy.Status != "OK" {
 			t.Fatal("Failed user FOLLOWERS always able to see its profile if authenticated")
 		}
 	})
@@ -173,13 +173,13 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user SUBSCRIBERS always able to see its profile if authenticated"), func(t *testing.T) {
 		observed, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D")
 		observer := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D"}
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		user_relation.CheckPrivacy()
-		if user_relation.Privacy.Status != "OK" {
+		user_connection.CheckConnection()
+		user_connection.CheckPrivacy()
+		if user_connection.Privacy.Status != "OK" {
 			t.Fatal("Failed user SUBSCRIBERS always able to see its profile if authenticated")
 		}
 	})
@@ -187,13 +187,13 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user cannot access other user when PRIVATE"), func(t *testing.T) {
 		observed, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B")
 		observer := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		user_relation.CheckPrivacy()
-		if user_relation.Privacy.Reason != "private" {
+		user_connection.CheckConnection()
+		user_connection.CheckPrivacy()
+		if user_connection.Privacy.Reason != "private" {
 			t.Fatal("Failed user cannot access other user when PRIVATE")
 		}
 	})
@@ -201,13 +201,13 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user cannot access other user when FOLLOWERS and not following"), func(t *testing.T) {
 		observed, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C")
 		observer := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		user_relation.CheckPrivacy()
-		if user_relation.Privacy.Reason != "user is not follower" {
+		user_connection.CheckConnection()
+		user_connection.CheckPrivacy()
+		if user_connection.Privacy.Reason != "user is not follower" {
 			t.Fatal("Failed user cannot access other user when FOLLOWERS and not following")
 		}
 	})
@@ -218,13 +218,13 @@ func TestCheckPrivacy(t *testing.T) {
 				INSERT INTO followers (followfrom, followto, createdat)
 				VALUES ('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', current_timestamp);`)
 		observer := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		user_relation.CheckPrivacy()
-		if user_relation.Privacy.Status != "OK" {
+		user_connection.CheckConnection()
+		user_connection.CheckPrivacy()
+		if user_connection.Privacy.Status != "OK" {
 			t.Fatal("Failed user can access other user when FOLLOWERS and yes following")
 		}
 	})
@@ -232,13 +232,13 @@ func TestCheckPrivacy(t *testing.T) {
 	t.Run(fmt.Sprintf("Test user cannot access other user when SUBSCRIBERS and not subscribers"), func(t *testing.T) {
 		observed, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D")
 		observer := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		user_relation.CheckPrivacy()
-		if user_relation.Privacy.Reason != "user is not subscriber" {
+		user_connection.CheckConnection()
+		user_connection.CheckPrivacy()
+		if user_connection.Privacy.Reason != "user is not subscriber" {
 			t.Fatal("Failed user cannot access other user when SUBSCRIBERS and not subscribers")
 		}
 	})
@@ -249,13 +249,13 @@ func TestCheckPrivacy(t *testing.T) {
 				INSERT INTO subscribers (subscribefrom, subscribeto, createdat)
 				VALUES ('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', current_timestamp);`)
 		observer := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		user_relation.CheckPrivacy()
-		if user_relation.Privacy.Status != "OK" {
+		user_connection.CheckConnection()
+		user_connection.CheckPrivacy()
+		if user_connection.Privacy.Status != "OK" {
 			t.Fatal("Failed user can access other user when SUBSCRIBERS and yes subscriber")
 		}
 	})
@@ -264,13 +264,13 @@ func TestCheckPrivacy(t *testing.T) {
 		observed, _ := SelectUser("wallet", "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A")
 		observer := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B"}
 		observed.Privacy = "random"
-		user_relation := Relation{
+		user_connection := Connection{
 			Observer: observer,
 			Observed: observed,
 		}
-		user_relation.CheckRelation()
-		user_relation.CheckPrivacy()
-		if user_relation.Privacy.Reason != "unknown reason" {
+		user_connection.CheckConnection()
+		user_connection.CheckPrivacy()
+		if user_connection.Privacy.Reason != "unknown reason" {
 			t.Fatal("Failed user with privacy not legit")
 		}
 	})
