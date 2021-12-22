@@ -67,12 +67,12 @@ func SelectConnections(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user_relation := Connection{
+	user_connection := Connection{
 		Observer: observer,
 		Observed: observed,
 	}
-	user_relation.CheckConnection()
-	user_relation.CheckPrivacy()
+	user_connection.CheckConnection()
+	user_connection.CheckPrivacy()
 
 	type Follower struct {
 		ProfilePicture string
@@ -91,7 +91,7 @@ func SelectConnections(w http.ResponseWriter, r *http.Request) {
 	}
 	var relations Relations
 
-	relations.Privacy = user_relation.Privacy
+	relations.Privacy = user_connection.Privacy
 
 	if relations.Privacy.Status != "OK" {
 		json.NewEncoder(w).Encode(relations)
@@ -163,5 +163,6 @@ func SelectConnections(w http.ResponseWriter, r *http.Request) {
 	go followers_sql(&wg)
 	go following_sql(&wg)
 	wg.Wait()
+
 	json.NewEncoder(w).Encode(relations)
 }
