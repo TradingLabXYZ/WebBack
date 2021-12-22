@@ -89,7 +89,7 @@ func (relation *Relation) CheckRelation() {
 }
 
 func (relation *Relation) CheckPrivacy() {
-	if relation.Observer.Privacy == "all" {
+	if relation.Observed.Privacy == "all" {
 		relation.Privacy.Status = "OK"
 		relation.Privacy.Reason = "observed ALL"
 		return
