@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	mathrand "math/rand"
+	"sync"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -49,4 +50,99 @@ func RandStringBytes(n int) string {
 		b[i] = letterBytes[r.Intn(len(letterBytes))]
 	}
 	return string(b)
+}
+
+type Connection struct {
+	Observer     User
+	Observed     User
+	Privacy      PrivacyStatus
+	IsFollower   bool
+	IsSubscriber bool
+}
+
+func (connection *Connection) CheckConnection() {
+	follow_sql := func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		_ = Db.QueryRow(`
+					SELECT TRUE
+					FROM followers
+					WHERE followfrom = $1
+					AND followto = $2;`, connection.Observer.Wallet, connection.Observed.Wallet).Scan(
+			&connection.IsFollower,
+		)
+	}
+	subscribe_sql := func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		_ = Db.QueryRow(`
+					SELECT TRUE
+					FROM subscribers
+					WHERE subscribefrom = $1
+					AND subscribeto = $2;`, connection.Observer.Wallet, connection.Observed.Wallet).Scan(
+			&connection.IsSubscriber,
+		)
+	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go follow_sql(&wg)
+	go subscribe_sql(&wg)
+	wg.Wait()
+}
+
+func (connection *Connection) CheckPrivacy() {
+	if connection.Observed.Privacy == "all" {
+		connection.Privacy.Status = "OK"
+		connection.Privacy.Reason = "observed ALL"
+		return
+	}
+
+	if connection.Observer.Wallet == "" {
+		connection.Privacy.Status = "KO"
+		connection.Privacy.Reason = "user is not logged in"
+		connection.Privacy.Message = "You need to login to visualise these infos!"
+		return
+	}
+
+	if connection.Observer.Wallet == connection.Observed.Wallet {
+		connection.Privacy.Status = "OK"
+		connection.Privacy.Reason = "user access its own profile"
+		return
+	}
+
+	switch connection.Observed.Privacy {
+	case "private":
+		connection.Privacy.Status = "KO"
+		connection.Privacy.Reason = "private"
+		connection.Privacy.Message = "This user prefers to keep things private!"
+		return
+	case "followers":
+		if connection.IsFollower {
+			connection.Privacy.Status = "OK"
+			connection.Privacy.Reason = "user is follower"
+			return
+		} else {
+			connection.Privacy.Status = "KO"
+			connection.Privacy.Reason = "user is not follower"
+			connection.Privacy.Message = "This user shares infos only with followers!"
+			return
+		}
+	case "subscribers":
+		if connection.IsSubscriber {
+			connection.Privacy.Status = "OK"
+			connection.Privacy.Reason = "user is subscriber"
+			return
+		} else {
+			connection.Privacy.Status = "KO"
+			connection.Privacy.Reason = "user is not subscriber"
+			connection.Privacy.Message = "This user shares infos only with subscribers!"
+			return
+		}
+	default:
+		log.WithFields(log.Fields{
+			"observed": connection.Observer.Wallet,
+			"observer": connection.Observer.Wallet,
+		}).Warn("Not possible to determine user's privacy")
+		connection.Privacy.Status = "KO"
+		connection.Privacy.Reason = "unknown reason"
+		return
+	}
 }

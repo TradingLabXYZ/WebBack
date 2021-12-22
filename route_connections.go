@@ -45,9 +45,34 @@ func UpdateFollower(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-func SelectRelations(w http.ResponseWriter, r *http.Request) {
-	// IF USER HAS PRIVACY ALL THEN SHOW EVERYTHING
-	// OTHERWISE FOLLOW SAME LOGIC AS WS
+func SelectConnections(w http.ResponseWriter, r *http.Request) {
+	wallet := mux.Vars(r)["wallet"]
+	observed, err := SelectUser("wallet", wallet)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"urlPath":  r.URL.Path,
+			"observed": observed,
+		}).Warn("Failed selecting relations, user not found")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	session, _ := GetSession(r, "header")
+	observer, err := SelectUser("wallet", session.UserWallet)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"customMsg": "Failed selecting relations, not available session",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	user_connection := Connection{
+		Observer: observer,
+		Observed: observed,
+	}
+	user_connection.CheckConnection()
+	user_connection.CheckPrivacy()
 
 	type Follower struct {
 		ProfilePicture string
@@ -62,9 +87,17 @@ func SelectRelations(w http.ResponseWriter, r *http.Request) {
 	type Relations struct {
 		Followers []Follower
 		Following []Following
+		Privacy   PrivacyStatus
 	}
 	var relations Relations
-	wallet := mux.Vars(r)["wallet"]
+
+	relations.Privacy = user_connection.Privacy
+
+	if relations.Privacy.Status != "OK" {
+		json.NewEncoder(w).Encode(relations)
+		return
+	}
+
 	followers_sql := func(wg *sync.WaitGroup) {
 		defer wg.Done()
 		query := `
@@ -130,5 +163,6 @@ func SelectRelations(w http.ResponseWriter, r *http.Request) {
 	go followers_sql(&wg)
 	go following_sql(&wg)
 	wg.Wait()
+
 	json.NewEncoder(w).Encode(relations)
 }

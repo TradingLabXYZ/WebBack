@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net/http"
 	"strings"
-	"sync"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -21,7 +20,7 @@ type WsTrade struct {
 func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 	url_split := strings.Split(r.URL.Path, "/")
 
-	// UNDERSTAND WHICH USER PROFILE NEEDS TO BE DISPLAYED
+	// OBSERVED
 	if len(url_split) < 4 {
 		log.WithFields(log.Fields{
 			"urlPath": r.URL.Path,
@@ -41,7 +40,7 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// UNDERSTAND WHICH USER WANTS TO RECEIVE THE DATA
+	// OBSERVER
 	session_id := url_split[3]
 	session := Session{}
 	observer := User{}
@@ -70,12 +69,19 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user_connection := Connection{
+		Observer: observer,
+		Observed: observed,
+	}
+	user_connection.CheckConnection()
+	user_connection.CheckPrivacy()
+
 	c := make(chan TradesSnapshot)
 	ws_trade := WsTrade{observer, observed, session_id, c, ws}
 	snapshot := observed.GetSnapshot()
-
-	snapshot.CheckRelation(observer, observed)
-	snapshot.CheckPrivacy(observer, observed)
+	snapshot.IsFollower = user_connection.IsFollower
+	snapshot.IsSubscriber = user_connection.IsSubscriber
+	snapshot.PrivacyStatus = user_connection.Privacy
 
 	if snapshot.PrivacyStatus.Status == "KO" {
 		snapshot.Trades = nil
@@ -88,89 +94,6 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 
 	go ws_trade.WaitToTerminate()
 	go ws_trade.WaitToSendMessage()
-}
-
-func (snapshot *TradesSnapshot) CheckRelation(observer User, observed User) {
-	follow_sql := func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		_ = Db.QueryRow(`
-					SELECT TRUE
-					FROM followers
-					WHERE followfrom = $1
-					AND followto = $2;`, observer.Wallet, observed.Wallet).Scan(
-			&snapshot.IsFollower,
-		)
-	}
-	subscribe_sql := func(wg *sync.WaitGroup) {
-		defer wg.Done()
-		_ = Db.QueryRow(`
-					SELECT TRUE
-					FROM subscribers
-					WHERE subscribefrom = $1
-					AND subscribeto = $2;`, observer.Wallet, observed.Wallet).Scan(
-			&snapshot.IsSubscriber,
-		)
-	}
-	var wg sync.WaitGroup
-	wg.Add(2)
-	go follow_sql(&wg)
-	go subscribe_sql(&wg)
-	wg.Wait()
-}
-
-func (snapshot *TradesSnapshot) CheckPrivacy(observer User, observed User) {
-	if observed.Privacy == "all" {
-		snapshot.PrivacyStatus.Status = "OK"
-		snapshot.PrivacyStatus.Reason = "observed ALL"
-		return
-	}
-
-	if observer.Wallet == "" {
-		snapshot.PrivacyStatus.Status = "KO"
-		snapshot.PrivacyStatus.Reason = "user is not logged in"
-		return
-	}
-
-	if observer.Wallet == observed.Wallet {
-		snapshot.PrivacyStatus.Status = "OK"
-		snapshot.PrivacyStatus.Reason = "user access its own profile"
-		return
-	}
-
-	switch observed.Privacy {
-	case "private":
-		snapshot.PrivacyStatus.Status = "KO"
-		snapshot.PrivacyStatus.Reason = "private"
-		return
-	case "followers":
-		if snapshot.IsFollower {
-			snapshot.PrivacyStatus.Status = "OK"
-			snapshot.PrivacyStatus.Reason = "user is follower"
-			return
-		} else {
-			snapshot.PrivacyStatus.Status = "KO"
-			snapshot.PrivacyStatus.Reason = "user is not follower"
-			return
-		}
-	case "subscribers":
-		if snapshot.IsSubscriber {
-			snapshot.PrivacyStatus.Status = "OK"
-			snapshot.PrivacyStatus.Reason = "user is subscriber"
-			return
-		} else {
-			snapshot.PrivacyStatus.Status = "KO"
-			snapshot.PrivacyStatus.Reason = "user is not subscriber"
-			return
-		}
-	default:
-		log.WithFields(log.Fields{
-			"observed": observed.Wallet,
-			"observer": observer.Wallet,
-		}).Warn("Not possible to determine user's privacy")
-		snapshot.PrivacyStatus.Status = "KO"
-		snapshot.PrivacyStatus.Reason = "unknown reason"
-		return
-	}
 }
 
 func InstanciateTradeWs(w http.ResponseWriter, r *http.Request) (ws *websocket.Conn, err error) {
