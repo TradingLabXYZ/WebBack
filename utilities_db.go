@@ -11,27 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type Session struct {
-	Code       string
-	UserWallet string
-	CreatedAt  time.Time
-}
-
-type User struct {
-	Wallet         string
-	JoinTime       string
-	Username       string
-	Twitter        string
-	Discord        string
-	Github         string
-	Privacy        string
-	Plan           string
-	ProfilePicture string
-	Followers      int
-	Followings     int
-	Subscribers    int
-}
-
 func (user *User) InsertSession() (session Session, err error) {
 	uuid, err := CreateUUID()
 	if err != nil {

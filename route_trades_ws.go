@@ -9,14 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type WsTrade struct {
-	Observer  User
-	Observed  User
-	SessionId string
-	Channel   chan TradesSnapshot
-	Ws        *websocket.Conn
-}
-
 func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 	url_split := strings.Split(r.URL.Path, "/")
 

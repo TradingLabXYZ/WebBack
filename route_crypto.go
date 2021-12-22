@@ -10,12 +10,6 @@ import (
 )
 
 func SelectPairs(w http.ResponseWriter, r *http.Request) {
-	type PairInfo struct {
-		CoinId int
-		Name   string
-		Slug   string
-	}
-
 	pairs := make(map[string]PairInfo)
 
 	pairs_sql := `

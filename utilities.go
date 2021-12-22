@@ -52,14 +52,6 @@ func RandStringBytes(n int) string {
 	return string(b)
 }
 
-type Connection struct {
-	Observer     User
-	Observed     User
-	Privacy      PrivacyStatus
-	IsFollower   bool
-	IsSubscriber bool
-}
-
 func (connection *Connection) CheckConnection() {
 	follow_sql := func(wg *sync.WaitGroup) {
 		defer wg.Done()

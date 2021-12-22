@@ -7,16 +7,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type DbListener struct {
-	Listener *pq.Listener
-}
-
-func InstanciateActivityMonitor() {
-	listener := DbListener{}
-	listener.Instanciate()
-	listener.Listen()
-}
-
 func (l *DbListener) Instanciate() {
 	reportProblem := func(ev pq.ListenerEventType, err error) {
 		if err != nil {
