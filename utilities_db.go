@@ -66,7 +66,7 @@ func (session *Session) ExtractFromRequest(r *http.Request, using string) (err e
 func (session *Session) ExtractFromHeader(r *http.Request) (err error) {
 	if len(r.Header["Authorization"]) > 0 {
 		split_auth := strings.Split(r.Header["Authorization"][0], "sessionId=")
-		if len(split_auth) >= 1 {
+		if len(split_auth) > 1 {
 			session.Code = split_auth[1]
 			return
 		} else {
