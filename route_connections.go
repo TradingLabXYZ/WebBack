@@ -57,15 +57,9 @@ func SelectConnections(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// No checking errors because no loggedin user can access
 	session, _ := GetSession(r, "header")
-	observer, err := SelectUser("wallet", session.UserWallet)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"customMsg": "Failed selecting relations, not available session",
-		}).Error(err)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
+	observer, _ := SelectUser("wallet", session.UserWallet)
 
 	user_connection := Connection{
 		Observer: observer,
@@ -73,7 +67,7 @@ func SelectConnections(w http.ResponseWriter, r *http.Request) {
 	}
 	user_connection.CheckConnection()
 	user_connection.CheckPrivacy()
-  
+
 	var relations Relations
 
 	relations.Privacy = user_connection.Privacy
