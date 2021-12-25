@@ -131,7 +131,8 @@ func (user User) SelectUserTrades() (trades []Trade) {
 			t.totalreturn * t.firstpairprice / c3.price AS returnbtc,
 			t.totalreturn * t.firstpairprice AS returnusd,
 			ROUND(t.roi, 1) AS roi,
-			c3.price AS btcprice
+			c3.price AS btcprice,
+			t.qtyavailable * t.firstpairprice AS totalvalueusd
 		FROM TRADES_MICRO t
 		LEFT JOIN CURRENT_PRICE c3 ON(c3.coinid = 1);`
 
@@ -181,6 +182,7 @@ func (user User) SelectUserTrades() (trades []Trade) {
 			&trade.TotalReturnUsd,
 			&trade.Roi,
 			&trade.BtcPrice,
+			&trade.TotalValueUsd,
 		); err != nil {
 			log.WithFields(log.Fields{
 				"wallet":     user.Wallet,
@@ -246,11 +248,12 @@ func (trade Trade) SelectTradeSubtrades() (subtrades []Subtrade) {
 
 func (snapshot *TradesSnapshot) CalculateTradesTotals() {
 	var (
-		totalReturnBtc  float64
-		totalReturnUsd  float64
-		totalBuysBtc    float64
-		totalSellBtc    float64
-		futureReturnBtc float64
+		totalReturnBtc    float64
+		totalReturnUsd    float64
+		totalPortfolioUsd float64
+		totalBuysBtc      float64
+		totalSellBtc      float64
+		futureReturnBtc   float64
 	)
 	for _, trade := range snapshot.Trades {
 		totalReturnBtc = totalReturnBtc + trade.TotalReturnBtc
@@ -258,9 +261,11 @@ func (snapshot *TradesSnapshot) CalculateTradesTotals() {
 		totalBuysBtc = totalBuysBtc + trade.TotalBuysBtc
 		totalSellBtc = totalSellBtc + trade.TotalSellsBtc
 		futureReturnBtc = futureReturnBtc + trade.FutureReturnBtc
+		totalPortfolioUsd = totalPortfolioUsd + trade.TotalValueUsd
 	}
 	snapshot.TotalReturnBtc = math.Round(totalReturnBtc*100) / 100
 	snapshot.TotalReturnUsd = math.Round(totalReturnUsd*100) / 100
+	snapshot.TotalPortfolioUsd = math.Round(totalPortfolioUsd*100) / 100
 	snapshot.Roi = math.Round(((futureReturnBtc+totalSellBtc)/totalBuysBtc-1)*100*100) / 100
 	if math.IsNaN(snapshot.Roi) || math.IsInf(snapshot.Roi, 0) {
 		snapshot.Roi = 0

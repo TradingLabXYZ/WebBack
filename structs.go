@@ -167,6 +167,7 @@ type Trade struct {
 	TotalReturn       float64
 	TotalReturnBtc    float64
 	TotalReturnUsd    float64
+	TotalValueUsd     float64
 	Roi               float64
 	BtcPrice          float64
 	Subtrades         []Subtrade
@@ -179,13 +180,14 @@ type PrivacyStatus struct {
 }
 
 type TradesSnapshot struct {
-	UserDetails    UserDetails
-	PrivacyStatus  PrivacyStatus
-	IsFollower     bool
-	IsSubscriber   bool
-	Trades         []Trade
-	CountTrades    int
-	TotalReturnUsd float64
-	TotalReturnBtc float64
-	Roi            float64
+	UserDetails       UserDetails
+	PrivacyStatus     PrivacyStatus
+	IsFollower        bool
+	IsSubscriber      bool
+	Trades            []Trade
+	CountTrades       int
+	TotalReturnUsd    float64
+	TotalReturnBtc    float64
+	Roi               float64
+	TotalPortfolioUsd float64
 }
