@@ -150,10 +150,10 @@ type Trade struct {
 	SecondPairPrice   float64
 	FirstPairUrlIcon  string
 	SecondPairUrlIcon string
-	CurrentPrice      float64
+	CurrentPrice      string
 	QtyBuys           float64
 	QtySells          float64
-	QtyAvailable      float64
+	QtyAvailable      string
 	TotalBuys         float64
 	TotalBuysBtc      float64
 	TotalBuysUsd      float64
@@ -165,9 +165,11 @@ type Trade struct {
 	FutureReturnBtc   float64
 	FutureReturnUsd   float64
 	TotalReturn       float64
+	TotalReturnS      string
 	TotalReturnBtc    float64
 	TotalReturnUsd    float64
 	TotalValueUsd     float64
+	TotalValueUsdS    string
 	Roi               float64
 	BtcPrice          float64
 	Subtrades         []Subtrade
@@ -186,8 +188,8 @@ type TradesSnapshot struct {
 	IsSubscriber      bool
 	Trades            []Trade
 	CountTrades       int
-	TotalReturnUsd    float64
-	TotalReturnBtc    float64
+	TotalReturnUsd    string
+	TotalReturnBtc    string
 	Roi               float64
-	TotalPortfolioUsd float64
+	TotalPortfolioUsd string
 }

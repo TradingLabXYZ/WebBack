@@ -3,6 +3,7 @@ package main
 import (
 	"math"
 
+	"github.com/dustin/go-humanize"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -113,10 +114,13 @@ func (user User) SelectUserTrades() (trades []Trade) {
 			t.secondpairsymbol,
 			t.secondpairprice,
 			t.secondpairurlicon,
-			CASE WHEN t.currentprice > 1 THEN ROUND(t.currentprice, 2) ELSE ROUND(t.currentprice, 5) END as currentprice,
+			CASE WHEN t.currentprice > 1 THEN TO_CHAR(ROUND(t.currentprice, 2), '999,999,999.00') ELSE TO_CHAR(ROUND(t.currentprice, 5), '999,999,999.00000') END as currentprice,
 			t.qtybuys,
 			t.qtysells,
-			ROUND(t.qtyavailable, 2) as qtyavailable,
+			CASE
+				WHEN RIGHT(TO_CHAR(ROUND(t.qtyavailable, 2), '999,999,999.00'), 2) = '00' THEN TO_CHAR(ROUND(t.qtyavailable, 2), '999,999,999')
+				ELSE TO_CHAR(ROUND(t.qtyavailable, 2), '999,999,999.00')
+			END as qtyavailable,
 			t.totalbuys,
 			t.totalbuys * t.firstpairprice / c3.price AS totalbuysbtc,
 			t.totalbuys * t.firstpairprice AS totalbuysusd,
@@ -132,7 +136,7 @@ func (user User) SelectUserTrades() (trades []Trade) {
 			t.totalreturn * t.firstpairprice AS returnusd,
 			ROUND(t.roi, 1) AS roi,
 			c3.price AS btcprice,
-			t.qtyavailable * t.firstpairprice AS totalvalueusd
+			ROUND(t.qtyavailable * t.secondpairprice, 2) AS totalvalueusd
 		FROM TRADES_MICRO t
 		LEFT JOIN CURRENT_PRICE c3 ON(c3.coinid = 1);`
 
@@ -190,6 +194,8 @@ func (user User) SelectUserTrades() (trades []Trade) {
 			}).Error(err)
 		}
 
+		trade.TotalValueUsdS = humanize.Commaf(trade.TotalValueUsd)
+		trade.TotalReturnS = humanize.Commaf(trade.TotalReturn)
 		subtrades := trade.SelectTradeSubtrades()
 		trade.Subtrades = subtrades
 
@@ -263,10 +269,12 @@ func (snapshot *TradesSnapshot) CalculateTradesTotals() {
 		futureReturnBtc = futureReturnBtc + trade.FutureReturnBtc
 		totalPortfolioUsd = totalPortfolioUsd + trade.TotalValueUsd
 	}
-	snapshot.TotalReturnBtc = math.Round(totalReturnBtc*100) / 100
-	snapshot.TotalReturnUsd = math.Round(totalReturnUsd*100) / 100
-	snapshot.TotalPortfolioUsd = math.Round(totalPortfolioUsd*100) / 100
+
+	snapshot.TotalReturnBtc = humanize.Commaf(math.Round(totalReturnBtc*100) / 100)
+	snapshot.TotalReturnUsd = humanize.Commaf(math.Round(totalReturnUsd*100) / 100)
+	snapshot.TotalPortfolioUsd = humanize.Commaf(math.Round(totalPortfolioUsd*100) / 100)
 	snapshot.Roi = math.Round(((futureReturnBtc+totalSellBtc)/totalBuysBtc-1)*100*100) / 100
+
 	if math.IsNaN(snapshot.Roi) || math.IsInf(snapshot.Roi, 0) {
 		snapshot.Roi = 0
 	}
