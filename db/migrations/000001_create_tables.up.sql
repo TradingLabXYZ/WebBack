@@ -88,6 +88,7 @@ BEGIN;
       REFERENCES users (wallet) ON DELETE CASCADE
   );
 
+
   CREATE OR REPLACE FUNCTION notify_changes()
     RETURNS trigger AS $$
     BEGIN

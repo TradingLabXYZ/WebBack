@@ -1,0 +1,3 @@
+BEGIN;
+  DROP TYPE IF EXISTS contractplans;
+COMMIT;
