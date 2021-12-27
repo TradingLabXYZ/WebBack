@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/big"
 	"path/filepath"
 	"strings"
 
@@ -30,49 +31,94 @@ import (
 )
 
 func TrackContractTransaction() {
+	go TrackStore()
+	go TrackSubscription()
+
+	// STORE CONTRACTS
+}
+
+func TrackStore() {
 	client, err := ethclient.Dial("ws://127.0.0.1:9944")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	contractAddress := common.HexToAddress("0xBF1fdCb2A1CAf1CA5662222417f0351043EEc19A")
-	query := ethereum.FilterQuery{
-		Addresses: []common.Address{contractAddress},
+	storeContractAddress := common.HexToAddress("0xF8cef78E923919054037a1D03662bBD884fF4edf")
+	storeQuery := ethereum.FilterQuery{
+		Addresses: []common.Address{storeContractAddress},
 	}
-
-	logs := make(chan types.Log)
-	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
+	storeLogs := make(chan types.Log)
+	sub, err := client.SubscribeFilterLogs(context.Background(), storeQuery, storeLogs)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// FROM ME
-	path, _ := filepath.Abs("/home/dolphin/Code/TradingLab/Contracts/abigenBindings/abi/Store.abi")
-	file, err := ioutil.ReadFile(path)
+	storePath, _ := filepath.Abs("Store.abi")
+	storeFile, err := ioutil.ReadFile(storePath)
 	if err != nil {
 		fmt.Println("Failed to read file:", err)
 	}
-	edabi, err := abi.JSON(strings.NewReader(string(file)))
+	storeAbi, err := abi.JSON(strings.NewReader(string(storeFile)))
 	if err != nil {
 		fmt.Println("Invalid abi:", err)
 	}
-
 	for {
 		select {
 		case err := <-sub.Err():
 			log.Fatal(err)
-		case vLog := <-logs:
+		case vLog := <-storeLogs:
 			event := struct {
 				Key   string
 				Value string
 			}{}
-			err := edabi.UnpackIntoInterface(&event, "ItemSet", vLog.Data)
+			err := storeAbi.UnpackIntoInterface(&event, "ItemSet", vLog.Data)
 			if err != nil {
 				log.Fatal(err)
 			}
+			fmt.Println("Store Contract", string(event.Key))
+			fmt.Println("Store Contract", string(event.Value))
+		}
+	}
+}
 
-			fmt.Println(string(event.Key))   // foo
-			fmt.Println(string(event.Value)) // barn("event", event)
+func TrackSubscription() {
+	client, err := ethclient.Dial("ws://127.0.0.1:9944")
+	if err != nil {
+		log.Fatal(err)
+	}
+	subscriptionContractAddress := common.HexToAddress("0x42e2EE7Ba8975c473157634Ac2AF4098190fc741")
+	subscriptionQuery := ethereum.FilterQuery{
+		Addresses: []common.Address{subscriptionContractAddress},
+	}
+	subscriptionLogs := make(chan types.Log)
+	sub, err := client.SubscribeFilterLogs(context.Background(), subscriptionQuery, subscriptionLogs)
+	if err != nil {
+		log.Fatal(err)
+	}
+	subscriptionPath, _ := filepath.Abs("Subscription.abi")
+	subscriptionFile, err := ioutil.ReadFile(subscriptionPath)
+	if err != nil {
+		fmt.Println("Failed to read file:", err)
+	}
+	subscriptionAbi, err := abi.JSON(strings.NewReader(string(subscriptionFile)))
+	if err != nil {
+		fmt.Println("Invalid abi:", err)
+	}
+	for {
+		select {
+		case err := <-sub.Err():
+			log.Fatal(err)
+		case vLog := <-subscriptionLogs:
+			fmt.Println(vLog)
+			event := struct {
+				Sender common.Address
+				Value  *big.Int
+			}{}
+			err := subscriptionAbi.UnpackIntoInterface(&event, "ChangePlan", vLog.Data)
+			if err != nil {
+				log.Fatal(err)
+			}
+			fmt.Println("Subscription Contract", event.Sender)
+			fmt.Println("Subscription Contract", event.Value)
 		}
 	}
 }
