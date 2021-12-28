@@ -1,5 +1,5 @@
 BEGIN;
-  CREATE TABLE IF NOT EXISTS contractplans (
+  CREATE TABLE IF NOT EXISTS changeplans (
     createdat TIMESTAMP NOT NULL,
     transaction VARCHAR(66) NOT NULL,
     sender VARCHAR(42) NOT NULL,

@@ -1,3 +1,3 @@
 BEGIN;
-  DROP TYPE IF EXISTS contractplans;
+  DROP TYPE IF EXISTS changeplans;
 COMMIT;

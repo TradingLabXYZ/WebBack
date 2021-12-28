@@ -51,7 +51,7 @@ func TrackSubscription(client ethclient.Client) {
 		}).Error(err)
 		return
 	}
-	subscriptionPath, _ := filepath.Abs("Subscription.abi")
+	subscriptionPath, _ := filepath.Abs("contracts/Subscription.abi")
 	subscriptionFile, err := ioutil.ReadFile(subscriptionPath)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -85,7 +85,7 @@ func TrackSubscription(client ethclient.Client) {
 			tx := vLog.TxHash.String()
 			address := vLog.Address
 			_, err = Db.Exec(`
-				INSERT INTO contractplans (
+				INSERT INTO changeplans (
 					createdat,
 					transaction,
 					sender,
