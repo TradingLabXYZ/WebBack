@@ -10,34 +10,54 @@ import (
 )
 
 func SelectPairs(w http.ResponseWriter, r *http.Request) {
-	pairs := make(map[string]PairInfo)
+	pairs := make(map[int]PairInfo)
 
 	pairs_sql := `
 		SELECT DISTINCT
+			coinid,
 			symbol,
 			name,
-			coinid,
 			slug
 		FROM coins
-		ORDER BY 1;`
+		ORDER BY coinid;`
 	pairs_rows, err := Db.Query(pairs_sql)
 	defer pairs_rows.Close()
 	if err != nil {
 		log.Error(err)
 	}
 	for pairs_rows.Next() {
-		var symbol string
+		var coinid int
 		pair_info := PairInfo{}
 		if err = pairs_rows.Scan(
-			&symbol,
+			&coinid,
+			&pair_info.Symbol,
 			&pair_info.Name,
-			&pair_info.CoinId,
 			&pair_info.Slug,
 		); err != nil {
 			log.Error(err)
 		}
-		pairs[symbol] = pair_info
+		pairs[coinid] = pair_info
 	}
+
+	/* keys := make([]string, 0, len(pairs))
+	for k := range pairs {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		fmt.Println(k, pairs[k])
+		ordered_pairs[k] = pairs[k]
+	}
+
+	counter := 0
+	for k, v := range ordered_pairs {
+		counter++
+		if counter > 10 {
+			break
+		}
+		fmt.Println(k, v)
+	} */
 
 	json.NewEncoder(w).Encode(pairs)
 }

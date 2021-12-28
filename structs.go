@@ -89,7 +89,7 @@ type UserWallet struct {
 }
 
 type PairInfo struct {
-	CoinId int
+	Symbol string
 	Name   string
 	Slug   string
 }
