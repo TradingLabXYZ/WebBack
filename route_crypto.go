@@ -38,27 +38,6 @@ func SelectPairs(w http.ResponseWriter, r *http.Request) {
 		}
 		pairs[coinid] = pair_info
 	}
-
-	/* keys := make([]string, 0, len(pairs))
-	for k := range pairs {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for _, k := range keys {
-		fmt.Println(k, pairs[k])
-		ordered_pairs[k] = pairs[k]
-	}
-
-	counter := 0
-	for k, v := range ordered_pairs {
-		counter++
-		if counter > 10 {
-			break
-		}
-		fmt.Println(k, v)
-	} */
-
 	json.NewEncoder(w).Encode(pairs)
 }
 
