@@ -3,27 +3,19 @@ module github.com/TradingLabXYZ/WebBack
 go 1.15
 
 require (
-	github.com/aws/aws-sdk-go v1.40.59
-	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/getsentry/sentry-go v0.11.0 // indirect
-	github.com/go-playground/validator v9.31.0+incompatible // indirect
-	github.com/go-playground/validator/v10 v10.9.0 // indirect
-	github.com/golang-migrate/migrate v3.5.4+incompatible // indirect
+	github.com/aws/aws-sdk-go v1.42.25
+	github.com/cortesi/devd v0.0.0-20200427000907-c1a3bfba27d8 // indirect
+	github.com/cortesi/modd v0.0.0-20211215124449-6083f9d1c171 // indirect
+	github.com/dustin/go-humanize v1.0.0
+	github.com/go-playground/validator/v10 v10.9.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jmoiron/sqlx v1.3.4
-	github.com/kr/pretty v0.3.0 // indirect
-	github.com/lib/pq v1.10.3
+	github.com/lib/pq v1.10.4
 	github.com/logrusorgru/aurora v2.0.3+incompatible
-	github.com/pkg/errors v0.9.1 // indirect
-	github.com/posener/wstest v1.2.0 // indirect
-	github.com/rgamba/evtwebsocket v0.0.0-20181029234908-48b8cd9f8616 // indirect
-	github.com/rs/cors v1.8.0
-	github.com/sacOO7/gowebsocket v0.0.0-20210515122958-9396f1a71e23 // indirect
+	github.com/rs/cors v1.8.2
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stellar/go v0.0.0-20211008195307-10c7eda545ed
-	github.com/stellar/go-xdr v0.0.0-20201028102745-f80a23dac78a // indirect
-	github.com/stretchr/testify v1.7.0 // indirect
-	gopkg.in/validator.v2 v2.0.0-20210331031555-b37d688a7fb0 // indirect
+	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
+	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
+	golang.org/x/text v0.3.7 // indirect
 )
