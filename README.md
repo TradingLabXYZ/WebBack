@@ -70,10 +70,5 @@ modd
 go test -v -cover -parallel 1
 ```
 
-# Todos
-- Store trade history before deleting
-- Create system to monitor `trades_wss`
-- Alerts with Sentry
-- Better logs
-- Properly manage migrations
-- Stress test
+# Migrate
+Use `Makefile` to migrate up or down the database
