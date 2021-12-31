@@ -7,6 +7,8 @@ The code is hosted on DigitalOceans.
 
 There are two main branches: production and staging.
 
+The code is automatically re-compiled at any changes, so it is possibile to simply refresh the webpage to run the new code.
+
 ## Architecture
 
 The router is Gorilla Mux, using http and websocket.
@@ -60,8 +62,7 @@ export ADMIN_TOKEN=
 
 Build and run the program:
 ```bash
-go build
-./WebBack
+modd
 ```
 
 # Test
@@ -69,10 +70,5 @@ go build
 go test -v -cover -parallel 1
 ```
 
-# Todos
-- Store trade history before deleting
-- Create system to monitor `trades_wss`
-- Alerts with Sentry
-- Better logs
-- Properly manage migrations
-- Stress test
+# Migrate
+Use `Makefile` to migrate up or down the database
