@@ -1,17 +1,3 @@
-/** HOW TO
-1 - Run Node
-			truffle run moonbeam start
-2 - Modify contract
-3 - Deploy contract
-			truffle migrate --network dev --reset
-4 - Copy contract to FrontEnd
-			cp build/contracts/Store.json $HOME/Code/TradingLab/WebFront/src/functions
-5 - Create ABI
-			truffle run abigen Store
-6 - Update the contract in this file as well as the event params
-7 - Run this file, and you should see logs when interacting with contract
-*/
-
 package main
 
 import (
@@ -35,11 +21,11 @@ func TrackContractTransaction() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	go TrackSubscription(*client)
+	go TrackSubscriptionContract(*client)
 }
 
-func TrackSubscription(client ethclient.Client) {
-	subscriptionContractAddress := common.HexToAddress("0x42e2EE7Ba8975c473157634Ac2AF4098190fc741")
+func TrackSubscriptionContract(client ethclient.Client) {
+	subscriptionContractAddress := common.HexToAddress("0x7f78c83A10b9AcDaB1572bC76FD44FF51feDdafE")
 	subscriptionQuery := ethereum.FilterQuery{
 		Addresses: []common.Address{subscriptionContractAddress},
 	}
@@ -55,7 +41,7 @@ func TrackSubscription(client ethclient.Client) {
 	subscriptionFile, err := ioutil.ReadFile(subscriptionPath)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"customMsg": "Failed reading ChangePlan abi file",
+			"customMsg": "Failed reading Subscription abi file",
 		}).Error(err)
 		return
 	}
@@ -74,7 +60,9 @@ func TrackSubscription(client ethclient.Client) {
 				Sender common.Address
 				Value  *big.Int
 			}{}
-			err := subscriptionAbi.UnpackIntoInterface(&event, "ChangePlan", vLog.Data)
+			fmt.Println("TOPPPPPPPPPPPPPPPPPPPPPPPPPPPP")
+			fmt.Println(vLog.Topics)
+			err := subscriptionAbi.UnpackIntoInterface(&event, "Subscribe", vLog.Data)
 			if err != nil {
 				log.WithFields(log.Fields{
 					"vLog":      string(vLog.Data),
