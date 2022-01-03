@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -17,15 +19,23 @@ import (
 )
 
 func TrackContractTransaction() {
+	events_json, err := os.Open("contracts/subscription_events.json")
+	defer events_json.Close()
+	if err != nil {
+		// MANAGE ERROR!!!
+	}
+	events_json_byte, err := ioutil.ReadAll(events_json)
+	var events_data map[string]interface{}
+	json.Unmarshal([]byte(events_json_byte), &events_data)
 	client, err := ethclient.Dial("ws://127.0.0.1:9944")
 	if err != nil {
 		log.Fatal(err)
 	}
-	go TrackSubscriptionContract(*client)
+	go TrackSubscriptionContract(*client, events_data)
 }
 
-func TrackSubscriptionContract(client ethclient.Client) {
-	subscriptionContractAddress := common.HexToAddress("0x7f78c83A10b9AcDaB1572bC76FD44FF51feDdafE")
+func TrackSubscriptionContract(client ethclient.Client, events_data map[string]interface{}) {
+	subscriptionContractAddress := common.HexToAddress("0xfE5D3c52F7ee9aa32a69b96Bfbb088Ba0bCd8EfC")
 	subscriptionQuery := ethereum.FilterQuery{
 		Addresses: []common.Address{subscriptionContractAddress},
 	}
@@ -56,13 +66,22 @@ func TrackSubscriptionContract(client ethclient.Client) {
 				"customMsg": "Failed receiving vLog data",
 			}).Warn(err)
 		case vLog := <-subscriptionLogs:
+			event_hex := vLog.Topics[0].String()
+			event_map := events_data[event_hex].(map[string]interface{})
+			event_name := ""
+			for k, v := range event_map {
+				if k == "name" {
+					event_name = v.(string)
+				}
+			}
+
+			fmt.Println(event_hex, event_name)
+
 			event := struct {
 				Sender common.Address
 				Value  *big.Int
 			}{}
-			fmt.Println("TOPPPPPPPPPPPPPPPPPPPPPPPPPPPP")
-			fmt.Println(vLog.Topics)
-			err := subscriptionAbi.UnpackIntoInterface(&event, "Subscribe", vLog.Data)
+			err := subscriptionAbi.UnpackIntoInterface(&event, "ChangePlan", vLog.Data)
 			if err != nil {
 				log.WithFields(log.Fields{
 					"vLog":      string(vLog.Data),
