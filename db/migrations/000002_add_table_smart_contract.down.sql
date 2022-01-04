@@ -1,3 +1,3 @@
 BEGIN;
-  DROP TYPE IF EXISTS changeplans;
+  DROP TABLE IF EXISTS smartcontractevents;
 COMMIT;
