@@ -108,7 +108,6 @@ func TrackSubscriptionContract(client ethclient.Client) {
 						"customMsg": "Failed unpacking vLog data",
 					}).Warn(err)
 				}
-				fmt.Println(event)
 				s_event, err := json.Marshal(event)
 				if err != nil {
 					fmt.Println(err)
@@ -116,10 +115,29 @@ func TrackSubscriptionContract(client ethclient.Client) {
 				}
 				event_sender = event.Sender.Hex()
 				event_payload = string(s_event)
-
 			case event_name == "Subscribe":
-				// MANAGE
-				fmt.Println("")
+				event := struct {
+					Sender common.Address
+					To     common.Address
+				}{}
+				err := subscriptionAbi.UnpackIntoInterface(
+					&event,
+					"Subscribe",
+					vLog.Data,
+				)
+				if err != nil {
+					log.WithFields(log.Fields{
+						"vLog":      string(vLog.Data),
+						"customMsg": "Failed unpacking vLog data",
+					}).Warn(err)
+				}
+				s_event, err := json.Marshal(event)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+				event_sender = event.Sender.Hex()
+				event_payload = string(s_event)
 			}
 
 			tx := vLog.TxHash.String()
