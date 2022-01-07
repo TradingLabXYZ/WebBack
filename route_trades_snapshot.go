@@ -30,14 +30,15 @@ func (user User) SelectUserTrades() (trades []Trade) {
 	trades_sql := `
 		WITH
 			CURRENT_PRICE AS (
-				SELECT
+				SELECT DISTINCT ON(p.coinid)
 					p.coinid,
+					p.createdat,
 					c.name,
 					c.symbol,
 					p.price
 				FROM prices p
 				LEFT JOIN coins c ON(p.coinid = c.coinid)
-				WHERE createdat = (SELECT MAX(createdat) FROM prices)),
+				ORDER BY 1, 2 DESC)
 			TRADES_MACRO AS (
 				SELECT
 					t.code,
