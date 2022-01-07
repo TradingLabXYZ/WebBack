@@ -82,6 +82,7 @@ func TrackSubscriptionContract(client ethclient.Client) {
 				"customMsg": "Failed receiving vLog data",
 			}).Warn(err)
 		case vLog := <-subscriptionLogs:
+			fmt.Println("RECEIVED EVENT")
 			event_signature := vLog.Topics[0].String()
 			event_name := ""
 			for _, v := range subscription_contract.Event {
@@ -91,6 +92,7 @@ func TrackSubscriptionContract(client ethclient.Client) {
 			}
 			event_sender := ""
 			event_payload := ""
+			fmt.Println("EVENT NAME", event_name)
 			switch {
 			case event_name == "ChangePlan":
 				event := struct {
