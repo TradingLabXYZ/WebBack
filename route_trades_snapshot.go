@@ -38,7 +38,7 @@ func (user User) SelectUserTrades() (trades []Trade) {
 					p.price
 				FROM prices p
 				LEFT JOIN coins c ON(p.coinid = c.coinid)
-				ORDER BY 1, 2 DESC)
+				ORDER BY 1, 2 DESC),
 			TRADES_MACRO AS (
 				SELECT
 					t.code,
