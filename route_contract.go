@@ -61,7 +61,7 @@ func TrackSubscriptionContract(client ethclient.Client) {
 		}).Error(err)
 		return
 	}
-	subscriptionPath, _ := filepath.Abs("contracts/Subscription.abi")
+	subscriptionPath, _ := filepath.Abs("contracts/SubscriptionModel.abi")
 	subscriptionFile, err := ioutil.ReadFile(subscriptionPath)
 	if err != nil {
 		log.WithFields(log.Fields{
