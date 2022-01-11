@@ -54,6 +54,7 @@ type User struct {
 	Followers      int
 	Followings     int
 	Subscribers    int
+	MonthlyFee     int
 }
 
 type Connection struct {
