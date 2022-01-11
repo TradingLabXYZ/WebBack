@@ -133,7 +133,7 @@ func SelectUser(by string, value string) (user User, err error) {
 			f.count_followers,
 			fo.count_followings,
 			s.count_subscribers,
-			mf.monthly_fee
+			CASE WHEN mf.monthly_fee IS NULL THEN '0' ELSE mf.monthly_fee END AS monthly_fee
 		FROM users
 		LEFT JOIN (
 			SELECT
@@ -153,11 +153,11 @@ func SelectUser(by string, value string) (user User, err error) {
 		LEFT JOIN (
 			SELECT DISTINCT ON(sender)
 				sender,
-				createdat,
+				createdat AS eventcreatedat,
 				payload#>>'{Value}' AS monthly_fee
 			FROM smartcontractevents
 			WHERE name = 'ChangePlan'
-			AND sender = $1
+			AND LOWER(sender) = LOWER($1)
 			ORDER BY 1, 2 DESC) mf ON(1=1)
 		WHERE %s = $1;`, by)
 	err = Db.QueryRow(user_sql, value).Scan(
@@ -175,6 +175,5 @@ func SelectUser(by string, value string) (user User, err error) {
 		&user.Subscribers,
 		&user.MonthlyFee,
 	)
-
 	return
 }

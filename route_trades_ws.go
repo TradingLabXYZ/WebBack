@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -23,6 +24,9 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 	wallet := url_split[2]
 
 	observed, err := SelectUser("wallet", wallet)
+
+	fmt.Println(observed)
+
 	if err != nil {
 		log.WithFields(log.Fields{
 			"urlPath":  r.URL.Path,
