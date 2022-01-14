@@ -31,7 +31,6 @@ func TrackContractTransaction() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	go TrackSubscriptionContract(*client)
 }
 

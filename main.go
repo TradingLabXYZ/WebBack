@@ -60,6 +60,8 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/follow/{wallet}/{status}", UpdateFollower).Methods("GET")
 	router.HandleFunc("/get_connections/{wallet}", SelectConnections).Methods("GET")
 
+	router.HandleFunc("/subscription/{wallet}", SelectSubscriptionMonthlyPrice).Methods("GET")
+
 	files := http.FileServer(http.Dir("templates/public"))
 	s := http.StripPrefix("/static/", files)
 	router.PathPrefix("/static/").Handler(s)
