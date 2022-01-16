@@ -106,6 +106,7 @@ func TrackSubscriptionContract(client ethclient.Client) {
 				if err != nil {
 					log.WithFields(log.Fields{
 						"vLog":      string(vLog.Data),
+						"event":     event_name,
 						"customMsg": "Failed unpacking vLog data",
 					}).Warn(err)
 				}
@@ -129,6 +130,7 @@ func TrackSubscriptionContract(client ethclient.Client) {
 				if err != nil {
 					log.WithFields(log.Fields{
 						"vLog":      string(vLog.Data),
+						"event":     event_name,
 						"customMsg": "Failed unpacking vLog data",
 					}).Warn(err)
 				}
