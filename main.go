@@ -58,6 +58,7 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/admin/{token}", SelectActivity).Methods("GET")
 
 	router.HandleFunc("/follow/{wallet}/{status}", UpdateFollower).Methods("GET")
+	router.HandleFunc("/subscribe/{wallet}/{status}", UpdateSubscriber).Methods("GET")
 	router.HandleFunc("/get_connections/{wallet}", SelectConnections).Methods("GET")
 
 	router.HandleFunc("/subscription/{wallet}", SelectSubscriptionMonthlyPrice).Methods("GET")

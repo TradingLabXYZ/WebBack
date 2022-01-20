@@ -105,7 +105,6 @@ func TrackSubscriptionContract(client ethclient.Client) {
 				)
 				if err != nil {
 					log.WithFields(log.Fields{
-						"vLog":      string(vLog.Data),
 						"event":     event_name,
 						"customMsg": "Failed unpacking vLog data",
 					}).Warn(err)
@@ -121,6 +120,8 @@ func TrackSubscriptionContract(client ethclient.Client) {
 				event := struct {
 					Sender common.Address
 					To     common.Address
+					Weeks  *big.Int
+					Amount *big.Int
 				}{}
 				err := subscriptionAbi.UnpackIntoInterface(
 					&event,
@@ -129,7 +130,6 @@ func TrackSubscriptionContract(client ethclient.Client) {
 				)
 				if err != nil {
 					log.WithFields(log.Fields{
-						"vLog":      string(vLog.Data),
 						"event":     event_name,
 						"customMsg": "Failed unpacking vLog data",
 					}).Warn(err)
