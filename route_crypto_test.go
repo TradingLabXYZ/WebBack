@@ -37,16 +37,16 @@ func TestSelectPairs(t *testing.T) {
 		readBuf, _ := ioutil.ReadAll(w.Body)
 		var sec map[string]TempPairInfo
 		_ = json.Unmarshal([]byte(*&readBuf), &sec)
-		if sec["A"].CoinId != 1000 {
+		if sec["1000"].Name != "TestCoinA" {
 			t.Error("Failed successfully extract pairs info A")
 		}
-		if sec["B"].Name != "TestCoinB" {
+		if sec["1001"].Name != "TestCoinB" {
 			t.Error("Failed successfully extract pairs info B")
 		}
-		if sec["C"].CoinId != 1002 {
+		if sec["1002"].Slug != "TestC" {
 			t.Error("Failed successfully extract pairs info C")
 		}
-		if sec["D"].Slug != "TestD" {
+		if sec["1003"].Slug != "TestD" {
 			t.Error("Failed successfully extract pairs info D")
 		}
 	})

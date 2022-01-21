@@ -30,7 +30,7 @@ func main() {
 	defer Db.Close()
 
 	go InstanciateActivityMonitor()
-	go TrackContractTransaction()
+	go TrackContractEvents()
 
 	fmt.Println(Bold(Green("Application running on port 8080")))
 	log.Fatal(http.ListenAndServe(":8080", h))

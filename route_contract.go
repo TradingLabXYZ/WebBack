@@ -18,15 +18,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type SmartContract struct {
-	Contract string `json:"contract"`
-	Event    []struct {
-		Signature string `json:"signature"`
-		Name      string `json:"name"`
-	} `json:"event"`
-}
-
-func TrackContractTransaction() {
+func TrackContractEvents() {
 	client, err := ethclient.Dial("ws://127.0.0.1:9944")
 	if err != nil {
 		log.Fatal(err)
@@ -41,9 +33,11 @@ func TrackSubscriptionContract(client ethclient.Client) {
 	json.Unmarshal([]byte(events_json_byte), &subscription_contract)
 	defer events_json.Close()
 	if err != nil {
-		// MANAGE ERROR!!!
+		log.WithFields(log.Fields{
+			"customMsg": "Failed loading subscription ABI",
+		}).Error(err)
+		return
 	}
-
 	subscriptionContractAddress := common.HexToAddress(subscription_contract.Contract)
 	subscriptionQuery := ethereum.FilterQuery{
 		Addresses: []common.Address{subscriptionContractAddress},
@@ -81,7 +75,6 @@ func TrackSubscriptionContract(client ethclient.Client) {
 				"customMsg": "Failed receiving vLog data",
 			}).Warn(err)
 		case vLog := <-subscriptionLogs:
-			fmt.Println("RECEIVED EVENT")
 			event_signature := vLog.Topics[0].String()
 			event_name := ""
 			for _, v := range subscription_contract.Event {
@@ -91,7 +84,6 @@ func TrackSubscriptionContract(client ethclient.Client) {
 			}
 			event_sender := ""
 			event_payload := ""
-			fmt.Println("EVENT NAME", event_name)
 			switch {
 			case event_name == "ChangePlan":
 				event := struct {

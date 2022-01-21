@@ -194,3 +194,11 @@ type TradesSnapshot struct {
 	Roi               float64
 	TotalPortfolioUsd string
 }
+
+type SmartContract struct {
+	Contract string `json:"contract"`
+	Event    []struct {
+		Signature string `json:"signature"`
+		Name      string `json:"name"`
+	} `json:"event"`
+}
