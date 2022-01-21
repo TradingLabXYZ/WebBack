@@ -86,6 +86,20 @@ func TestSelectPairRatio(t *testing.T) {
 			t.Fatal("Failed passing empty values")
 		}
 	})
+	t.Run(fmt.Sprintf("Test passing wrong coinid"), func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/get_pair_ratio", nil)
+		vars := map[string]string{
+			"firstPairCoinId":  "ABC",
+			"secondPairCoinId": "1001",
+		}
+		req = mux.SetURLVars(req, vars)
+		w := httptest.NewRecorder()
+		SelectPairRatio(w, req)
+		res := w.Result()
+		if res.StatusCode != 400 {
+			t.Fatal("Failed passing wrong coinid")
+		}
+	})
 	t.Run(fmt.Sprintf("Test successfully extract pair ratio"), func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/get_pair_ratio", nil)
 		vars := map[string]string{
