@@ -24,6 +24,13 @@ func TrackContractEvents() {
 }
 
 func TrackSubscriptionContract(client ethclient.Client) {
+	subscriptionAbi, err := abi.JSON(
+		strings.NewReader(string(SubscriptionModelABI)),
+	)
+	if err != nil {
+		fmt.Println("Invalid abi:", err)
+	}
+
 	subscriptionContractAddress := common.HexToAddress("0x50A614Bf1672Bc048201066e60b1A998e9cC3FcA")
 	subscriptionQuery := ethereum.FilterQuery{
 		Addresses: []common.Address{subscriptionContractAddress},
@@ -39,14 +46,6 @@ func TrackSubscriptionContract(client ethclient.Client) {
 			"customMsg": "Failed instanciating context contract ChangePlan",
 		}).Error(err)
 		return
-	}
-	subscriptionAbi, err := abi.JSON(
-		strings.NewReader(string(SubscriptionModelABI)),
-	)
-	fmt.Println(subscriptionAbi)
-
-	if err != nil {
-		fmt.Println("Invalid abi:", err)
 	}
 	for {
 		select {

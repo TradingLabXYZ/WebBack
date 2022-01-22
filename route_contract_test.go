@@ -20,21 +20,9 @@ func TestTT(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	/* events_json, err := os.Open("contracts/subscription_info.json")
-	events_json_byte, err := ioutil.ReadAll(events_json)
-	var subscription_contract SmartContract
-	json.Unmarshal([]byte(events_json_byte), &subscription_contract)
-	defer events_json.Close()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"customMsg": "Failed loading subscription ABI",
-		}).Error(err)
-		return
-	} */
-	subscriptionContractAddress := common.HexToAddress("0x42e2EE7Ba8975c473157634Ac2AF4098190fc741")
+	subscriptionContractAddress := common.HexToAddress("0x50A614Bf1672Bc048201066e60b1A998e9cC3FcA")
 
-	// instance, err := NewSubscriptionModel(subscriptionContractAddress, client)
-	instance, err := NewPlansStorage(subscriptionContractAddress, client)
+	instance, err := NewSubscriptionModel(subscriptionContractAddress, client)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -67,7 +55,7 @@ func TestTT(t *testing.T) {
 	auth.GasPrice = gasPrice
 	_ = nonce
 
-	session := &PlansStorageSession{
+	session := &SubscriptionModelSession{
 		Contract: instance,
 		CallOpts: bind.CallOpts{
 			Pending: true,
@@ -79,9 +67,8 @@ func TestTT(t *testing.T) {
 		},
 	}
 
-	ciao := common.HexToAddress("0xeF36DD9C9615447474aAE3D152e15188359D8e98")
-	a := big.NewInt(10)
-	session.AddPlan(ciao, a)
+	a := big.NewInt(20)
+	session.ChangePlan(a)
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test BLOCKCHAIN"), func(t *testing.T) {
