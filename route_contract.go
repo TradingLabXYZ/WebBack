@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"os"
 	"strings"
 
 	"github.com/ethereum/go-ethereum"
@@ -24,6 +25,7 @@ func TrackContractEvents() {
 }
 
 func TrackSubscriptionContract(client ethclient.Client) {
+	contract_address := os.Getenv("CONTRACT_SUBSCRIPTION")
 	subscriptionAbi, err := abi.JSON(
 		strings.NewReader(string(SubscriptionModelABI)),
 	)
@@ -31,7 +33,7 @@ func TrackSubscriptionContract(client ethclient.Client) {
 		fmt.Println("Invalid abi:", err)
 	}
 
-	subscriptionContractAddress := common.HexToAddress("0x50A614Bf1672Bc048201066e60b1A998e9cC3FcA")
+	subscriptionContractAddress := common.HexToAddress(contract_address)
 	subscriptionQuery := ethereum.FilterQuery{
 		Addresses: []common.Address{subscriptionContractAddress},
 	}
