@@ -4,10 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"math/big"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/ethereum/go-ethereum"
@@ -27,18 +24,7 @@ func TrackContractEvents() {
 }
 
 func TrackSubscriptionContract(client ethclient.Client) {
-	events_json, err := os.Open("contracts/subscription_info.json")
-	events_json_byte, err := ioutil.ReadAll(events_json)
-	var subscription_contract SmartContract
-	json.Unmarshal([]byte(events_json_byte), &subscription_contract)
-	defer events_json.Close()
-	if err != nil {
-		log.WithFields(log.Fields{
-			"customMsg": "Failed loading subscription ABI",
-		}).Error(err)
-		return
-	}
-	subscriptionContractAddress := common.HexToAddress(subscription_contract.Contract)
+	subscriptionContractAddress := common.HexToAddress("0x50A614Bf1672Bc048201066e60b1A998e9cC3FcA")
 	subscriptionQuery := ethereum.FilterQuery{
 		Addresses: []common.Address{subscriptionContractAddress},
 	}
@@ -54,17 +40,11 @@ func TrackSubscriptionContract(client ethclient.Client) {
 		}).Error(err)
 		return
 	}
-	subscriptionPath, _ := filepath.Abs("contracts/SubscriptionModel.abi")
-	subscriptionFile, err := ioutil.ReadFile(subscriptionPath)
-	if err != nil {
-		log.WithFields(log.Fields{
-			"customMsg": "Failed reading Subscription abi file",
-		}).Error(err)
-		return
-	}
 	subscriptionAbi, err := abi.JSON(
-		strings.NewReader(string(subscriptionFile)),
+		strings.NewReader(string(SubscriptionModelABI)),
 	)
+	fmt.Println(subscriptionAbi)
+
 	if err != nil {
 		fmt.Println("Invalid abi:", err)
 	}
@@ -76,16 +56,28 @@ func TrackSubscriptionContract(client ethclient.Client) {
 			}).Warn(err)
 		case vLog := <-subscriptionLogs:
 			event_signature := vLog.Topics[0].String()
-			event_name := ""
-			for _, v := range subscription_contract.Event {
-				if v.Signature == event_signature {
-					event_name = v.Name
-				}
+			event_hash := common.HexToHash(event_signature)
+			event_details, err := subscriptionAbi.EventByID(event_hash)
+			event := struct {
+				Sender common.Address
+				Value  *big.Int
+			}{}
+			err = subscriptionAbi.UnpackIntoInterface(
+				&event,
+				event_details.Name,
+				vLog.Data,
+			)
+			if err != nil {
+				log.WithFields(log.Fields{
+					"event":     event_details.Name,
+					"customMsg": "Failed unpacking vLog data",
+				}).Warn(err)
 			}
+
 			event_sender := ""
 			event_payload := ""
 			switch {
-			case event_name == "ChangePlan":
+			case event_details.Name == "ChangePlan":
 				event := struct {
 					Sender common.Address
 					Value  *big.Int
@@ -97,7 +89,7 @@ func TrackSubscriptionContract(client ethclient.Client) {
 				)
 				if err != nil {
 					log.WithFields(log.Fields{
-						"event":     event_name,
+						"event":     event_details.Name,
 						"customMsg": "Failed unpacking vLog data",
 					}).Warn(err)
 				}
@@ -108,7 +100,7 @@ func TrackSubscriptionContract(client ethclient.Client) {
 				}
 				event_sender = event.Sender.Hex()
 				event_payload = string(s_event)
-			case event_name == "Subscribe":
+			case event_details.Name == "Subscribe":
 				event := struct {
 					Sender common.Address
 					To     common.Address
@@ -122,7 +114,7 @@ func TrackSubscriptionContract(client ethclient.Client) {
 				)
 				if err != nil {
 					log.WithFields(log.Fields{
-						"event":     event_name,
+						"event":     event_details.Name,
 						"customMsg": "Failed unpacking vLog data",
 					}).Warn(err)
 				}
@@ -149,7 +141,7 @@ func TrackSubscriptionContract(client ethclient.Client) {
 			VALUES(current_timestamp, $1, $2, $3, $4, $5, $6);`,
 				tx,
 				contract_address,
-				event_name,
+				event_details.Name,
 				event_signature,
 				event_sender,
 				event_payload)
@@ -157,7 +149,7 @@ func TrackSubscriptionContract(client ethclient.Client) {
 				log.WithFields(log.Fields{
 					"transaction":     tx,
 					"contractAddress": contract_address,
-					"eventName":       event_name,
+					"eventName":       event_details.Name,
 					"eventSignature":  event_signature,
 					"eventSender":     event_sender,
 					"eventPayload":    event_payload,
