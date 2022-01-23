@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"os"
 	"strings"
@@ -30,7 +29,7 @@ func TrackSubscriptionContract(client ethclient.Client) {
 		strings.NewReader(string(SubscriptionModelABI)),
 	)
 	if err != nil {
-		fmt.Println("Invalid abi:", err)
+		log.Warn("Invalid abi:", err)
 	}
 
 	subscriptionContractAddress := common.HexToAddress(contract_address)
@@ -49,6 +48,7 @@ func TrackSubscriptionContract(client ethclient.Client) {
 		}).Error(err)
 		return
 	}
+
 	for {
 		select {
 		case err := <-sub.Err():
@@ -96,7 +96,6 @@ func TrackSubscriptionContract(client ethclient.Client) {
 				}
 				s_event, err := json.Marshal(event)
 				if err != nil {
-					fmt.Println(err)
 					return
 				}
 				event_sender = event.Sender.Hex()
@@ -121,7 +120,6 @@ func TrackSubscriptionContract(client ethclient.Client) {
 				}
 				s_event, err := json.Marshal(event)
 				if err != nil {
-					fmt.Println(err)
 					return
 				}
 				event_sender = event.Sender.Hex()
