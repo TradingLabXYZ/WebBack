@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -156,7 +155,6 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	err = decoder.Decode(&settings)
 	if err != nil {
-		fmt.Println(err)
 		log.WithFields(log.Fields{
 			"sessionCode": session.Code,
 			"customMsg":   "Failed getting settings, wrong payload",

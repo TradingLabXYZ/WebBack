@@ -54,6 +54,7 @@ type User struct {
 	Followers      int
 	Followings     int
 	Subscribers    int
+	MonthlyFee     string
 }
 
 type Connection struct {
@@ -192,4 +193,12 @@ type TradesSnapshot struct {
 	TotalReturnBtc    string
 	Roi               float64
 	TotalPortfolioUsd string
+}
+
+type SmartContract struct {
+	Contract string `json:"contract"`
+	Event    []struct {
+		Signature string `json:"signature"`
+		Name      string `json:"name"`
+	} `json:"event"`
 }

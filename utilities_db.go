@@ -66,7 +66,7 @@ func (session *Session) ExtractFromRequest(r *http.Request, using string) (err e
 func (session *Session) ExtractFromHeader(r *http.Request) (err error) {
 	if len(r.Header["Authorization"]) > 0 {
 		split_auth := strings.Split(r.Header["Authorization"][0], "sessionId=")
-		if len(split_auth) > 1 {
+		if split_auth[1] != "" {
 			session.Code = split_auth[1]
 			return
 		} else {
@@ -132,7 +132,8 @@ func SelectUser(by string, value string) (user User, err error) {
 			CASE WHEN profilepicture IS NULL THEN '' ELSE profilepicture END AS profilepicture,
 			f.count_followers,
 			fo.count_followings,
-			s.count_subscribers
+			s.count_subscribers,
+			CASE WHEN mf.monthly_fee IS NULL THEN '0' ELSE mf.monthly_fee END AS monthly_fee
 		FROM users
 		LEFT JOIN (
 			SELECT
@@ -149,6 +150,15 @@ func SelectUser(by string, value string) (user User, err error) {
 				COUNT(*) AS count_subscribers
 			FROM subscribers
 			WHERE subscribeto = $1) s ON(1=1)
+		LEFT JOIN (
+			SELECT DISTINCT ON(sender)
+				sender,
+				createdat AS eventcreatedat,
+				payload#>>'{Value}' AS monthly_fee
+			FROM smartcontractevents
+			WHERE name = 'ChangePlan'
+			AND LOWER(sender) = LOWER($1)
+			ORDER BY 1, 2 DESC) mf ON(1=1)
 		WHERE %s = $1;`, by)
 	err = Db.QueryRow(user_sql, value).Scan(
 		&user.Wallet,
@@ -163,7 +173,7 @@ func SelectUser(by string, value string) (user User, err error) {
 		&user.Followers,
 		&user.Followings,
 		&user.Subscribers,
+		&user.MonthlyFee,
 	)
-
 	return
 }

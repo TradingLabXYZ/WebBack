@@ -123,6 +123,23 @@ func TestSelectExplore(t *testing.T) {
 			t.Fatal("Failed valid explore response, time ago")
 		}
 	})
+	t.Run(fmt.Sprintf("Test empty explore when data mistake"), func(t *testing.T) {
+		Db.Exec(`DELETE FROM coins WHERE coinid = 1`)
+		req := httptest.NewRequest("GET", "/get_explore", nil)
+		vars := map[string]string{
+			"offset": "10",
+		}
+		req = mux.SetURLVars(req, vars)
+		req.Header.Set("Authorization", "Bearer sessionId=")
+		w := httptest.NewRecorder()
+		SelectExplore(w, req)
+		bytes_body, _ := ioutil.ReadAll(w.Body)
+		var slice []map[string]interface{}
+		_ = json.Unmarshal([]byte(bytes_body), &slice)
+		if len(slice) != 0 {
+			t.Fatal("Failed empty explore when data mistake")
+		}
+	})
 
 	// <tear-down code>
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)

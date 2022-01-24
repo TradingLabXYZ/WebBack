@@ -129,7 +129,7 @@ func TestStartTradesWs(t *testing.T) {
 			_, message, _ := ws.ReadMessage()
 			trades_snapshot := TradesSnapshot{}
 			json.Unmarshal([]byte(message), &trades_snapshot)
-			if trades_snapshot.TotalReturnUsd != 15000 {
+			if trades_snapshot.TotalReturnUsd != "15,000" {
 				t.Fatal("Failed successfully receive intial snapshot")
 			}
 			break
