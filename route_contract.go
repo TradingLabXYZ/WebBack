@@ -16,7 +16,7 @@ import (
 )
 
 func TrackContractEvents() {
-	client, err := ethclient.Dial("ws://127.0.0.1:9944")
+	client, err := ethclient.Dial(os.Getenv("MOONBEAM_ENDPOINT"))
 	if err != nil {
 		log.Fatal(err)
 	}
