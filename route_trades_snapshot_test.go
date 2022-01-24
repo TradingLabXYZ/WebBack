@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"strings"
 	"testing"
 )
 
@@ -63,7 +64,7 @@ func TestGetSnapshot(t *testing.T) {
 		if snapshot.Trades[0].TotalSellsBtc != 0 {
 			t.Fatal("Failed test snapshot single buy, trade[0].TotalSellsBtc")
 		}
-		if snapshot.Trades[0].QtyAvailable != 1 {
+		if strings.TrimSpace(snapshot.Trades[0].QtyAvailable) != "1" {
 			t.Fatal("Failed test snapshot single buy, trade[0].QtyAvailable")
 		}
 		if snapshot.Trades[0].Roi != 100*(65000.0/50000-1) {
@@ -72,10 +73,11 @@ func TestGetSnapshot(t *testing.T) {
 		if snapshot.CountTrades != 1 {
 			t.Fatal("Failed test snapshot single buy, QtyBuys")
 		}
-		if snapshot.TotalReturnUsd != 15000 {
+		if strings.TrimSpace(snapshot.TotalReturnUsd) != "15,000" {
 			t.Fatal("Failed test snapshot single buy, TotalReturnUsd")
 		}
-		if snapshot.TotalReturnBtc != math.Round(1.0*15000/65000*100)/100 {
+		totalReturnBtc := fmt.Sprintf("%.2f", math.Round(1.0*15000/65000*100)/100)
+		if strings.TrimSpace(snapshot.TotalReturnBtc) != totalReturnBtc {
 			t.Fatal("Failed test snapshot single buy, TotalReturnBtc")
 		}
 		if math.Round(snapshot.Roi) != 100*(65000.0/50000-1) {
@@ -118,7 +120,7 @@ func TestGetSnapshot(t *testing.T) {
 		if snapshot.Trades[0].TotalSellsBtc != 1.0*0.5*80000/65000 {
 			t.Fatal("Failed test snapshot buy and sell, trade[0].TotalSellsBtc")
 		}
-		if snapshot.Trades[0].QtyAvailable != 0.5 {
+		if strings.TrimSpace(snapshot.Trades[0].QtyAvailable) != ".50" {
 			t.Fatal("Failed test snapshot buy and sell, trade[0].QtyAvailable")
 		}
 		if snapshot.Trades[0].Roi != 100*((65000.0*0.5+80000.0*0.5)/50000-1) {
@@ -127,10 +129,11 @@ func TestGetSnapshot(t *testing.T) {
 		if snapshot.CountTrades != 1 {
 			t.Fatal("Failed test snapshot buy and sell, QtyBuys")
 		}
-		if snapshot.TotalReturnUsd != 22500 {
+		if snapshot.TotalReturnUsd != "22,500" {
 			t.Fatal("Failed test snapshot buy and sell, TotalReturnUsd")
 		}
-		if snapshot.TotalReturnBtc != math.Round((80000*0.5-1*50000+65000*0.5)/65000*100)/100 {
+		totalReturnBtc := fmt.Sprintf("%.2f", math.Round((80000*0.5-1*50000+65000*0.5)/65000*100)/100)
+		if snapshot.TotalReturnBtc != totalReturnBtc {
 			t.Fatal("Failed test snapshot buy and sell, TotalReturnBtc")
 		}
 		if math.Round(snapshot.Roi) != 100*((80000*0.5+65000*0.5)/50000-1) {
@@ -172,7 +175,7 @@ func TestGetSnapshot(t *testing.T) {
 		if snapshot.Trades[0].TotalSellsBtc != (1.5*100000+0.5*80000)/65000 {
 			t.Fatal("Failed test snapshot multiple buy and sell, trade[0].TotalSellsBtc")
 		}
-		if snapshot.Trades[0].QtyAvailable != 1 {
+		if strings.TrimSpace(snapshot.Trades[0].QtyAvailable) != "1" {
 			t.Fatal("Failed test snapshot multiple buy and sell, trade[0].QtyAvailable")
 		}
 		if snapshot.Trades[0].Roi != math.Round((((1.0*65000+1.5*100000+0.5*80000)/(1.0*50000+2*70000)-1)*100)*10)/10 {
@@ -181,10 +184,12 @@ func TestGetSnapshot(t *testing.T) {
 		if snapshot.CountTrades != 1 {
 			t.Fatal("Failed test snapshot multiple buy and sell, QtyBuys")
 		}
-		if snapshot.TotalReturnUsd != (1.0*65000+1.5*100000+0.5*80000)-(1.0*50000+2*70000) {
+		totalReturnUsd := fmt.Sprintf("%.0f", (1.0*65000+1.5*100000+0.5*80000)-(1.0*50000+2*70000))
+		if strings.ReplaceAll(snapshot.TotalReturnUsd, ",", "") != totalReturnUsd {
 			t.Fatal("Failed test snapshot multiple buy and sell, TotalReturnUsd")
 		}
-		if snapshot.TotalReturnBtc != ((1.0*65000+1.5*100000+0.5*80000)-(1.0*50000+2*70000))/65000 {
+		totalReturnBtc := fmt.Sprintf("%.0f", ((1.0*65000+1.5*100000+0.5*80000)-(1.0*50000+2*70000))/65000)
+		if strings.ReplaceAll(snapshot.TotalReturnBtc, ",", "") != totalReturnBtc {
 			t.Fatal("Failed test snapshot multiple buy and sell, TotalReturnBtc")
 		}
 		if math.Round(snapshot.Roi) != math.Round(100*((1.0*65000+1.5*100000+0.5*80000)/(1.0*50000+2*70000)-1)) {
@@ -224,10 +229,11 @@ func TestGetSnapshot(t *testing.T) {
 		if snapshot.CountTrades != 2 {
 			t.Fatal("Failed test snapshot multiple trades, QtyBuys")
 		}
-		if snapshot.TotalReturnUsd != 60000 {
+		if snapshot.TotalReturnUsd != "60,000" {
 			t.Fatal("Failed test snapshot multiple trades, TotalReturnUsd")
 		}
-		if snapshot.TotalReturnBtc != math.Round((1.0*60000/65000)*100)/100 {
+		totalReturnBtc := fmt.Sprintf("%.2f", math.Round((1.0*60000/65000)*100)/100)
+		if snapshot.TotalReturnBtc != totalReturnBtc {
 			t.Fatal("Failed test snapshot multiple trades, TotalReturnBtc")
 		}
 		if math.Round(snapshot.Roi) != math.Round(100*(160000.0/100000-1)) {
@@ -284,10 +290,11 @@ func TestGetSnapshot(t *testing.T) {
 		if snapshot.CountTrades != 2 {
 			t.Fatal("Failed test snapshot multiple trades multiple pairs, QtyBuys")
 		}
-		if snapshot.TotalReturnUsd != 700 {
+		if snapshot.TotalReturnUsd != "700" {
 			t.Fatal("Failed test snapshot multiple trades multiple pairs, TotalReturnUsd")
 		}
-		if snapshot.TotalReturnBtc != math.Round((1.0*700/100000)*100)/100 {
+		totalReturnBtc := fmt.Sprintf("%.2f", math.Round((1.0*700/100000)*100)/100)
+		if snapshot.TotalReturnBtc != totalReturnBtc {
 			t.Fatal("Failed test snapshot multiple trades multiple pairs, TotalReturnBtc")
 		}
 		if math.Round(snapshot.Roi) != math.Round(100*((10*100+2*200)/(5*100+1*200)-1)) {

@@ -30,6 +30,7 @@ func main() {
 	defer Db.Close()
 
 	go InstanciateActivityMonitor()
+	go TrackContractEvents()
 
 	fmt.Println(Bold(Green("Application running on port 8080")))
 	log.Fatal(http.ListenAndServe(":8080", h))
@@ -57,7 +58,10 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/admin/{token}", SelectActivity).Methods("GET")
 
 	router.HandleFunc("/follow/{wallet}/{status}", UpdateFollower).Methods("GET")
+	router.HandleFunc("/subscribe/{wallet}/{status}", UpdateSubscriber).Methods("GET")
 	router.HandleFunc("/get_connections/{wallet}", SelectConnections).Methods("GET")
+
+	router.HandleFunc("/subscription/{wallet}", SelectSubscriptionMonthlyPrice).Methods("GET")
 
 	files := http.FileServer(http.Dir("templates/public"))
 	s := http.StripPrefix("/static/", files)
@@ -135,6 +139,7 @@ func SetUpLog() (file *os.File) {
 		}).Error(err)
 		return
 	}
+	log.SetReportCaller(true)
 	log.SetLevel(log.TraceLevel)
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(io.MultiWriter(file, os.Stdout))

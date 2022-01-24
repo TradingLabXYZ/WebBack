@@ -57,6 +57,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		Plan           string
 		Followers      int
 		Subscribers    int
+		MonthlyFee     string
 	}{
 		session.Code,
 		user.Wallet,
@@ -69,6 +70,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		user.Plan,
 		user.Followers,
 		user.Subscribers,
+		user.MonthlyFee,
 	}
 
 	json.NewEncoder(w).Encode(user_data)

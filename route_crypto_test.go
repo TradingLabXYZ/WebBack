@@ -37,16 +37,16 @@ func TestSelectPairs(t *testing.T) {
 		readBuf, _ := ioutil.ReadAll(w.Body)
 		var sec map[string]TempPairInfo
 		_ = json.Unmarshal([]byte(*&readBuf), &sec)
-		if sec["A"].CoinId != 1000 {
+		if sec["1000"].Name != "TestCoinA" {
 			t.Error("Failed successfully extract pairs info A")
 		}
-		if sec["B"].Name != "TestCoinB" {
+		if sec["1001"].Name != "TestCoinB" {
 			t.Error("Failed successfully extract pairs info B")
 		}
-		if sec["C"].CoinId != 1002 {
+		if sec["1002"].Slug != "TestC" {
 			t.Error("Failed successfully extract pairs info C")
 		}
-		if sec["D"].Slug != "TestD" {
+		if sec["1003"].Slug != "TestD" {
 			t.Error("Failed successfully extract pairs info D")
 		}
 	})
@@ -84,6 +84,20 @@ func TestSelectPairRatio(t *testing.T) {
 		res := w.Result()
 		if res.StatusCode != 400 {
 			t.Fatal("Failed passing empty values")
+		}
+	})
+	t.Run(fmt.Sprintf("Test passing wrong coinid"), func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/get_pair_ratio", nil)
+		vars := map[string]string{
+			"firstPairCoinId":  "ABC",
+			"secondPairCoinId": "1001",
+		}
+		req = mux.SetURLVars(req, vars)
+		w := httptest.NewRecorder()
+		SelectPairRatio(w, req)
+		res := w.Result()
+		if res.StatusCode != 400 {
+			t.Fatal("Failed passing wrong coinid")
 		}
 	})
 	t.Run(fmt.Sprintf("Test successfully extract pair ratio"), func(t *testing.T) {

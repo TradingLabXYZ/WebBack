@@ -72,3 +72,19 @@ go test -v -cover -parallel 1
 
 # Migrate
 Use `Makefile` to migrate up or down the database
+
+# Run with smart contracts
+
+1 - Run Node (truffle run moonbeam start)
+
+2 - Modify contract
+
+3 - Deploy contract (truffle migrate --network dev --reset)
+
+4 - Copy contract to FrontEnd (cp build/contracts/Store.json $HOME/Code/TradingLab/WebFront/src/functions)
+
+5 - Create ABI (truffle run abigen Store)
+
+6 - Update the contract in this file as well as the event params
+
+7 - Run this file, and you should see logs when interacting with contract
