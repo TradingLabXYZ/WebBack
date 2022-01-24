@@ -139,6 +139,7 @@ func SetUpLog() (file *os.File) {
 		}).Error(err)
 		return
 	}
+	log.SetReportCaller(true)
 	log.SetLevel(log.TraceLevel)
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(io.MultiWriter(file, os.Stdout))
