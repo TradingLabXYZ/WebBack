@@ -60,17 +60,13 @@ func SelectPairRatio(w http.ResponseWriter, r *http.Request) {
 		FROM (
 			SELECT
 				ROUND(price, 6) AS price
-			FROM prices
-			WHERE coinid = $1
-			ORDER BY createdat
-			DESC LIMIT 1) x
+			FROM lastprices
+			WHERE coinid = $1) x
 		LEFT JOIN (
 			SELECT
 				ROUND(price, 6) AS price
-			FROM prices
-			WHERE coinid = $2
-			ORDER BY createdat DESC
-			LIMIT 1) y ON(1=1);`
+			FROM lastprices
+			WHERE coinid = $2) y ON(1=1);`
 
 	var pair_ratio float64
 	err := Db.QueryRow(
