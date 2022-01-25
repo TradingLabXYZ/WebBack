@@ -65,13 +65,13 @@ func (user User) SelectUserTrades() (trades []Trade) {
 					t.userwallet,
 					t.exchange,
 					t.firstpair AS firstpairid,
-					l1.name AS firstpairname,
-					l1.symbol AS firstpairsymbol,
+					c1.name AS firstpairname,
+					c1.symbol AS firstpairsymbol,
 					l1.price AS firstpairprice,
 					'https://s2.coinmarketcap.com/static/img/coins/32x32/' || t.firstpair::TEXT || '.png' AS firstpairurlicon,
 					t.secondpair AS secondpairid,
-					l2.name AS secondpairname,
-					l2.symbol AS secondpairsymbol,
+					c2.name AS secondpairname,
+					c2.symbol AS secondpairsymbol,
 					l2.price AS secondpairprice,
 					'https://s2.coinmarketcap.com/static/img/coins/32x32/' || t.secondpair::TEXT || '.png' AS secondpairurlicon,
 					(l2.price / l1.price) AS currentprice,
@@ -89,7 +89,9 @@ func (user User) SelectUserTrades() (trades []Trade) {
 					END AS roi
 				FROM TRADES_MACRO t
 				LEFT JOIN lastprices l1 ON(t.firstpair = l1.coinid)
-				LEFT JOIN lastprices l2 ON(t.secondpair = l2.coinid))
+				LEFT JOIN lastprices l2 ON(t.secondpair = l2.coinid)
+				LEFT JOIN coins c1 ON(l1.coinid = c1.coinid)
+				LEFT JOIN coins c2 ON(l2.coinid = c2.coinid))
 		SELECT
 			t.code,
 			t.username,

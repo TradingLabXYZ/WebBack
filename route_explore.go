@@ -54,21 +54,23 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 					u.profilepicture,
 					t.firstpair,
 					'https://s2.coinmarketcap.com/static/img/coins/32x32/' || t.firstpair::TEXT || '.png' AS firstpairurlicon,
-					l1.symbol AS firstpairsymbol,
+					c1.symbol AS firstpairsymbol,
 					t.secondpair,
 					'https://s2.coinmarketcap.com/static/img/coins/32x32/' || t.secondpair::TEXT || '.png' AS secondpairurlicon,
-					l2.symbol AS secondpairsymbol,
+					c2.symbol AS secondpairsymbol,
 					CASE
-						WHEN (cp2.price / cp1.price)  > 100 THEN TO_CHAR((cp2.price / cp1.price), '999,999,999') 
-						WHEN (cp2.price / cp1.price)  > 1 THEN TO_CHAR((cp2.price / cp1.price), '999,999,999.00') 
-						ELSE TO_CHAR((cp2.price / cp1.price), '999,999,999.00000')
+						WHEN (l2.price / l1.price)  > 100 THEN TO_CHAR((l2.price / l1.price), '999,999,999') 
+						WHEN (l2.price / l1.price)  > 1 THEN TO_CHAR((l2.price / l1.price), '999,999,999.00') 
+						ELSE TO_CHAR((l2.price / l1.price), '999,999,999.00000')
 					END as currentprice,
-					ROUND(((((cp2.price / cp1.price) / s.avgprice) - 1) * 100), 1) AS deltapriceperc
+					ROUND(((((l2.price / l1.price) / s.avgprice) - 1) * 100), 1) AS deltapriceperc
 				FROM subtrades s
 				LEFT JOIN trades t ON(s.tradecode = t.code)
 				LEFT JOIN users u ON(s.userwallet = u.wallet)
 				LEFT JOIN lastprices l1 ON(t.firstpair = l1.coinid)
 				LEFT JOIN lastprices l2 ON(t.secondpair = l2.coinid)
+				LEFT JOIN coins c1 ON(l1.coinid = c1.coinid)
+				LEFT JOIN coins c2 ON(l2.coinid = c2.coinid)
 				ORDER BY s.updatedat DESC
 				LIMIT 10
 				OFFSET $1),
