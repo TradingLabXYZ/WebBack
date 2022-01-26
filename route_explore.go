@@ -19,16 +19,6 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 
 	explore_sql := `
 		WITH
-			CURRENT_PRICE AS (
-				SELECT DISTINCT ON(p.coinid)
-					p.coinid,
-					p.createdat,
-					c.name,
-					c.symbol,
-					p.price
-				FROM prices p
-				LEFT JOIN coins c ON(p.coinid = c.coinid)
-				ORDER BY 1, 2 DESC),
 			SUBTRADES AS (
 				SELECT
 					'subtrade' AS eventtype,
@@ -69,18 +59,18 @@ func SelectExplore(w http.ResponseWriter, r *http.Request) {
 					'https://s2.coinmarketcap.com/static/img/coins/32x32/' || t.secondpair::TEXT || '.png' AS secondpairurlicon,
 					c2.symbol AS secondpairsymbol,
 					CASE
-						WHEN (cp2.price / cp1.price)  > 100 THEN TO_CHAR((cp2.price / cp1.price), '999,999,999') 
-						WHEN (cp2.price / cp1.price)  > 1 THEN TO_CHAR((cp2.price / cp1.price), '999,999,999.00') 
-						ELSE TO_CHAR((cp2.price / cp1.price), '999,999,999.00000')
+						WHEN (l2.price / l1.price)  > 100 THEN TO_CHAR((l2.price / l1.price), '999,999,999') 
+						WHEN (l2.price / l1.price)  > 1 THEN TO_CHAR((l2.price / l1.price), '999,999,999.00') 
+						ELSE TO_CHAR((l2.price / l1.price), '999,999,999.00000')
 					END as currentprice,
-					ROUND(((((cp2.price / cp1.price) / s.avgprice) - 1) * 100), 1) AS deltapriceperc
+					ROUND(((((l2.price / l1.price) / s.avgprice) - 1) * 100), 1) AS deltapriceperc
 				FROM subtrades s
 				LEFT JOIN trades t ON(s.tradecode = t.code)
-				LEFT JOIN coins c1 ON(t.firstpair = c1.coinid)
-				LEFT JOIN coins c2 ON(t.secondpair = c2.coinid)
 				LEFT JOIN users u ON(s.userwallet = u.wallet)
-				LEFT JOIN CURRENT_PRICE cp1 ON(t.firstpair = cp1.coinid)
-				LEFT JOIN CURRENT_PRICE cp2 ON(t.secondpair = cp2.coinid)
+				LEFT JOIN lastprices l1 ON(t.firstpair = l1.coinid)
+				LEFT JOIN lastprices l2 ON(t.secondpair = l2.coinid)
+				LEFT JOIN coins c1 ON(l1.coinid = c1.coinid)
+				LEFT JOIN coins c2 ON(l2.coinid = c2.coinid)
 				ORDER BY s.updatedat DESC
 				LIMIT 10
 				OFFSET $1),

@@ -55,7 +55,7 @@ func TestStartTradesWs(t *testing.T) {
 			(1000, 'USDC', 'USDC', 'usdc')`)
 
 	Db.Exec(`
-		INSERT INTO prices (
+		INSERT INTO lastprices (
 			createdat, coinid, price)
 		VALUES
 			(current_timestamp, 1, 80000),
@@ -242,7 +242,7 @@ func TestStartTradesWsIntegration(t *testing.T) {
 			(5, 'SOL', 'SOL', 'solana');`)
 
 	Db.Exec(`
-		INSERT INTO prices (
+		INSERT INTO lastprices (
 			createdat, coinid, price)
 		VALUES
 			(current_timestamp, 1, 65000),
@@ -353,7 +353,7 @@ func TestStartTradesWsIntegration(t *testing.T) {
 			(1, 'Bitcoin', 'BTC', 'Bitcoin'),
 			(2, 'USDC', 'USDC', 'usdc');`)
 	Db.Exec(`
-		INSERT INTO prices (
+		INSERT INTO lastprices (
 			createdat, coinid, price)
 		VALUES
 			(current_timestamp, 1, 65000),
