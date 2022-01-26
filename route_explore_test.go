@@ -28,7 +28,7 @@ func TestSelectExplore(t *testing.T) {
 			(1000, 'USDC', 'USDC', 'usdc');`)
 
 	Db.Exec(`
-		INSERT INTO prices (
+		INSERT INTO lastprices (
 			createdat, coinid, price)
 		VALUES
 			(current_timestamp, 1, 80000),

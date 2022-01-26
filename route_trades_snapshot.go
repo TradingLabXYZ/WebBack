@@ -29,16 +29,6 @@ func (user User) GetSnapshot() (snapshot TradesSnapshot) {
 func (user User) SelectUserTrades() (trades []Trade) {
 	trades_sql := `
 		WITH
-			CURRENT_PRICE AS (
-				SELECT DISTINCT ON(p.coinid)
-					p.coinid,
-					p.createdat,
-					c.name,
-					c.symbol,
-					p.price
-				FROM prices p
-				LEFT JOIN coins c ON(p.coinid = c.coinid)
-				ORDER BY 1, 2 DESC),
 			TRADES_MACRO AS (
 				SELECT
 					t.code,
@@ -77,29 +67,31 @@ func (user User) SelectUserTrades() (trades []Trade) {
 					t.firstpair AS firstpairid,
 					c1.name AS firstpairname,
 					c1.symbol AS firstpairsymbol,
-					c1.price AS firstpairprice,
+					l1.price AS firstpairprice,
 					'https://s2.coinmarketcap.com/static/img/coins/32x32/' || t.firstpair::TEXT || '.png' AS firstpairurlicon,
 					t.secondpair AS secondpairid,
 					c2.name AS secondpairname,
 					c2.symbol AS secondpairsymbol,
-					c2.price AS secondpairprice,
+					l2.price AS secondpairprice,
 					'https://s2.coinmarketcap.com/static/img/coins/32x32/' || t.secondpair::TEXT || '.png' AS secondpairurlicon,
-					(c2.price / c1.price) AS currentprice,
+					(l2.price / l1.price) AS currentprice,
 					t.qtybuys,
 					t.qtysells,
 					t.qtybuys - t.qtysells AS qtyavailable,
 					t.totalbuys,
 					t.totalsells,
 					t.totalsells - t.totalbuys AS actualreturn,
-					(t.qtybuys - t.qtysells) * (c2.price / c1.price) AS futurereturn,
-					t.totalsells - t.totalbuys + (t.qtybuys - t.qtysells) * (c2.price / c1.price) AS totalreturn,
+					(t.qtybuys - t.qtysells) * (l2.price / l1.price) AS futurereturn,
+					t.totalsells - t.totalbuys + (t.qtybuys - t.qtysells) * (l2.price / l1.price) AS totalreturn,
 					CASE
 						WHEN t.totalbuys = 0 THEN 0
-						ELSE (((t.qtybuys - t.qtysells) * (c2.price / c1.price) + t.totalsells) / t.totalbuys - 1) * 100
+						ELSE (((t.qtybuys - t.qtysells) * (l2.price / l1.price) + t.totalsells) / t.totalbuys - 1) * 100
 					END AS roi
 				FROM TRADES_MACRO t
-				LEFT JOIN CURRENT_PRICE c1 ON(t.firstpair = c1.coinid)
-				LEFT JOIN CURRENT_PRICE c2 ON(t.secondpair = c2.coinid))
+				LEFT JOIN lastprices l1 ON(t.firstpair = l1.coinid)
+				LEFT JOIN lastprices l2 ON(t.secondpair = l2.coinid)
+				LEFT JOIN coins c1 ON(l1.coinid = c1.coinid)
+				LEFT JOIN coins c2 ON(l2.coinid = c2.coinid))
 		SELECT
 			t.code,
 			t.username,
@@ -123,23 +115,23 @@ func (user User) SelectUserTrades() (trades []Trade) {
 				ELSE TO_CHAR(ROUND(t.qtyavailable, 2), '999,999,999.00')
 			END as qtyavailable,
 			t.totalbuys,
-			t.totalbuys * t.firstpairprice / c3.price AS totalbuysbtc,
+			t.totalbuys * t.firstpairprice / l3.price AS totalbuysbtc,
 			t.totalbuys * t.firstpairprice AS totalbuysusd,
 			t.totalsells,
-			t.totalsells * t.firstpairprice / c3.price AS totalsellbtc,
+			t.totalsells * t.firstpairprice / l3.price AS totalsellbtc,
 			t.totalsells * t.firstpairprice AS totalsellusd,
 			t.actualreturn,
 			t.futurereturn,
-			t.futurereturn * t.firstpairprice / c3.price AS futurereturnbtc,
+			t.futurereturn * t.firstpairprice / l3.price AS futurereturnbtc,
 			t.futurereturn * t.firstpairprice AS futurereturnusd,
 			ROUND(t.totalreturn, 2) as totalreturn,
-			t.totalreturn * t.firstpairprice / c3.price AS returnbtc,
+			t.totalreturn * t.firstpairprice / l3.price AS returnbtc,
 			t.totalreturn * t.firstpairprice AS returnusd,
 			ROUND(t.roi, 1) AS roi,
-			c3.price AS btcprice,
+			l3.price AS btcprice,
 			ROUND(t.qtyavailable * t.secondpairprice, 2) AS totalvalueusd
 		FROM TRADES_MICRO t
-		LEFT JOIN CURRENT_PRICE c3 ON(c3.coinid = 1);`
+		LEFT JOIN lastprices l3 ON(l3.coinid = 1);`
 
 	trades_rows, err := Db.Query(
 		trades_sql,
