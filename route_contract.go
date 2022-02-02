@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -20,10 +22,24 @@ func TrackContractEvents() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	go TrackSubscriptionContract(*client)
+	go KeepRpcClientAlive(client)
+	go TrackSubscriptionContract(client)
 }
 
-func TrackSubscriptionContract(client ethclient.Client) {
+func KeepRpcClientAlive(client *ethclient.Client) {
+	for {
+		_, err := client.BlockNumber(context.Background())
+		if err != nil {
+			client.Close()
+			fmt.Println("Created a new dial connection")
+			go TrackContractEvents()
+			break
+		}
+		time.Sleep(2 * time.Second)
+	}
+}
+
+func TrackSubscriptionContract(client *ethclient.Client) {
 	contract_address := os.Getenv("CONTRACT_SUBSCRIPTION")
 	subscriptionAbi, err := abi.JSON(
 		strings.NewReader(string(SubscriptionModelABI)),
