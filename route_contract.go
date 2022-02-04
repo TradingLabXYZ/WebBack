@@ -22,19 +22,19 @@ func TrackContractEvents() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	go KeepRpcClientAlive(client)
 	go TrackSubscriptionContract(client)
+	go KeepRpcClientAlive(client)
 }
 
 func KeepRpcClientAlive(client *ethclient.Client) {
 	for {
-		_, err := client.BlockNumber(context.Background())
+		block_number, err := client.BlockNumber(context.Background())
 		if err != nil {
 			client.Close()
 			fmt.Println("Created a new dial connection")
 			go TrackContractEvents()
-			break
 		}
+		fmt.Println("Connection Rpc active:", block_number)
 		time.Sleep(2 * time.Second)
 	}
 }
@@ -71,6 +71,7 @@ func TrackSubscriptionContract(client *ethclient.Client) {
 			log.WithFields(log.Fields{
 				"customMsg": "Failed receiving vLog data",
 			}).Warn(err)
+			break
 		case vLog := <-subscriptionLogs:
 			event_signature := vLog.Topics[0].String()
 			event_hash := common.HexToHash(event_signature)
