@@ -101,3 +101,125 @@ func TestSelectSubscriptionMonthlyPrice(t *testing.T) {
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 	Db.Exec(`DELETE FROM smartcontractevents WHERE 1 = 1;`)
 }
+
+func TestManageUnsubscriptions(t *testing.T) {
+	// <setup code>
+	first_wallet := "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"
+	second_wallet := "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B"
+	third_wallet := "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C"
+
+	Db.Exec(`
+		INSERT INTO users (
+			wallet,
+			username,
+			privacy,
+			plan,
+			createdat,
+			updatedat)
+		VALUES (
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A',
+			'r',
+			'all',
+			'basic',
+			current_timestamp,
+			current_timestamp),
+		(
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B',
+			'x',
+			'all',
+			'basic',
+			current_timestamp,
+			current_timestamp),
+		(
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C',
+			'q',
+			'all',
+			'basic',
+			current_timestamp,
+			current_timestamp);`)
+
+	Db.Exec(`
+			INSERT INTO smartcontractevents (
+				createdat,
+				transaction,
+				contract,
+				name,
+				signature,
+				sender,
+				payload)
+			VALUES (
+				current_timestamp - 11 * interval '1 week',
+				'txABC',
+				'contractCDE',
+				'Subscribe',
+				'ABC',
+				'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A',
+				'{
+					"Sender": "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A",
+					"To":"0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B",
+					"Weeks":10,
+					"Amount":100
+				}'),
+			(
+				current_timestamp - 11 * interval '1 week',
+				'txGFD',
+				'contractCFE',
+				'Subscribe',
+				'DFG',
+				'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B',
+				'{
+					"Sender": "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B",
+					"To":"0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C",
+					"Weeks":20,
+					"Amount":100
+				}');`)
+	Db.Exec(`
+			INSERT INTO subscribers (
+				createdat,
+				subscribefrom,
+				subscribeto)
+			VALUES (
+				current_timestamp - 11 * interval '1 week',
+				'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A',
+				'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B'),
+				(
+				current_timestamp - 11 * interval '1 week',
+				'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B',
+				'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C');`)
+
+	ManageUnsubscriptions()
+
+	// <test code>
+	t.Run(fmt.Sprintf("Test first subscription is deleted"), func(t *testing.T) {
+		var isSubscriptionPresent bool
+		Db.QueryRow(`
+				SELECT
+					TRUE
+				FROM subscribers
+				WHERE subscribefrom = $1
+				AND subscribeto = $2;`, first_wallet, second_wallet).Scan(
+			&isSubscriptionPresent,
+		)
+		if isSubscriptionPresent {
+			t.Error("Failed first subscription is deleted")
+		}
+	})
+	t.Run(fmt.Sprintf("Test second subscription is not deleted"), func(t *testing.T) {
+		var isSubscriptionPresent bool
+		Db.QueryRow(`
+				SELECT
+					TRUE
+				FROM subscribers
+				WHERE subscribefrom = $1
+				AND subscribeto = $2;`, second_wallet, third_wallet).Scan(
+			&isSubscriptionPresent,
+		)
+		fmt.Println(isSubscriptionPresent)
+		if !isSubscriptionPresent {
+			t.Error("Failed second subscription is not deleted")
+		}
+	})
+	// <tear-down code>
+	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
+	Db.Exec(`DELETE FROM smartcontractevents WHERE 1 = 1;`)
+}
