@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
@@ -47,4 +48,23 @@ func SelectSubscriptionMonthlyPrice(w http.ResponseWriter, r *http.Request) {
 		&monthly_price)
 
 	json.NewEncoder(w).Encode(monthly_price)
+}
+
+func ManageUnsubscriptions() {
+	for {
+		err := Db.QueryRow(`
+		DELETE FROM subscribers WHERE (subscribefrom, subscribeto) IN (
+			SELECT
+				sm.payload#>>'{Sender}' AS subscribefrom,
+				sm.payload#>>'{To}' AS subscribeto
+			FROM smartcontractevents sm
+			INNER JOIN subscribers s1 ON(sm.payload#>>'{Sender}' = s1.subscribefrom)
+			INNER JOIN subscribers s2 ON(sm.payload#>>'{To}' = s2.subscribeto)
+			WHERE name = 'Subscribe'
+			AND now() > (sm.createdat + (sm.payload#>>'{Weeks}')::INT * interval '1 week'));`)
+		if err != nil {
+			log.Error("Failed managing unsubscriptions")
+		}
+		time.Sleep(2 * time.Hour)
+	}
 }
