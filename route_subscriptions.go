@@ -62,8 +62,10 @@ func ManageUnsubscriptions() {
 			INNER JOIN subscribers s2 ON(sm.payload#>>'{To}' = s2.subscribeto)
 			WHERE name = 'Subscribe'
 			AND now() > (sm.createdat + (sm.payload#>>'{Weeks}')::INT * interval '1 week'));`)
-		if err != nil {
-			log.Error("Failed managing unsubscriptions")
+		if err.Err() != nil {
+			log.WithFields(log.Fields{
+				"err": err.Err(),
+			}).Warn("Failed managing unsubscriptions")
 		}
 		time.Sleep(2 * time.Hour)
 	}
