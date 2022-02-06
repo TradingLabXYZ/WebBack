@@ -20,7 +20,9 @@ import (
 func TrackContractEvents() {
 	client, err := ethclient.Dial(os.Getenv("MOONBEAM_ENDPOINT"))
 	if err != nil {
-		log.Fatal(err)
+		time.Sleep(2 * time.Second)
+		fmt.Println("Created a new dial after a fatal connection")
+		go TrackContractEvents()
 	}
 	go TrackSubscriptionContract(client)
 	go KeepRpcClientAlive(client)
@@ -31,7 +33,7 @@ func KeepRpcClientAlive(client *ethclient.Client) {
 		block_number, err := client.BlockNumber(context.Background())
 		if err != nil {
 			client.Close()
-			fmt.Println("Created a new dial connection")
+			fmt.Println("Created a new dial connection after failed block extraction")
 			go TrackContractEvents()
 		}
 		fmt.Println("Connection Rpc active:", block_number)
