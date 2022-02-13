@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"text/template"
@@ -15,6 +16,11 @@ func SelectActivity(w http.ResponseWriter, r *http.Request) {
 
 	if token != admin_token {
 		log.Warn("Attempted accessing admin with invalid token")
+		discordNotifier.Send(
+			context.Background(),
+			"route_admin | SelectActivity",
+			"Attempted accessing admin with invalid token",
+		)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

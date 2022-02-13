@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -16,6 +17,11 @@ func UpdateFollower(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{
 			"customMsg": "Failed updating follower, wrong header",
 		}).Error(err)
+		discordNotifier.Send(
+			context.Background(),
+			"route__connections | UpdateFollower",
+			"Failed updating follower, wrong header",
+		)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -26,6 +32,11 @@ func UpdateFollower(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{
 			"customMsg": "Failed updating follower, wrong status",
 		}).Error(err)
+		discordNotifier.Send(
+			context.Background(),
+			"route__connections | UpdateFollower",
+			"Failed updating follower, wrong status",
+		)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -51,6 +62,11 @@ func UpdateSubscriber(w http.ResponseWriter, r *http.Request) {
 		log.WithFields(log.Fields{
 			"customMsg": "Failed updating subscriber, wrong header",
 		}).Error(err)
+		discordNotifier.Send(
+			context.Background(),
+			"route__connections | UpdateSubscriber",
+			"Failed updating subscriber, wrong header",
+		)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}

@@ -9,14 +9,17 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	. "github.com/logrusorgru/aurora"
+	"github.com/nikoksr/notify"
+	"github.com/nikoksr/notify/service/discord"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	DbUrl      string
-	Db         sqlx.DB
-	trades_wss = make(map[string][]WsTrade)
+	DbUrl           string
+	Db              sqlx.DB
+	trades_wss      = make(map[string][]WsTrade)
+	discordNotifier *notify.Notify
 )
 
 func main() {
@@ -28,6 +31,7 @@ func main() {
 	defer log_file.Close()
 	Db = *setUpDb()
 	defer Db.Close()
+	discordNotifier = SetUpDiscordNotifier()
 
 	go TrackContractEvents()
 	go InstanciateActivityMonitor()
@@ -145,4 +149,13 @@ func SetUpLog() (file *os.File) {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(io.MultiWriter(file, os.Stdout))
 	return
+}
+
+func SetUpDiscordNotifier() *notify.Notify {
+	discordService := discord.New()
+	_ = discordService.AuthenticateWithBotToken(os.Getenv("DISCORD_BOT_ID"))
+	discordService.AddReceivers(os.Getenv("DISCORD_CHANNEL_LOG"))
+	notifier := notify.New()
+	notifier.UseServices(discordService)
+	return notifier
 }
