@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"time"
 
 	"github.com/lib/pq"
@@ -14,11 +13,6 @@ func (l *DbListener) Instanciate() {
 			log.WithFields(log.Fields{
 				"custom_msg": "Failed instanciating database listener",
 			}).Error(err.Error())
-			discordNotifier.Send(
-				context.Background(),
-				"db_listener | Instanciate",
-				"Failed instanciating database listener",
-			)
 		}
 	}
 	l.Listener = pq.NewListener(DbUrl, 10*time.Second, time.Minute, reportProblem)
@@ -27,11 +21,6 @@ func (l *DbListener) Instanciate() {
 		log.WithFields(log.Fields{
 			"custom_msg": "Failed listening database",
 		}).Error(err.Error())
-		discordNotifier.Send(
-			context.Background(),
-			"db_listener | Instanciate",
-			"Failed listening database",
-		)
 	}
 }
 

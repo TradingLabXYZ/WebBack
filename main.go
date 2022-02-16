@@ -8,18 +8,16 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
+	"github.com/kz/discordrus"
 	. "github.com/logrusorgru/aurora"
-	"github.com/nikoksr/notify"
-	"github.com/nikoksr/notify/service/discord"
 	"github.com/rs/cors"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	DbUrl           string
-	Db              sqlx.DB
-	trades_wss      = make(map[string][]WsTrade)
-	discordNotifier *notify.Notify
+	DbUrl      string
+	Db         sqlx.DB
+	trades_wss = make(map[string][]WsTrade)
 )
 
 func main() {
@@ -31,7 +29,6 @@ func main() {
 	defer log_file.Close()
 	Db = *setUpDb()
 	defer Db.Close()
-	discordNotifier = SetUpDiscordNotifier()
 
 	go TrackContractEvents()
 	go InstanciateActivityMonitor()
@@ -148,14 +145,23 @@ func SetUpLog() (file *os.File) {
 	log.SetLevel(log.TraceLevel)
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(io.MultiWriter(file, os.Stdout))
+	log.AddHook(discordrus.NewHook(
+		os.Getenv("DISCORD_WEBHOOK_URL"),
+		log.TraceLevel,
+		&discordrus.Opts{
+			DisableTimestamp:   false,
+			EnableCustomColors: true,
+			CustomLevelColors: &discordrus.LevelColors{
+				Trace: 3092790,
+				Debug: 10170623,
+				Info:  3581519,
+				Warn:  14327864,
+				Error: 13631488,
+				Panic: 13631488,
+				Fatal: 13631488,
+			},
+			DisableInlineFields: false,
+		},
+	))
 	return
-}
-
-func SetUpDiscordNotifier() *notify.Notify {
-	discordService := discord.New()
-	_ = discordService.AuthenticateWithBotToken(os.Getenv("DISCORD_BOT_ID"))
-	discordService.AddReceivers(os.Getenv("DISCORD_CHANNEL_LOG"))
-	notifier := notify.New()
-	notifier.UseServices(discordService)
-	return notifier
 }
