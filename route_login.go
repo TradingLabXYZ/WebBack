@@ -30,6 +30,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	user, err := SelectUser("wallet", user_wallet.Wallet)
 	if user == (User{}) {
 		InsertUser(wallet)
+		InsertVisibilities(wallet)
 		user, err = SelectUser("wallet", user_wallet.Wallet)
 		if err != nil {
 			log.Error(err)

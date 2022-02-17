@@ -118,6 +118,34 @@ func InsertUser(wallet string) {
 	}
 }
 
+func InsertVisibilities(wallet string) {
+	statement := `
+		INSERT INTO visibilities (
+			wallet,
+			totalcounttrades,
+			totalportfolio,
+			totalreturn,
+			totalroi,
+			tradeqtyavailable,
+			tradevalue,
+			tradereturn,
+			traderoi,
+			subtradesall,
+			subtradereasons,
+			subtradequantity,
+			subtradeavgprice,
+			subtradetotal)
+		VALUES (
+			$1, TRUE, TRUE, TRUE, TRUE,
+			TRUE, TRUE, TRUE ,TRUE, TRUE,
+			TRUE, TRUE, TRUE, TRUE);`
+	_, err := Db.Exec(statement, wallet)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+}
+
 func SelectUser(by string, value string) (user User, err error) {
 	user_sql := fmt.Sprintf(`
 		SELECT
