@@ -74,7 +74,9 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 	snapshot.PrivacyStatus = user_connection.Privacy
 
 	// APPLY LAYER VISIBILITY
-	// snapshot.ApplyVisibility()
+	if observer.Wallet != observed.Wallet {
+		observed.CheckVisibilities(snapshot)
+	}
 
 	c := make(chan TradesSnapshot)
 	ws_trade := WsTrade{observer, observed, session_id, c, ws}

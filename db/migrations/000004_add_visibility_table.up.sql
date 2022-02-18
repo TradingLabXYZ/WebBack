@@ -1,6 +1,6 @@
 BEGIN;
   CREATE TABLE IF NOT EXISTS visibilities (
-    wallet VARCHAR(42) NOT NULL,
+    wallet VARCHAR(42) NOT NULL UNIQUE,
     totalcounttrades BOOLEAN NOT NULL,
     totalportfolio BOOLEAN NOT NULL,  
     totalreturn BOOLEAN NOT NULL,
