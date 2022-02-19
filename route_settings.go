@@ -325,3 +325,85 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 }
+
+func UpdateUserVisibility(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.WithFields(log.Fields{
+			"customMsg": "Failed updating visibility, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	visibilities := struct {
+		TotalCountTrades  bool `json:"TotalCountTrades"`
+		TotalPortfolio    bool `json:"TotalPortfolio"`
+		TotalReturn       bool `json:"TotalReturn"`
+		TotalRoi          bool `json:"TotalRoi"`
+		TradeQtyAvailable bool `json:"TradeQtyAvailable"`
+		TradeValue        bool `json:"TradeValue"`
+		TradeReturn       bool `json:"TradeReturn"`
+		TradeRoi          bool `json:"TradeRoi"`
+		SubtradesAll      bool `json:"SubtradesAll"`
+		SubtradeReasons   bool `json:"SubtradeReasons"`
+		SubtradeQuantity  bool `json:"SubtradeQuantity"`
+		SubtradeAvgPrice  bool `json:"SubtradeAvgPrice"`
+		SubtradeTotal     bool `json:"SubtradeTotal"`
+	}{}
+
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&visibilities)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed updating visibility, wrong payload",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	statement := `
+		UPDATE visibilities
+		SET
+			totalcounttrades = $1,
+			totalportfolio = $2,
+			totalreturn = $3,
+			totalroi = $4,
+			tradeqtyavailable = $5,
+			tradevalue = $6,
+			tradereturn = $7,
+			traderoi = $8,
+			subtradesall = $9,
+			subtradereasons = $10,
+			subtradequantity = $11,
+			subtradeavgprice = $12,
+			subtradetotal = $13
+		WHERE wallet = $14;`
+	_, err = Db.Exec(
+		statement,
+		visibilities.TotalCountTrades,
+		visibilities.TotalPortfolio,
+		visibilities.TotalReturn,
+		visibilities.TotalRoi,
+		visibilities.TradeQtyAvailable,
+		visibilities.TradeValue,
+		visibilities.TradeReturn,
+		visibilities.TradeRoi,
+		visibilities.SubtradesAll,
+		visibilities.SubtradeReasons,
+		visibilities.SubtradeQuantity,
+		visibilities.SubtradeAvgPrice,
+		visibilities.SubtradeTotal,
+		session.UserWallet,
+	)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed updating visibility, failed sql",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+	}
+
+	w.WriteHeader(http.StatusOK)
+}

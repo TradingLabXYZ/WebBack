@@ -30,7 +30,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	user, err := SelectUser("wallet", user_wallet.Wallet)
 	if user == (User{}) {
 		InsertUser(wallet)
-		InsertVisibilities(wallet)
+		InsertVisibility(wallet)
 		user, err = SelectUser("wallet", user_wallet.Wallet)
 		if err != nil {
 			log.Error(err)
@@ -59,6 +59,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		Followers      int
 		Subscribers    int
 		MonthlyFee     string
+		Visibility     VisibilityStatus
 	}{
 		session.Code,
 		user.Wallet,
@@ -72,6 +73,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		user.Followers,
 		user.Subscribers,
 		user.MonthlyFee,
+		user.Visibility,
 	}
 
 	json.NewEncoder(w).Encode(user_data)

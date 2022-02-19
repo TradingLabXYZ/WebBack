@@ -55,6 +55,7 @@ type User struct {
 	Followings     int
 	Subscribers    int
 	MonthlyFee     string
+	Visibility     VisibilityStatus
 }
 
 type Connection struct {

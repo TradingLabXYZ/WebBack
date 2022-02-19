@@ -139,8 +139,7 @@ func (connection *Connection) CheckPrivacy() {
 	}
 }
 
-func (observed *User) CheckVisibilities(snapshot TradesSnapshot) {
-	var visibilities VisibilityStatus
+func (observed *User) CheckVisibility(snapshot *TradesSnapshot) {
 	visibility_sql := `
 		SELECT
 			totalcounttrades,
@@ -155,13 +154,27 @@ func (observed *User) CheckVisibilities(snapshot TradesSnapshot) {
 			subtradereasons,
 			subtradequantity,
 			subtradeavgprice,
-			subtradetotal)
+			subtradetotal
 		FROM visibilities
 		WHERE wallet = $1;`
 
 	err := Db.QueryRow(
 		visibility_sql,
-		observed.Wallet).Scan(&visibilities)
+		observed.Wallet).Scan(
+		&snapshot.VisibilityStatus.TotalCountTrades,
+		&snapshot.VisibilityStatus.TotalPortfolio,
+		&snapshot.VisibilityStatus.TotalReturn,
+		&snapshot.VisibilityStatus.TotalRoi,
+		&snapshot.VisibilityStatus.TradeQtyAvailable,
+		&snapshot.VisibilityStatus.TradeValue,
+		&snapshot.VisibilityStatus.TradeReturn,
+		&snapshot.VisibilityStatus.TradeRoi,
+		&snapshot.VisibilityStatus.SubtradesAll,
+		&snapshot.VisibilityStatus.SubtradeReasons,
+		&snapshot.VisibilityStatus.SubtradeQuantity,
+		&snapshot.VisibilityStatus.SubtradeAvgPrice,
+		&snapshot.VisibilityStatus.SubtradeTotal,
+	)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"wallet":    observed.Wallet,
@@ -170,73 +183,73 @@ func (observed *User) CheckVisibilities(snapshot TradesSnapshot) {
 		return
 	}
 
-	if !visibilities.TotalCountTrades {
+	if !snapshot.VisibilityStatus.TotalCountTrades {
 		snapshot.CountTrades = 0
 	}
-	if !visibilities.TotalPortfolio {
+	if !snapshot.VisibilityStatus.TotalPortfolio {
 		snapshot.TotalPortfolioUsd = "0"
 	}
-	if !visibilities.TotalReturn {
+	if !snapshot.VisibilityStatus.TotalReturn {
 		snapshot.TotalReturnBtc = "0"
 		snapshot.TotalReturnUsd = "0"
 	}
-	if !visibilities.TotalRoi {
+	if !snapshot.VisibilityStatus.TotalRoi {
 		snapshot.Roi = 0
 	}
-	if !visibilities.TradeQtyAvailable {
-		for _, trade := range snapshot.Trades {
-			trade.QtyAvailable = "0"
+	if !snapshot.VisibilityStatus.TradeQtyAvailable {
+		for i := range snapshot.Trades {
+			snapshot.Trades[i].QtyAvailable = "0"
 		}
 	}
-	if !visibilities.TradeValue {
-		for _, trade := range snapshot.Trades {
-			trade.TotalValueUsd = 0
-			trade.TotalValueUsdS = "0"
+	if !snapshot.VisibilityStatus.TradeValue {
+		for i := range snapshot.Trades {
+			snapshot.Trades[i].TotalValueUsd = 0
+			snapshot.Trades[i].TotalValueUsdS = "0"
 		}
 	}
-	if !visibilities.TradeReturn {
-		for _, trade := range snapshot.Trades {
-			trade.TotalReturn = 0
-			trade.TotalReturnUsd = 0
-			trade.TotalReturnBtc = 0
-			trade.TotalReturnS = "0"
+	if !snapshot.VisibilityStatus.TradeReturn {
+		for i := range snapshot.Trades {
+			snapshot.Trades[i].TotalReturn = 0
+			snapshot.Trades[i].TotalReturnUsd = 0
+			snapshot.Trades[i].TotalReturnBtc = 0
+			snapshot.Trades[i].TotalReturnS = "0"
 		}
 	}
-	if !visibilities.TradeRoi {
-		for _, trade := range snapshot.Trades {
-			trade.Roi = 0
+	if !snapshot.VisibilityStatus.TradeRoi {
+		for i := range snapshot.Trades {
+			snapshot.Trades[i].Roi = 0
 		}
 	}
-	if !visibilities.SubtradesAll {
-		for _, trade := range snapshot.Trades {
-			trade.Subtrades = []Subtrade{}
+	if !snapshot.VisibilityStatus.SubtradesAll {
+		for i := range snapshot.Trades {
+			snapshot.Trades[i].Subtrades = []Subtrade{}
 		}
 	}
-	if !visibilities.SubtradeReasons {
-		for _, trade := range snapshot.Trades {
-			for _, subtrade := range trade.Subtrades {
-				subtrade.Reason = ""
+	if !snapshot.VisibilityStatus.SubtradeReasons {
+		for i := range snapshot.Trades {
+			for q := range snapshot.Trades[i].Subtrades {
+				snapshot.Trades[i].Subtrades[q].Reason = ""
 			}
 		}
 	}
-	if !visibilities.SubtradeQuantity {
-		for _, trade := range snapshot.Trades {
-			for _, subtrade := range trade.Subtrades {
-				subtrade.Quantity = 0
+	if !snapshot.VisibilityStatus.SubtradeQuantity {
+		for i := range snapshot.Trades {
+			for q := range snapshot.Trades[i].Subtrades {
+				snapshot.Trades[i].Subtrades[q].Quantity = 0
 			}
 		}
 	}
-	if !visibilities.SubtradeAvgPrice {
-		for _, trade := range snapshot.Trades {
-			for _, subtrade := range trade.Subtrades {
-				subtrade.AvgPrice = 0
+	if !snapshot.VisibilityStatus.SubtradeAvgPrice {
+		for i := range snapshot.Trades {
+			for q := range snapshot.Trades[i].Subtrades {
+				snapshot.Trades[i].Subtrades[q].AvgPrice = 0
 			}
 		}
 	}
-	if !visibilities.SubtradeTotal {
-		for _, trade := range snapshot.Trades {
-			for _, subtrade := range trade.Subtrades {
-				subtrade.Total = 0
+	if !snapshot.VisibilityStatus.SubtradeTotal {
+		for i := range snapshot.Trades {
+			for q := range snapshot.Trades[i].Subtrades {
+				snapshot.Trades[i].Subtrades[q].Total = 0
 			}
 		}
 	}

@@ -75,7 +75,7 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 
 	// APPLY LAYER VISIBILITY
 	if observer.Wallet != observed.Wallet {
-		observed.CheckVisibilities(snapshot)
+		observed.CheckVisibility(&snapshot)
 	}
 
 	c := make(chan TradesSnapshot)
