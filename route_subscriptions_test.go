@@ -187,7 +187,7 @@ func TestManageUnsubscriptions(t *testing.T) {
 				'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B',
 				'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C');`)
 
-	ManageUnsubscriptions()
+	go ManageUnsubscriptions()
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test first subscription is deleted"), func(t *testing.T) {
@@ -214,7 +214,6 @@ func TestManageUnsubscriptions(t *testing.T) {
 				AND subscribeto = $2;`, second_wallet, third_wallet).Scan(
 			&isSubscriptionPresent,
 		)
-		fmt.Println(isSubscriptionPresent)
 		if !isSubscriptionPresent {
 			t.Error("Failed second subscription is not deleted")
 		}

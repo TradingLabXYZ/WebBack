@@ -73,7 +73,6 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 	snapshot.IsSubscriber = user_connection.IsSubscriber
 	snapshot.PrivacyStatus = user_connection.Privacy
 
-	// APPLY LAYER VISIBILITY
 	if observer.Wallet != observed.Wallet {
 		observed.CheckVisibility(&snapshot)
 	}

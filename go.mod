@@ -13,6 +13,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2
+	github.com/jinzhu/copier v0.3.5 // indirect
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/kz/discordrus v1.3.0 // indirect
 	github.com/lib/pq v1.10.4

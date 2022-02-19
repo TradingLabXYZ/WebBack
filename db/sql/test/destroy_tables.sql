@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS visibilities;
 DROP TABLE IF EXISTS prices;
 DROP TABLE IF EXISTS lastprices;
 DROP TABLE IF EXISTS subtrades;
