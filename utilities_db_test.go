@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/gorilla/mux"
 )
 
 func TestCreateSession(t *testing.T) {
@@ -94,4 +96,32 @@ func TestExtractFromCookie(t *testing.T) {
 			t.Fatal("Failed correct cookie")
 		}
 	})
+}
+
+func TestInsertVisibility(t *testing.T) {
+	// <setup code>
+	req := httptest.NewRequest("GET", "/login", nil)
+	vars := map[string]string{
+		"wallet": "0x94c4fca5374f9430e7df39ab39c2af4f49c0f253",
+	}
+	req = mux.SetURLVars(req, vars)
+	req.Header.Set("Authorization", "Bearer sessionId=")
+	w := httptest.NewRecorder()
+	Login(w, req)
+
+	// <test code>
+	t.Run(fmt.Sprintf("Test not existing user gets visibility"), func(t *testing.T) {
+		var visibility_field bool
+		_ = Db.QueryRow(`
+			SELECT
+				totalcounttrades
+			FROM visibilities
+			WHERE wallet = $1;`, "0x94c4fca5374f9430e7df39ab39c2af4f49c0f253").Scan(&visibility_field)
+		if !visibility_field {
+			t.Fatal("Failed not existing user gets visibility")
+		}
+	})
+
+	// <tear-down code>
+	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 }

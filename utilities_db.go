@@ -118,48 +118,76 @@ func InsertUser(wallet string) {
 	}
 }
 
+func InsertVisibility(wallet string) {
+	statement := `
+		INSERT INTO visibilities (
+			wallet,
+			totalcounttrades,
+			totalportfolio,
+			totalreturn,
+			totalroi,
+			tradeqtyavailable,
+			tradevalue,
+			tradereturn,
+			traderoi,
+			subtradesall,
+			subtradereasons,
+			subtradequantity,
+			subtradeavgprice,
+			subtradetotal)
+		VALUES (
+			$1, TRUE, TRUE, TRUE, TRUE,
+			TRUE, TRUE, TRUE ,TRUE, TRUE,
+			TRUE, TRUE, TRUE, TRUE);`
+	_, err := Db.Exec(statement, wallet)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+}
+
 func SelectUser(by string, value string) (user User, err error) {
 	user_sql := fmt.Sprintf(`
-		SELECT
-			wallet,
-			TO_CHAR(createdat, 'Month') || ' ' || TO_CHAR(createdat, 'YYYY') AS jointime,
-			CASE WHEN username IS NULL THEN '' ELSE username END AS username,
-			CASE WHEN twitter IS NULL THEN '' ELSE twitter END AS twitter,
-			CASE WHEN discord IS NULL THEN '' ELSE discord END AS discord,
-			CASE WHEN github IS NULL THEN '' ELSE github END AS github,
-			privacy,
-			plan,
-			CASE WHEN profilepicture IS NULL THEN '' ELSE profilepicture END AS profilepicture,
-			f.count_followers,
-			fo.count_followings,
-			s.count_subscribers,
-			CASE WHEN mf.monthly_fee IS NULL THEN '0' ELSE mf.monthly_fee END AS monthly_fee
-		FROM users
-		LEFT JOIN (
 			SELECT
-				COUNT(*) AS count_followers
-			FROM followers
-			WHERE followto = $1) f ON(1=1)
-		LEFT JOIN (
-			SELECT
-				COUNT(*) AS count_followings
-			FROM followers
-			WHERE followfrom = $1) fo ON(1=1)
-		LEFT JOIN (
-			SELECT
-				COUNT(*) AS count_subscribers
-			FROM subscribers
-			WHERE subscribeto = $1) s ON(1=1)
-		LEFT JOIN (
-			SELECT DISTINCT ON(sender)
-				sender,
-				createdat AS eventcreatedat,
-				payload#>>'{Value}' AS monthly_fee
-			FROM smartcontractevents
-			WHERE name = 'ChangePlan'
-			AND LOWER(sender) = LOWER($1)
-			ORDER BY 1, 2 DESC) mf ON(1=1)
-		WHERE %s = $1;`, by)
+				wallet,
+				TO_CHAR(createdat, 'Month') || ' ' || TO_CHAR(createdat, 'YYYY') AS jointime,
+				CASE WHEN username IS NULL THEN '' ELSE username END AS username,
+				CASE WHEN twitter IS NULL THEN '' ELSE twitter END AS twitter,
+				CASE WHEN discord IS NULL THEN '' ELSE discord END AS discord,
+				CASE WHEN github IS NULL THEN '' ELSE github END AS github,
+				privacy,
+				plan,
+				CASE WHEN profilepicture IS NULL THEN '' ELSE profilepicture END AS profilepicture,
+				f.count_followers,
+				fo.count_followings,
+				s.count_subscribers,
+				CASE WHEN mf.monthly_fee IS NULL THEN '0' ELSE mf.monthly_fee END AS monthly_fee
+			FROM users
+			LEFT JOIN (
+				SELECT
+					COUNT(*) AS count_followers
+				FROM followers
+				WHERE followto = $1) f ON(1=1)
+			LEFT JOIN (
+				SELECT
+					COUNT(*) AS count_followings
+				FROM followers
+				WHERE followfrom = $1) fo ON(1=1)
+			LEFT JOIN (
+				SELECT
+					COUNT(*) AS count_subscribers
+				FROM subscribers
+				WHERE subscribeto = $1) s ON(1=1)
+			LEFT JOIN (
+				SELECT DISTINCT ON(sender)
+					sender,
+					createdat AS eventcreatedat,
+					payload#>>'{Value}' AS monthly_fee
+				FROM smartcontractevents
+				WHERE name = 'ChangePlan'
+				AND LOWER(sender) = LOWER($1)
+				ORDER BY 1, 2 DESC) mf ON(1=1)
+			WHERE %s = $1;`, by)
 	err = Db.QueryRow(user_sql, value).Scan(
 		&user.Wallet,
 		&user.JoinTime,
@@ -175,5 +203,60 @@ func SelectUser(by string, value string) (user User, err error) {
 		&user.Subscribers,
 		&user.MonthlyFee,
 	)
+
+	if err != nil {
+		log.WithFields(log.Fields{
+			"by":         by,
+			"value":      value,
+			"custom_msg": "Failed selecting user",
+		}).Error(err)
+		return
+	}
+
+	visibility_sql := `
+			SELECT
+				totalcounttrades,
+				totalportfolio,
+				totalreturn,
+				totalroi,
+				tradeqtyavailable,
+				tradevalue,
+				tradereturn,
+				traderoi,
+				subtradesall,
+				subtradereasons,
+				subtradequantity,
+				subtradeavgprice,
+				subtradetotal
+			FROM visibilities
+			WHERE wallet = $1;`
+
+	err = Db.QueryRow(
+		visibility_sql,
+		&user.Wallet).Scan(
+		&user.Visibility.TotalCountTrades,
+		&user.Visibility.TotalPortfolio,
+		&user.Visibility.TotalReturn,
+		&user.Visibility.TotalRoi,
+		&user.Visibility.TradeQtyAvailable,
+		&user.Visibility.TradeValue,
+		&user.Visibility.TradeReturn,
+		&user.Visibility.TradeRoi,
+		&user.Visibility.SubtradesAll,
+		&user.Visibility.SubtradeReasons,
+		&user.Visibility.SubtradeQuantity,
+		&user.Visibility.SubtradeAvgPrice,
+		&user.Visibility.SubtradeTotal,
+	)
+
+	if err != nil {
+		log.WithFields(log.Fields{
+			"by":         by,
+			"value":      value,
+			"custom_msg": "Failed selecting visibilities",
+		}).Error(err)
+		return
+	}
+
 	return
 }

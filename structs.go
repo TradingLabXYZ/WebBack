@@ -55,6 +55,7 @@ type User struct {
 	Followings     int
 	Subscribers    int
 	MonthlyFee     string
+	Visibility     VisibilityStatus
 }
 
 type Connection struct {
@@ -182,9 +183,26 @@ type PrivacyStatus struct {
 	Message string
 }
 
+type VisibilityStatus struct {
+	TotalCountTrades  bool
+	TotalPortfolio    bool
+	TotalReturn       bool
+	TotalRoi          bool
+	TradeQtyAvailable bool
+	TradeValue        bool
+	TradeReturn       bool
+	TradeRoi          bool
+	SubtradesAll      bool
+	SubtradeReasons   bool
+	SubtradeQuantity  bool
+	SubtradeAvgPrice  bool
+	SubtradeTotal     bool
+}
+
 type TradesSnapshot struct {
 	UserDetails       UserDetails
 	PrivacyStatus     PrivacyStatus
+	VisibilityStatus  VisibilityStatus
 	IsFollower        bool
 	IsSubscriber      bool
 	Trades            []Trade

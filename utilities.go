@@ -138,3 +138,119 @@ func (connection *Connection) CheckPrivacy() {
 		return
 	}
 }
+
+func (observed *User) CheckVisibility(snapshot *TradesSnapshot) {
+	visibility_sql := `
+		SELECT
+			totalcounttrades,
+			totalportfolio,
+			totalreturn,
+			totalroi,
+			tradeqtyavailable,
+			tradevalue,
+			tradereturn,
+			traderoi,
+			subtradesall,
+			subtradereasons,
+			subtradequantity,
+			subtradeavgprice,
+			subtradetotal
+		FROM visibilities
+		WHERE wallet = $1;`
+
+	err := Db.QueryRow(
+		visibility_sql,
+		observed.Wallet).Scan(
+		&snapshot.VisibilityStatus.TotalCountTrades,
+		&snapshot.VisibilityStatus.TotalPortfolio,
+		&snapshot.VisibilityStatus.TotalReturn,
+		&snapshot.VisibilityStatus.TotalRoi,
+		&snapshot.VisibilityStatus.TradeQtyAvailable,
+		&snapshot.VisibilityStatus.TradeValue,
+		&snapshot.VisibilityStatus.TradeReturn,
+		&snapshot.VisibilityStatus.TradeRoi,
+		&snapshot.VisibilityStatus.SubtradesAll,
+		&snapshot.VisibilityStatus.SubtradeReasons,
+		&snapshot.VisibilityStatus.SubtradeQuantity,
+		&snapshot.VisibilityStatus.SubtradeAvgPrice,
+		&snapshot.VisibilityStatus.SubtradeTotal,
+	)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"wallet":    observed.Wallet,
+			"customMsg": "Failed extracting visibilities",
+		}).Error(err)
+		return
+	}
+
+	if !snapshot.VisibilityStatus.TotalCountTrades {
+		snapshot.CountTrades = 0
+	}
+	if !snapshot.VisibilityStatus.TotalPortfolio {
+		snapshot.TotalPortfolioUsd = "0"
+	}
+	if !snapshot.VisibilityStatus.TotalReturn {
+		snapshot.TotalReturnBtc = "0"
+		snapshot.TotalReturnUsd = "0"
+	}
+	if !snapshot.VisibilityStatus.TotalRoi {
+		snapshot.Roi = 0
+	}
+	if !snapshot.VisibilityStatus.TradeQtyAvailable {
+		for i := range snapshot.Trades {
+			snapshot.Trades[i].QtyAvailable = "0"
+		}
+	}
+	if !snapshot.VisibilityStatus.TradeValue {
+		for i := range snapshot.Trades {
+			snapshot.Trades[i].TotalValueUsd = 0
+			snapshot.Trades[i].TotalValueUsdS = "0"
+		}
+	}
+	if !snapshot.VisibilityStatus.TradeReturn {
+		for i := range snapshot.Trades {
+			snapshot.Trades[i].TotalReturn = 0
+			snapshot.Trades[i].TotalReturnUsd = 0
+			snapshot.Trades[i].TotalReturnBtc = 0
+			snapshot.Trades[i].TotalReturnS = "0"
+		}
+	}
+	if !snapshot.VisibilityStatus.TradeRoi {
+		for i := range snapshot.Trades {
+			snapshot.Trades[i].Roi = 0
+		}
+	}
+	if !snapshot.VisibilityStatus.SubtradesAll {
+		for i := range snapshot.Trades {
+			snapshot.Trades[i].Subtrades = []Subtrade{}
+		}
+	}
+	if !snapshot.VisibilityStatus.SubtradeReasons {
+		for i := range snapshot.Trades {
+			for q := range snapshot.Trades[i].Subtrades {
+				snapshot.Trades[i].Subtrades[q].Reason = ""
+			}
+		}
+	}
+	if !snapshot.VisibilityStatus.SubtradeQuantity {
+		for i := range snapshot.Trades {
+			for q := range snapshot.Trades[i].Subtrades {
+				snapshot.Trades[i].Subtrades[q].Quantity = 0
+			}
+		}
+	}
+	if !snapshot.VisibilityStatus.SubtradeAvgPrice {
+		for i := range snapshot.Trades {
+			for q := range snapshot.Trades[i].Subtrades {
+				snapshot.Trades[i].Subtrades[q].AvgPrice = 0
+			}
+		}
+	}
+	if !snapshot.VisibilityStatus.SubtradeTotal {
+		for i := range snapshot.Trades {
+			for q := range snapshot.Trades[i].Subtrades {
+				snapshot.Trades[i].Subtrades[q].Total = 0
+			}
+		}
+	}
+}

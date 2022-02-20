@@ -1,25 +1,12 @@
 package main
 
 import (
-	"context"
-	"crypto/ecdsa"
-	"fmt"
-	"math/big"
-	"math/rand"
-	"os"
 	"testing"
-	"time"
-
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
-	log "github.com/sirupsen/logrus"
 )
 
 func TestTrackContractEvents(t *testing.T) {
 	// <setup code>
-	baltathar_address := "0x3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0"
+	/* baltathar_address := "0x3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0"
 	baltathar_private_key := "8075991ce870b93a8870eca0c0f91913d12f47948ca0fd25b49c6fa7cdbeee8b"
 	go TrackContractEvents()
 
@@ -117,5 +104,5 @@ func TestTrackContractEvents(t *testing.T) {
 	})
 
 	// <tear-down code>
-	Db.Exec(`DELETE FROM smartcontractevents WHERE 1 = 1;`)
+	Db.Exec(`DELETE FROM smartcontractevents WHERE 1 = 1;`) */
 }

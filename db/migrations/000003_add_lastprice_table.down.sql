@@ -1,4 +1,3 @@
-
 BEGIN;
   DROP TABLE IF EXISTS lastprices;
 COMMIT;
