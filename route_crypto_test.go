@@ -66,7 +66,7 @@ func TestSelectPairRatio(t *testing.T) {
 
 	Db.Exec(`
 		INSERT INTO lastprices (
-			createdat, coinid, price)
+			updatedat, coinid, price)
 		VALUES
 			(current_timestamp, 1000, 200),
 			(current_timestamp, 1001, 100);`)

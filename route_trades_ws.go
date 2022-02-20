@@ -68,12 +68,17 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 	user_connection.CheckConnection()
 	user_connection.CheckPrivacy()
 
-	c := make(chan TradesSnapshot)
-	ws_trade := WsTrade{observer, observed, session_id, c, ws}
 	snapshot := observed.GetSnapshot()
 	snapshot.IsFollower = user_connection.IsFollower
 	snapshot.IsSubscriber = user_connection.IsSubscriber
 	snapshot.PrivacyStatus = user_connection.Privacy
+
+	if observer.Wallet != observed.Wallet {
+		observed.CheckVisibility(&snapshot)
+	}
+
+	c := make(chan TradesSnapshot)
+	ws_trade := WsTrade{observer, observed, session_id, c, ws}
 
 	if snapshot.PrivacyStatus.Status == "KO" {
 		snapshot.Trades = nil
