@@ -426,3 +426,94 @@ func TestUpdateUserPrivacy(t *testing.T) {
 	// <tear-down code>
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 }
+
+func TestUpdateUserVisibility(t *testing.T) {
+	// <setup code>
+	Db.Exec(
+		`INSERT INTO users (
+			wallet, username, privacy, plan,
+			twitter, createdat, updatedat)
+		VALUES (
+			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B', 'jsjsjsj',
+			'all', 'basic', 'thisistwitter',
+			current_timestamp, current_timestamp);`)
+	Db.Exec(
+		`INSERT INTO visibilities (wallet, totalcounttrades, totalportfolio,
+			totalreturn, totalroi, tradeqtyavailable, tradevalue, tradereturn,
+			traderoi, subtradesall, subtradereasons, subtradequantity, subtradeavgprice, subtradetotal)
+		VALUES (
+			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B', TRUE, TRUE, TRUE, TRUE,
+			TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);`)
+
+	user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"}
+	session, _ := user.InsertSession()
+	_ = session
+
+	// <test code>
+	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/update_visibility", nil)
+		req.Header.Set("Authorization", "Bearer sessionId=")
+		w := httptest.NewRecorder()
+		UpdateUserVisibility(w, req)
+		res := w.Result()
+		if res.StatusCode != 401 {
+			t.Fatal("Failed test update visibility, wrong header")
+		}
+	})
+
+	t.Run(fmt.Sprintf("Test incorrect visibility payload"), func(t *testing.T) {
+		params := []byte(`{
+			"TotalCountTrades": "NOTBOOL"
+		}`)
+		req := httptest.NewRequest("POST", "/update_visibility", bytes.NewBuffer(params))
+		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
+		w := httptest.NewRecorder()
+		UpdateUserVisibility(w, req)
+		res := w.Result()
+		if res.StatusCode != 400 {
+			t.Fatal("Failed test update privacy, incorrect visibility payload")
+		}
+	})
+
+	t.Run(fmt.Sprintf("Test successfully update visibility"), func(t *testing.T) {
+		params := []byte(`{
+			"TotalCountTrades": false,
+			"TotalPortfolio": true,
+			"TotalReturn": true,
+			"TotalRoi": true,
+			"TradeQtyAvailable": true,
+			"TradeValue": false,
+			"TradeReturn": true,
+			"TradeRoi": true,
+			"SubtradesAll": true,
+			"SubtradeReasons": true,
+			"SubtradeQuantity": false,
+			"SubtradeAvgPrice": true,
+			"SubtradeTotal": true
+		}`)
+		req := httptest.NewRequest("POST", "/update_visibility", bytes.NewBuffer(params))
+		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
+		w := httptest.NewRecorder()
+		UpdateUserVisibility(w, req)
+		var changed_visibility1 bool
+		var changed_visibility2 bool
+		var changed_visibility3 bool
+		_ = Db.QueryRow(`
+			SELECT
+				totalcounttrades,
+				tradevalue,
+				subtradequantity
+			FROM visibilities
+			WHERE wallet = $1;`,
+			session.UserWallet).Scan(
+			&changed_visibility1,
+			&changed_visibility2,
+			&changed_visibility3)
+		if changed_visibility1 || changed_visibility2 || changed_visibility3 {
+			t.Fatal("Failed successfully update visibility")
+		}
+	})
+
+	// <tear-down code>
+	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
+}
