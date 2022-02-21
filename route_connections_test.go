@@ -16,6 +16,13 @@ func TestUpdateFollower(t *testing.T) {
 		`INSERT INTO users (wallet, username, privacy, plan, createdat, updatedat) VALUES 
 		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', 'all', 'basic', current_timestamp, current_timestamp), 
 		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'all', 'basic', current_timestamp, current_timestamp);`)
+	Db.Exec(
+		`INSERT INTO visibilities (
+			wallet, totalcounttrades, totalportfolio, totalreturn, totalroi, tradeqtyavailable, tradevalue,
+			tradereturn, traderoi, subtradesall, subtradereasons, subtradequantity, subtradeavgprice, subtradetotal)
+		VALUES
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);`)
 
 	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
 	session, _ := user.InsertSession()
@@ -104,6 +111,13 @@ func TestUpdateSubscribers(t *testing.T) {
 		`INSERT INTO users (wallet, username, privacy, plan, createdat, updatedat) VALUES 
 		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', 'all', 'basic', current_timestamp, current_timestamp), 
 		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'all', 'basic', current_timestamp, current_timestamp);`)
+	Db.Exec(
+		`INSERT INTO visibilities (
+			wallet, totalcounttrades, totalportfolio, totalreturn, totalroi, tradeqtyavailable, tradevalue,
+			tradereturn, traderoi, subtradesall, subtradereasons, subtradequantity, subtradeavgprice, subtradetotal)
+		VALUES
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);`)
 
 	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
 	session, _ := user.InsertSession()
@@ -191,15 +205,23 @@ func TestSelectConnection(t *testing.T) {
 	Db.Exec(
 		`INSERT INTO users (wallet, username, privacy, plan, createdat, updatedat) VALUES 
 		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', 'all', 'basic', current_timestamp, current_timestamp), 
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'all', 'basic', current_timestamp, current_timestamp), 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'subscribers', 'basic', current_timestamp, current_timestamp), 
 		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', 'userc', 'all', 'basic', current_timestamp, current_timestamp), 
 		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', 'userd', 'followers', 'basic', current_timestamp, current_timestamp);`)
 	Db.Exec(
-		`INSERT INTO followers (followfrom, followto, createdat)
-		VALUES ('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', current_timestamp);`)
+		`INSERT INTO visibilities (
+			wallet, totalcounttrades, totalportfolio, totalreturn, totalroi, tradeqtyavailable, tradevalue,
+			tradereturn, traderoi, subtradesall, subtradereasons, subtradequantity, subtradeavgprice, subtradetotal)
+		VALUES
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);`)
 	Db.Exec(
 		`INSERT INTO followers (followfrom, followto, createdat)
-		VALUES ('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', current_timestamp);`)
+		VALUES
+			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', current_timestamp),
+			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', current_timestamp);`)
 	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
 	session, _ := user.InsertSession()
 	_ = session
@@ -219,7 +241,7 @@ func TestSelectConnection(t *testing.T) {
 			t.Fatal("Failed wrong header")
 		}
 	})
-	t.Run(fmt.Sprintf("Test accessing from user not loggedin"), func(t *testing.T) {
+	t.Run(fmt.Sprintf("Test correctely accessing from user not loggedin"), func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/get_connections", nil)
 		vars := map[string]string{
 			"wallet": "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A",
@@ -229,8 +251,8 @@ func TestSelectConnection(t *testing.T) {
 		w := httptest.NewRecorder()
 		SelectConnections(w, req)
 		res := w.Result()
-		if res.StatusCode == 400 {
-			t.Fatal("Failed accessing from user not loggedin")
+		if res.StatusCode != 200 {
+			t.Fatal("Failed correctely accessing from user not loggedin")
 		}
 	})
 	t.Run(fmt.Sprintf("Test response correctly not returning data"), func(t *testing.T) {
@@ -263,7 +285,6 @@ func TestSelectConnection(t *testing.T) {
 			t.Fatal("Failed response correctly returning data")
 		}
 	})
-	t.Run(fmt.Sprintf("Test correctly returning connections"), func(t *testing.T) {})
 
 	// <tear-down code>
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)

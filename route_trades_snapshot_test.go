@@ -17,16 +17,22 @@ func TestGetSnapshot(t *testing.T) {
 			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'jsjsjsj',
 			'all', 'basic', current_timestamp, current_timestamp);`)
 
+	Db.Exec(
+		`INSERT INTO visibilities (
+			wallet, totalcounttrades, totalportfolio, totalreturn, totalroi, tradeqtyavailable, tradevalue,
+			tradereturn, traderoi, subtradesall, subtradereasons, subtradequantity, subtradeavgprice, subtradetotal)
+		VALUES
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);`)
+
 	Db.Exec(`
 		INSERT INTO coins (
 			coinid, name, symbol, slug)
 		VALUES
 			(1, 'BTC', 'BTC', 'bitcoin'),
 			(1001, 'USDC', 'USDC', 'usdollar')`)
-
 	Db.Exec(`
-		INSERT INTO prices (
-			createdat, coinid, price)
+		INSERT INTO lastprices (
+			updatedat, coinid, price)
 		VALUES
 			(current_timestamp, 1, 65000),
 			(current_timestamp, 1001, 1);`)
@@ -251,15 +257,21 @@ func TestGetSnapshot(t *testing.T) {
 				(3, 'SOL', 'SOL', 'SOLANA'),
 				(4, 'LUNA', 'LUNA', 'LUNA'),
 				(5, 'XLM', 'XLM', 'STELLAR');`)
+
 		Db.Exec(`
-			INSERT INTO prices (
-				createdat, coinid, price)
+			UPDATE lastprices
+			SET price = 100000
+			WHERE coinid = 1;`)
+
+		Db.Exec(`
+			INSERT INTO lastprices (
+				updatedat, coinid, price)
 			VALUES
-				(current_timestamp, 1, 100000),
 				(current_timestamp, 2, 100),
 				(current_timestamp, 3, 1000),
 				(current_timestamp, 4, 200),
 				(current_timestamp, 5, 400);`)
+
 		Db.Exec(`
 			INSERT INTO trades(
 				code, userwallet, createdat, updatedat,
