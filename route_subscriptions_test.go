@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -17,14 +18,12 @@ func TestSelectSubscriptionMonthlyPrice(t *testing.T) {
 			wallet,
 			username,
 			privacy,
-			plan,
 			createdat,
 			updatedat)
 		VALUES (
 			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A',
 			'r',
 			'all',
-			'basic',
 			current_timestamp,
 			current_timestamp);`)
 
@@ -120,30 +119,35 @@ func TestManageUnsubscriptions(t *testing.T) {
 			wallet,
 			username,
 			privacy,
-			plan,
 			createdat,
 			updatedat)
 		VALUES (
 			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A',
 			'r',
 			'all',
-			'basic',
 			current_timestamp,
 			current_timestamp),
 		(
 			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B',
 			'x',
 			'all',
-			'basic',
 			current_timestamp,
 			current_timestamp),
 		(
 			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C',
 			'q',
 			'all',
-			'basic',
 			current_timestamp,
 			current_timestamp);`)
+
+	Db.Exec(
+		`INSERT INTO visibilities (
+			wallet, totalcounttrades, totalportfolio, totalreturn, totalroi, tradeqtyavailable, tradevalue,
+			tradereturn, traderoi, subtradesall, subtradereasons, subtradequantity, subtradeavgprice, subtradetotal)
+		VALUES
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);`)
 
 	Db.Exec(`
 			INSERT INTO smartcontractevents (
@@ -195,6 +199,7 @@ func TestManageUnsubscriptions(t *testing.T) {
 				'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C');`)
 
 	go ManageUnsubscriptions()
+	time.Sleep(5 * time.Second)
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test first subscription is deleted"), func(t *testing.T) {

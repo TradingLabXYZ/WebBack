@@ -40,12 +40,12 @@ func TestStartTradesWs(t *testing.T) {
 	Db.Exec(
 		`INSERT INTO users (
 			wallet, username, privacy,
-			plan, createdat, updatedat)
+			createdat, updatedat)
 		VALUES
 			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera',
-			'all', 'basic', current_timestamp, current_timestamp),
+			'all', current_timestamp, current_timestamp),
 			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb',
-			'private', 'basic', current_timestamp, current_timestamp);`)
+			'private', current_timestamp, current_timestamp);`)
 
 	Db.Exec(
 		`INSERT INTO visibilities (
@@ -228,16 +228,16 @@ func TestStartTradesWsIntegration(t *testing.T) {
 	Db.Exec(
 		`INSERT INTO users (
 			wallet, username, privacy,
-			plan, createdat, updatedat)
+			createdat, updatedat)
 		VALUES
 			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera',
-			'all', 'basic', current_timestamp, current_timestamp),
+			'all', current_timestamp, current_timestamp),
 			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb',
-			'all', 'basic', current_timestamp, current_timestamp),
+			'all', current_timestamp, current_timestamp),
 			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', 'userc',
-			'all', 'basic', current_timestamp, current_timestamp),
+			'all', current_timestamp, current_timestamp),
 			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', 'userd',
-			'all', 'basic', current_timestamp, current_timestamp);`)
+			'all', current_timestamp, current_timestamp);`)
 
 	Db.Exec(
 		`INSERT INTO visibilities (
@@ -357,12 +357,12 @@ func TestStartTradesWsIntegration(t *testing.T) {
 	Db.Exec(
 		`INSERT INTO users (
 			wallet, username, privacy,
-			plan, createdat, updatedat)
+			createdat, updatedat)
 		VALUES
 			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera',
-			'all', 'basic', current_timestamp, current_timestamp),
+			'all', current_timestamp, current_timestamp),
 			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb',
-			'private', 'basic', current_timestamp, current_timestamp);`)
+			'private', current_timestamp, current_timestamp);`)
 
 	Db.Exec(`
 		INSERT INTO coins (

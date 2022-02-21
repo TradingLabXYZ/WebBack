@@ -1,5 +1,4 @@
 CREATE TYPE privacies AS ENUM ('all', 'private', 'subscribers', 'followers');
-CREATE TYPE plans AS ENUM ('basic', 'premium', 'pro');
 
 CREATE TABLE IF NOT EXISTS users (
   wallet VARCHAR(42) NOT NULL UNIQUE,
@@ -9,7 +8,6 @@ CREATE TABLE IF NOT EXISTS users (
   github VARCHAR(32),
   privacy privacies NOT NULL,
   profilepicture TEXT,
-  plan plans NOT NULL,
   createdat TIMESTAMP NOT NULL,
   updatedat TIMESTAMP NOT NULL
 );

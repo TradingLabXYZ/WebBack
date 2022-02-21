@@ -16,11 +16,11 @@ func TestLogin(t *testing.T) {
 		`INSERT INTO users (
 			wallet, username, privacy,
 			twitter, profilepicture,
-			plan, createdat, updatedat)
+			createdat, updatedat)
 		VALUES
 			('0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B', 'usera', 'all', 
 			'testtwitter', 'testprofilepicture',
-			'basic', current_timestamp, current_timestamp);`)
+			current_timestamp, current_timestamp);`)
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test login invalid eth wallet"), func(t *testing.T) {
