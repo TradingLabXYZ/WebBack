@@ -58,6 +58,9 @@ export DO_KEY=
 export DO_SECRET=
 export CDN_PATH=
 export ADMIN_TOKEN=
+export CONTRACT_SUBSCRIPTION=
+export MOONBEAM_ENDPOINT=
+export DISCORD_WEBHOOK_URL=
 ```
 
 Build and run the program:
@@ -70,21 +73,11 @@ modd
 go test -v -cover -parallel 1
 ```
 
+To visualise test coverage
+
+```bash
+go test -v -parallel 1 -coverprofile=coverage.html && go tool cover -html=coverage.html
+```
+
 # Migrate
 Use `Makefile` to migrate up or down the database
-
-# Run with smart contracts
-
-1 - Run Node (truffle run moonbeam start)
-
-2 - Modify contract
-
-3 - Deploy contract (truffle migrate --network dev --reset)
-
-4 - Copy contract to FrontEnd (cp build/contracts/Store.json $HOME/Code/TradingLab/WebFront/src/functions)
-
-5 - Create ABI (truffle run abigen Store)
-
-6 - Update the contract in this file as well as the event params
-
-7 - Run this file, and you should see logs when interacting with contract
