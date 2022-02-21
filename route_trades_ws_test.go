@@ -47,6 +47,14 @@ func TestStartTradesWs(t *testing.T) {
 			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb',
 			'private', 'basic', current_timestamp, current_timestamp);`)
 
+	Db.Exec(
+		`INSERT INTO visibilities (
+			wallet, totalcounttrades, totalportfolio, totalreturn, totalroi, tradeqtyavailable, tradevalue,
+			tradereturn, traderoi, subtradesall, subtradereasons, subtradequantity, subtradeavgprice, subtradetotal)
+		VALUES
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);`)
+
 	Db.Exec(`
 		INSERT INTO coins (
 			coinid, name, symbol, slug)
@@ -230,6 +238,16 @@ func TestStartTradesWsIntegration(t *testing.T) {
 			'all', 'basic', current_timestamp, current_timestamp),
 			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', 'userd',
 			'all', 'basic', current_timestamp, current_timestamp);`)
+
+	Db.Exec(
+		`INSERT INTO visibilities (
+			wallet, totalcounttrades, totalportfolio, totalreturn, totalroi, tradeqtyavailable, tradevalue,
+			tradereturn, traderoi, subtradesall, subtradereasons, subtradequantity, subtradeavgprice, subtradetotal)
+		VALUES
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);`)
 
 	Db.Exec(`
 		INSERT INTO coins (
