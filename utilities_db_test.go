@@ -16,14 +16,12 @@ func TestCreateSession(t *testing.T) {
 			wallet,
 			username,
 			privacy,
-			plan,
 			createdat,
 			updatedat)
 		VALUES (
 			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A',
 			'r',
 			'all',
-			'basic',
 			current_timestamp,
 			current_timestamp);`)
 

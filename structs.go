@@ -49,7 +49,6 @@ type User struct {
 	Discord        string
 	Github         string
 	Privacy        string
-	Plan           string
 	ProfilePicture string
 	Followers      int
 	Followings     int

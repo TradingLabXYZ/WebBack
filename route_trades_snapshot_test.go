@@ -12,10 +12,10 @@ func TestGetSnapshot(t *testing.T) {
 	Db.Exec(
 		`INSERT INTO users (
 			wallet, username, privacy,
-			plan, createdat, updatedat)
+			createdat, updatedat)
 		VALUES (
 			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'jsjsjsj',
-			'all', 'basic', current_timestamp, current_timestamp);`)
+			'all', current_timestamp, current_timestamp);`)
 
 	Db.Exec(
 		`INSERT INTO visibilities (

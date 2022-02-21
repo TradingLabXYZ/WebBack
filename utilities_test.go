@@ -31,10 +31,10 @@ func TestEncrypt(t *testing.T) {
 func TestCheckRelation(t *testing.T) {
 	// <setup code>
 	Db.Exec(
-		`INSERT INTO users (wallet, username, privacy, plan, createdat, updatedat) VALUES 
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', 'all', 'basic', current_timestamp, current_timestamp), 
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'all', 'basic', current_timestamp, current_timestamp),
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', 'userd', 'all', 'basic', current_timestamp, current_timestamp);`)
+		`INSERT INTO users (wallet, username, privacy, createdat, updatedat) VALUES 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', 'all', current_timestamp, current_timestamp), 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'all', current_timestamp, current_timestamp),
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', 'userd', 'all', current_timestamp, current_timestamp);`)
 	Db.Exec(
 		`INSERT INTO followers (followfrom, followto, createdat) VALUES 
 		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', current_timestamp);`)
@@ -109,11 +109,11 @@ func TestCheckRelation(t *testing.T) {
 func TestCheckPrivacy(t *testing.T) {
 	// <setup code>
 	Db.Exec(
-		`INSERT INTO users (wallet, username, privacy, plan, createdat, updatedat) VALUES 
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', 'all', 'basic', current_timestamp, current_timestamp), 
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'private', 'basic', current_timestamp, current_timestamp),
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', 'userc', 'followers', 'basic', current_timestamp, current_timestamp), 
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', 'userd', 'subscribers', 'basic', current_timestamp, current_timestamp);`)
+		`INSERT INTO users (wallet, username, privacy, createdat, updatedat) VALUES 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', 'all', current_timestamp, current_timestamp), 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'private', current_timestamp, current_timestamp),
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', 'userc', 'followers', current_timestamp, current_timestamp), 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', 'userd', 'subscribers', current_timestamp, current_timestamp);`)
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test user with privacy ALL is fully visibile"), func(t *testing.T) {
@@ -284,8 +284,8 @@ func TestCheckPrivacy(t *testing.T) {
 func TestCheckVisibility(t *testing.T) {
 	// <setup code>
 	Db.Exec(
-		`INSERT INTO users (wallet, username, privacy, plan, createdat, updatedat) VALUES 
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'userd', 'all', 'basic', current_timestamp, current_timestamp);`)
+		`INSERT INTO users (wallet, username, privacy, createdat, updatedat) VALUES 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'userd', 'all', current_timestamp, current_timestamp);`)
 	Db.Exec(
 		`INSERT INTO visibilities (wallet, totalcounttrades, totalportfolio,
 			totalreturn, totalroi, tradeqtyavailable, tradevalue, tradereturn,

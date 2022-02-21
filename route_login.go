@@ -55,7 +55,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		Github         string
 		ProfilePicture string
 		Privacy        string
-		Plan           string
 		Followers      int
 		Subscribers    int
 		MonthlyFee     string
@@ -69,7 +68,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		user.Github,
 		user.ProfilePicture,
 		user.Privacy,
-		user.Plan,
 		user.Followers,
 		user.Subscribers,
 		user.MonthlyFee,

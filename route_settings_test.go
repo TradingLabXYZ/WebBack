@@ -29,10 +29,10 @@ func TestInsertProfilePicture(t *testing.T) {
 	Db.Exec(
 		`INSERT INTO users (
 			wallet, username, privacy,
-			plan, createdat, updatedat)
+			createdat, updatedat)
 		VALUES (
 			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'jsjsjsj',
-			'all', 'basic', current_timestamp, current_timestamp);`)
+			'all', current_timestamp, current_timestamp);`)
 
 	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
 	session, _ := user.InsertSession()
@@ -179,11 +179,11 @@ func TestUpdateUserSettings(t *testing.T) {
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
-			wallet, username, privacy, plan,
+			wallet, username, privacy,
 			twitter, discord, github, createdat, updatedat)
 		VALUES (
 			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B', 'jsjsjsj', 'all',
-			'basic', 'thisistwitter', 'thisisdiscord', 'thisisgithub',
+			'thisistwitter', 'thisisdiscord', 'thisisgithub',
 			current_timestamp, current_timestamp);`)
 	user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"}
 	session, _ := user.InsertSession()
@@ -214,12 +214,11 @@ func TestUpdateUserSettings(t *testing.T) {
 	t.Run(fmt.Sprintf("Test already present username"), func(t *testing.T) {
 		Db.Exec(
 			`INSERT INTO users (
-			wallet, username, privacy, plan,
+			wallet, username, privacy,
 			twitter, createdat, updatedat)
 		VALUES (
 			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9D', 'ququqj', 'all',
-			'basic', 'twitterhdhd',
-			current_timestamp, current_timestamp);`)
+			'twitterhdhd', current_timestamp, current_timestamp);`)
 		user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9D"}
 		session, _ := user.InsertSession()
 		params := []byte(`{
@@ -238,12 +237,11 @@ func TestUpdateUserSettings(t *testing.T) {
 	t.Run(fmt.Sprintf("Test already present twitter"), func(t *testing.T) {
 		Db.Exec(
 			`INSERT INTO users (
-			wallet, username, privacy, plan,
+			wallet, username, privacy,
 			twitter, createdat, updatedat)
 		VALUES (
 			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9C', 'xlxlxlx', 'all',
-			'basic', 'twitteraaa',
-			current_timestamp, current_timestamp);`)
+			'twitteraaa', current_timestamp, current_timestamp);`)
 		user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9C"}
 		session, _ := user.InsertSession()
 		params := []byte(`{
@@ -262,12 +260,11 @@ func TestUpdateUserSettings(t *testing.T) {
 	t.Run(fmt.Sprintf("Test already present discord"), func(t *testing.T) {
 		Db.Exec(
 			`INSERT INTO users (
-			wallet, username, privacy, plan,
+			wallet, username, privacy,
 			discord, createdat, updatedat)
 		VALUES (
 			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9Q', 'jdhshd', 'all',
-			'basic', 'discordssss',
-			current_timestamp, current_timestamp);`)
+			'discordssss', current_timestamp, current_timestamp);`)
 		user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9Q"}
 		session, _ := user.InsertSession()
 		params := []byte(`{
@@ -286,12 +283,11 @@ func TestUpdateUserSettings(t *testing.T) {
 	t.Run(fmt.Sprintf("Test already present github"), func(t *testing.T) {
 		Db.Exec(
 			`INSERT INTO users (
-			wallet, username, privacy, plan,
+			wallet, username, privacy,
 			discord, createdat, updatedat)
 		VALUES (
 			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9Z', 'pqoskjd', 'all',
-			'basic', 'githubllll',
-			current_timestamp, current_timestamp);`)
+			'githubllll', current_timestamp, current_timestamp);`)
 		user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9Z"}
 		session, _ := user.InsertSession()
 		params := []byte(`{
@@ -351,12 +347,11 @@ func TestUpdateUserPrivacy(t *testing.T) {
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
-			wallet, username, privacy, plan,
+			wallet, username, privacy,
 			twitter, createdat, updatedat)
 		VALUES (
 			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B', 'jsjsjsj',
-			'all', 'basic', 'thisistwitter',
-			current_timestamp, current_timestamp);`)
+			'all', 'thisistwitter', current_timestamp, current_timestamp);`)
 
 	user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"}
 	session, _ := user.InsertSession()
@@ -431,12 +426,11 @@ func TestUpdateUserVisibility(t *testing.T) {
 	// <setup code>
 	Db.Exec(
 		`INSERT INTO users (
-			wallet, username, privacy, plan,
+			wallet, username, privacy,
 			twitter, createdat, updatedat)
 		VALUES (
 			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B', 'jsjsjsj',
-			'all', 'basic', 'thisistwitter',
-			current_timestamp, current_timestamp);`)
+			'all', 'thisistwitter', current_timestamp, current_timestamp);`)
 	Db.Exec(
 		`INSERT INTO visibilities (wallet, totalcounttrades, totalportfolio,
 			totalreturn, totalroi, tradeqtyavailable, tradevalue, tradereturn,

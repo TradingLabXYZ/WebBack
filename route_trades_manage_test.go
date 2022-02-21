@@ -20,10 +20,10 @@ func TestCreateTrade(t *testing.T) {
 	Db.Exec(
 		`INSERT INTO users (
 			wallet, username, privacy,
-			plan, createdat, updatedat)
+			createdat, updatedat)
 		VALUES (
 			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'r',
-			'all', 'basic', current_timestamp, current_timestamp);`)
+			'all', current_timestamp, current_timestamp);`)
 
 	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
 	session, _ := user.InsertSession()
@@ -131,10 +131,10 @@ func TestCreateTrade(t *testing.T) {
 		Db.Exec(
 			`INSERT INTO users (
 			wallet, username, privacy,
-			plan, createdat, updatedat)
+			createdat, updatedat)
 		VALUES (
 			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86T', 'ZTZTZT',
-			'all', 'basic', current_timestamp, current_timestamp);`)
+			'all', current_timestamp, current_timestamp);`)
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86T"}
 		session, _ := user.InsertSession()
 
@@ -178,10 +178,10 @@ func TestInsertTrade(t *testing.T) {
 	Db.Exec(
 		`INSERT INTO users (
 			wallet, username, privacy,
-			plan, createdat, updatedat)
+			createdat, updatedat)
 		VALUES (
 			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'jsjsjsj',
-			'all', 'basic', current_timestamp, current_timestamp);`)
+			'all', current_timestamp, current_timestamp);`)
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test insert valid trade"), func(t *testing.T) {
@@ -246,10 +246,10 @@ func TestDeleteTrade(t *testing.T) {
 
 	Db.Exec(
 		`INSERT INTO users (
-			wallet, username, privacy, plan, createdat, updatedat)
+			wallet, username, privacy, createdat, updatedat)
 		VALUES (
 			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X', 'MBMBMBM',
-			'all', 'basic',current_timestamp, current_timestamp);`)
+			'all', current_timestamp, current_timestamp);`)
 
 	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
 	session, _ := user.InsertSession()
