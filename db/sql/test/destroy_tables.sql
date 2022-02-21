@@ -13,4 +13,3 @@ DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS coins;
 DROP TABLE IF EXISTS smartcontractevents;
 DROP TYPE IF EXISTS privacies;
-DROP TYPE IF EXISTS plans;

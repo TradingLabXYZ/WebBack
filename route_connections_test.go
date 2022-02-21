@@ -13,9 +13,9 @@ import (
 func TestUpdateFollower(t *testing.T) {
 	// <setup code>
 	Db.Exec(
-		`INSERT INTO users (wallet, username, privacy, plan, createdat, updatedat) VALUES 
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', 'all', 'basic', current_timestamp, current_timestamp), 
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'all', 'basic', current_timestamp, current_timestamp);`)
+		`INSERT INTO users (wallet, username, privacy, createdat, updatedat) VALUES 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', 'all', current_timestamp, current_timestamp), 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'all', current_timestamp, current_timestamp);`)
 	Db.Exec(
 		`INSERT INTO visibilities (
 			wallet, totalcounttrades, totalportfolio, totalreturn, totalroi, tradeqtyavailable, tradevalue,
@@ -108,9 +108,9 @@ func TestUpdateFollower(t *testing.T) {
 func TestUpdateSubscribers(t *testing.T) {
 	// <setup code>
 	Db.Exec(
-		`INSERT INTO users (wallet, username, privacy, plan, createdat, updatedat) VALUES 
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', 'all', 'basic', current_timestamp, current_timestamp), 
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'all', 'basic', current_timestamp, current_timestamp);`)
+		`INSERT INTO users (wallet, username, privacy, createdat, updatedat) VALUES 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', 'all', current_timestamp, current_timestamp), 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'all', current_timestamp, current_timestamp);`)
 	Db.Exec(
 		`INSERT INTO visibilities (
 			wallet, totalcounttrades, totalportfolio, totalreturn, totalroi, tradeqtyavailable, tradevalue,
@@ -203,11 +203,11 @@ func TestUpdateSubscribers(t *testing.T) {
 func TestSelectConnection(t *testing.T) {
 	// <setup code>
 	Db.Exec(
-		`INSERT INTO users (wallet, username, privacy, plan, createdat, updatedat) VALUES 
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', 'all', 'basic', current_timestamp, current_timestamp), 
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'subscribers', 'basic', current_timestamp, current_timestamp), 
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', 'userc', 'all', 'basic', current_timestamp, current_timestamp), 
-		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', 'userd', 'followers', 'basic', current_timestamp, current_timestamp);`)
+		`INSERT INTO users (wallet, username, privacy, createdat, updatedat) VALUES 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', 'all', current_timestamp, current_timestamp), 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'subscribers', current_timestamp, current_timestamp), 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', 'userc', 'all', current_timestamp, current_timestamp), 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', 'userd', 'followers', current_timestamp, current_timestamp);`)
 	Db.Exec(
 		`INSERT INTO visibilities (
 			wallet, totalcounttrades, totalportfolio, totalreturn, totalroi, tradeqtyavailable, tradevalue,

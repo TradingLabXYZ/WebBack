@@ -107,9 +107,9 @@ func InsertUser(wallet string) {
 	statement := `
 		INSERT INTO users (
 			wallet, profilepicture, username, privacy,
-			plan, createdat, updatedat)
+			createdat, updatedat)
 		VALUES (
-			$1, $2, '', 'all', 'basic',
+			$1, $2, '', 'all',
 			current_timestamp, current_timestamp);`
 	_, err := Db.Exec(statement, wallet, default_profile_picture)
 	if err != nil {
@@ -156,7 +156,6 @@ func SelectUser(by string, value string) (user User, err error) {
 				CASE WHEN discord IS NULL THEN '' ELSE discord END AS discord,
 				CASE WHEN github IS NULL THEN '' ELSE github END AS github,
 				privacy,
-				plan,
 				CASE WHEN profilepicture IS NULL THEN '' ELSE profilepicture END AS profilepicture,
 				f.count_followers,
 				fo.count_followings,
@@ -196,7 +195,6 @@ func SelectUser(by string, value string) (user User, err error) {
 		&user.Discord,
 		&user.Github,
 		&user.Privacy,
-		&user.Plan,
 		&user.ProfilePicture,
 		&user.Followers,
 		&user.Followings,
