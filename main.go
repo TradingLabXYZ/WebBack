@@ -30,7 +30,7 @@ func main() {
 	Db = *setUpDb()
 	defer Db.Close()
 
-	go TrackContractEvents()
+	// go TrackContractEvents() temporary paused
 	go InstanciateActivityMonitor()
 	go ManageUnsubscriptions()
 
