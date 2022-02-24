@@ -131,6 +131,15 @@ func setUpDb() (db *sqlx.DB) {
 }
 
 func SetUpLog() (file *os.File) {
+	env := os.Getenv("TL_APP_ENV")
+	var DISCORD_WEBHOOK_URL string
+	if env == "production" {
+		DISCORD_WEBHOOK_URL = os.Getenv("DISCORD_WEBHOOK_URL")
+	} else if env == "staging" {
+		DISCORD_WEBHOOK_URL = os.Getenv("DISCORD_STAGING_WEBHOOK_URL")
+	} else if env == "test" {
+		DISCORD_WEBHOOK_URL = os.Getenv("DISCORD_STAGING_WEBHOOK_URL")
+	}
 	file, err := os.OpenFile(
 		"logs.log",
 		os.O_APPEND|os.O_CREATE|os.O_RDWR,
@@ -147,7 +156,7 @@ func SetUpLog() (file *os.File) {
 	log.SetFormatter(&log.JSONFormatter{})
 	log.SetOutput(io.MultiWriter(file, os.Stdout))
 	log.AddHook(discordrus.NewHook(
-		os.Getenv("DISCORD_WEBHOOK_URL"),
+		DISCORD_WEBHOOK_URL,
 		log.TraceLevel,
 		&discordrus.Opts{
 			DisableTimestamp:   false,

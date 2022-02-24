@@ -79,12 +79,6 @@ type DbListener struct {
 	Listener *pq.Listener
 }
 
-func InstanciateActivityMonitor() {
-	listener := DbListener{}
-	listener.Instanciate()
-	listener.Listen()
-}
-
 type UserWallet struct {
 	Wallet string `validate:"eth_addr"`
 }
