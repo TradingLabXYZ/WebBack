@@ -27,12 +27,12 @@ func main() {
 
 	log_file := SetUpLog()
 	defer log_file.Close()
-	Db = *setUpDb()
+	Db = *SetUpDb()
 	defer Db.Close()
 
 	// go TrackContractEvents() temporary paused
+	// go ManageUnsubscriptions() temporary paused
 	go InstanciateActivityMonitor()
-	go ManageUnsubscriptions()
 
 	fmt.Println(Bold(Green("Application running on port 8080")))
 	log.Fatal(http.ListenAndServe(":8080", h))
@@ -90,7 +90,7 @@ func SetUpCors() (c *cors.Cors) {
 	})
 }
 
-func setUpDb() (db *sqlx.DB) {
+func SetUpDb() (db *sqlx.DB) {
 	env := os.Getenv("TL_APP_ENV")
 	var DB_NAME string
 	if env == "production" {
