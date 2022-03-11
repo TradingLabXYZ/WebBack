@@ -41,30 +41,34 @@ func main() {
 func SetupRoutes() (router *mux.Router) {
 	router = mux.NewRouter()
 
+	// Without APIs
 	router.HandleFunc("/login/{wallet}", Login).Methods("GET")
 	router.HandleFunc("/get_trades/{wallet}/{sessionid}", StartTradesWs)
-	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
-	router.HandleFunc("/get_pair_ratio/{firstPairCoinId}/{secondPairCoinId}", SelectPairRatio).Methods("GET")
 	router.HandleFunc("/get_explore/{offset}", SelectExplore).Methods("GET")
+	router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")
+	router.HandleFunc("/update_privacy", UpdateUserPrivacy).Methods("POST")
+	router.HandleFunc("/update_visibility", UpdateUserVisibility).Methods("POST")
+	router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
+	router.HandleFunc("/follow/{wallet}/{status}", UpdateFollower).Methods("GET")
+	router.HandleFunc("/subscribe/{wallet}/{status}", UpdateSubscriber).Methods("GET")
+	router.HandleFunc("/get_connections/{wallet}", SelectConnections).Methods("GET")
+	router.HandleFunc("/subscription/{wallet}", SelectSubscriptionMonthlyPrice).Methods("GET")
+	router.HandleFunc("/admin/{token}", SelectActivity).Methods("GET")
 
+	// With APIs
 	router.HandleFunc("/insert_trade", CreateTrade).Methods("POST")
 	router.HandleFunc("/delete_trade/{tradecode}", DeleteTrade).Methods("GET")
 	router.HandleFunc("/update_subtrade", UpdateSubtrade).Methods("POST")
 	router.HandleFunc("/insert_subtrade/{tradecode}", CreateSubtrade).Methods("GET")
 	router.HandleFunc("/delete_subtrade/{subtradecode}", DeleteSubtrade).Methods("GET")
+	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
+	router.HandleFunc("/get_pair_ratio/{firstPairCoinId}/{secondPairCoinId}", SelectPairRatio).Methods("GET")
 
-	router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")
-	router.HandleFunc("/update_privacy", UpdateUserPrivacy).Methods("POST")
-	router.HandleFunc("/update_visibility", UpdateUserVisibility).Methods("POST")
-	router.HandleFunc("/insert_profile_picture", InsertProfilePicture).Methods("PUT")
-
-	router.HandleFunc("/admin/{token}", SelectActivity).Methods("GET")
-
-	router.HandleFunc("/follow/{wallet}/{status}", UpdateFollower).Methods("GET")
-	router.HandleFunc("/subscribe/{wallet}/{status}", UpdateSubscriber).Methods("GET")
-	router.HandleFunc("/get_connections/{wallet}", SelectConnections).Methods("GET")
-
-	router.HandleFunc("/subscription/{wallet}", SelectSubscriptionMonthlyPrice).Methods("GET")
+	/* TODOS
+	   /list_trades
+	   /list_subtrades
+	   /get_trade
+	   /get_subtrades */
 
 	files := http.FileServer(http.Dir("templates/public"))
 	s := http.StripPrefix("/static/", files)
