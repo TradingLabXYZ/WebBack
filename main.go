@@ -54,8 +54,7 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/get_connections/{wallet}", SelectConnections).Methods("GET")
 	router.HandleFunc("/subscription/{wallet}", SelectSubscriptionMonthlyPrice).Methods("GET")
 	router.HandleFunc("/admin/{token}", SelectActivity).Methods("GET")
-
-	router.HandleFunc("/generate_token", GenerateToken).Methods("GET")
+	router.HandleFunc("/generate_api_token", GenerateApiToken).Methods("GET")
 
 	// With APIs
 	router.HandleFunc("/insert_trade", CreateTrade).Methods("POST")

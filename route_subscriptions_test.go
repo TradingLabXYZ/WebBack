@@ -53,7 +53,7 @@ func TestSelectSubscriptionMonthlyPrice(t *testing.T) {
 				'{"Value": 12}');`)
 
 	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-	session, _ := user.InsertSession()
+	session, _ := user.InsertSession("web")
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {

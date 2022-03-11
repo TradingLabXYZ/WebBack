@@ -256,14 +256,18 @@ func (observed *User) CheckVisibility(snapshot *TradesSnapshot) {
 	}
 }
 
-func GenerateToken(w http.ResponseWriter, r *http.Request) {
+func GenerateApiToken(w http.ResponseWriter, r *http.Request) {
 	session, err := GetSession(r, "header")
 	if err != nil {
-		log.WithFields(log.Fields{
-			"customMsg": "Failed creating subtrade, wrong header",
-		}).Error(err)
-		w.WriteHeader(http.StatusUnauthorized)
-		return
+		// MANAGE ERROR!
 	}
-	_ = session
+	user, err := SelectUser("wallet", session.UserWallet)
+	if err != nil {
+		// MANAGE ERROR!
+	}
+	_, err = user.InsertSession("api")
+	if err != nil {
+		// MANAGE ERROR!
+	}
+	// RETURN POSITIVE STATUS
 }
