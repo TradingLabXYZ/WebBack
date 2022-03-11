@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	mathrand "math/rand"
+	"net/http"
 	"sync"
 	"time"
 
@@ -253,4 +254,16 @@ func (observed *User) CheckVisibility(snapshot *TradesSnapshot) {
 			}
 		}
 	}
+}
+
+func GenerateToken(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.WithFields(log.Fields{
+			"customMsg": "Failed creating subtrade, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	_ = session
 }
