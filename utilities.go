@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"crypto/sha1"
+	"encoding/json"
 	"errors"
 	"fmt"
 	mathrand "math/rand"
@@ -259,15 +260,30 @@ func (observed *User) CheckVisibility(snapshot *TradesSnapshot) {
 func GenerateApiToken(w http.ResponseWriter, r *http.Request) {
 	session, err := GetSession(r, "header")
 	if err != nil {
-		// MANAGE ERROR!
+		log.WithFields(log.Fields{
+			"customMsg": "Failed generating API token, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
 	}
 	user, err := SelectUser("wallet", session.UserWallet)
 	if err != nil {
-		// MANAGE ERROR!
+		log.WithFields(log.Fields{
+			"customMsg":  "Failed generating API token, wrong user",
+			"userWallet": session.UserWallet,
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
-	_, err = user.InsertSession("api")
+	session, err = user.InsertSession("api")
 	if err != nil {
-		// MANAGE ERROR!
+		log.WithFields(log.Fields{
+			"customMsg":  "Failed generating API token, wrong session",
+			"userWallet": session.UserWallet,
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
-	// RETURN POSITIVE STATUS
+
+	json.NewEncoder(w).Encode(session.Code)
 }
