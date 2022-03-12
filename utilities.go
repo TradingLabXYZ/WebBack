@@ -266,6 +266,13 @@ func GenerateApiToken(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+
+	if session.Origin != "web" {
+		log.Error("Failed generating API token, origin not web")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	user, err := SelectUser("wallet", session.UserWallet)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -275,15 +282,16 @@ func GenerateApiToken(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	session, err = user.InsertSession("api")
+
+	apiSession, err := user.InsertSession("api")
 	if err != nil {
 		log.WithFields(log.Fields{
 			"customMsg":  "Failed generating API token, wrong session",
-			"userWallet": session.UserWallet,
+			"userWallet": apiSession.UserWallet,
 		}).Error(err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	json.NewEncoder(w).Encode(session.Code)
+	json.NewEncoder(w).Encode(apiSession.Code)
 }

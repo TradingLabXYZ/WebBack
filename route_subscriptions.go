@@ -10,12 +10,18 @@ import (
 )
 
 func SelectSubscriptionMonthlyPrice(w http.ResponseWriter, r *http.Request) {
-	_, err := GetSession(r, "header")
+	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{
 			"customMsg": "Failed selecting subscription, wrong header",
 		}).Error(err)
 		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if session.Origin != "web" {
+		log.Error("Failed selectin subscription, origin not web")
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 

@@ -97,10 +97,12 @@ func (session *Session) ExtractFromCookie(r *http.Request) (err error) {
 func (session *Session) Select() (err error) {
 	err = Db.QueryRow(`
 			SELECT
-				userwallet
+				userwallet,
+				origin
 			FROM sessions
 			WHERE code = $1;`, session.Code).Scan(
 		&session.UserWallet,
+		&session.Origin,
 	)
 	return
 }

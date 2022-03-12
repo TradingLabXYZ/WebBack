@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -48,7 +49,14 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		// USER HAS NOT BEEN FOUND
+	}
+
+	fmt.Println(session)
+
+	if session.Origin != "web" {
+		log.Error("Failed starting ws, origin not web")
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	// INSTANCIATE WS

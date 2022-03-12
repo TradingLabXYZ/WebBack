@@ -41,7 +41,7 @@ func main() {
 func SetupRoutes() (router *mux.Router) {
 	router = mux.NewRouter()
 
-	// Without APIs
+	// Web
 	router.HandleFunc("/login/{wallet}", Login).Methods("GET")
 	router.HandleFunc("/get_trades/{wallet}/{sessionid}", StartTradesWs)
 	router.HandleFunc("/get_explore/{offset}", SelectExplore).Methods("GET")
@@ -56,7 +56,7 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/admin/{token}", SelectActivity).Methods("GET")
 	router.HandleFunc("/generate_api_token", GenerateApiToken).Methods("GET")
 
-	// With APIs
+	// Web & API
 	router.HandleFunc("/insert_trade", CreateTrade).Methods("POST")
 	router.HandleFunc("/delete_trade/{tradecode}", DeleteTrade).Methods("GET")
 	router.HandleFunc("/update_subtrade", UpdateSubtrade).Methods("POST")
@@ -65,11 +65,14 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
 	router.HandleFunc("/get_pair_ratio/{firstPairCoinId}/{secondPairCoinId}", SelectPairRatio).Methods("GET")
 
-	/* TODOS
+	// API
+	router.HandleFunc("/list_trades", ListTrades).Methods("GET")
+	/* TODOS Only APIs
 	   /list_trades
 	   /list_subtrades
 	   /get_trade
-	   /get_subtrades */
+	   /get_subtrades
+		 /get_results*/
 
 	files := http.FileServer(http.Dir("templates/public"))
 	s := http.StripPrefix("/static/", files)
