@@ -189,8 +189,7 @@ func (user User) SelectUserTrades() (trades []Trade) {
 
 		trade.TotalValueUsdS = humanize.Commaf(trade.TotalValueUsd)
 		trade.TotalReturnS = humanize.Commaf(trade.TotalReturn)
-		subtrades := trade.SelectTradeSubtrades()
-		trade.Subtrades = subtrades
+		trade.Subtrades = trade.SelectTradeSubtrades()
 
 		trades = append(trades, trade)
 	}

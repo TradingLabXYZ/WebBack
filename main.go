@@ -59,17 +59,17 @@ func SetupRoutes() (router *mux.Router) {
 	// Web & API
 	router.HandleFunc("/insert_trade", CreateTrade).Methods("POST")
 	router.HandleFunc("/delete_trade/{tradecode}", DeleteTrade).Methods("GET")
-	router.HandleFunc("/update_subtrade", UpdateSubtrade).Methods("POST")
 	router.HandleFunc("/insert_subtrade/{tradecode}", CreateSubtrade).Methods("GET")
+	router.HandleFunc("/update_subtrade", UpdateSubtrade).Methods("POST")
 	router.HandleFunc("/delete_subtrade/{subtradecode}", DeleteSubtrade).Methods("GET")
 	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
 	router.HandleFunc("/get_pair_ratio/{firstPairCoinId}/{secondPairCoinId}", SelectPairRatio).Methods("GET")
 
 	// API
 	router.HandleFunc("/list_trades", ListTrades).Methods("GET")
+	router.HandleFunc("/list_subtrades/{tradecode}", ListSubtrades).Methods("GET")
+	router.HandleFunc("/get_snapshot", GetSnapshot).Methods("GET")
 	/* TODOS Only APIs
-	   /list_trades
-	   /list_subtrades
 	   /get_trade
 	   /get_subtrades
 		 /get_results*/

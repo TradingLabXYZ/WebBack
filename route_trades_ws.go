@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -50,8 +49,6 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 	}
-
-	fmt.Println(session)
 
 	if session.Origin != "web" {
 		log.Error("Failed starting ws, origin not web")
