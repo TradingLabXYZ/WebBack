@@ -26,8 +26,6 @@ require (
 	github.com/onsi/gomega v1.10.2 // indirect
 	github.com/rs/cors v1.8.2
 	github.com/sirupsen/logrus v1.8.1
-	github.com/swaggo/http-swagger v1.2.5 // indirect
-	github.com/swaggo/swag v1.8.0 // indirect
 	golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838 // indirect
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
 	golang.org/x/sys v0.0.0-20220310020820-b874c991c1a5 // indirect

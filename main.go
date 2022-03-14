@@ -6,10 +6,6 @@ import (
 	"net/http"
 	"os"
 
-	_ "github.com/TradingLabXYZ/WebBack/docs"
-
-	httpSwagger "github.com/swaggo/http-swagger"
-
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	"github.com/kz/discordrus"
@@ -24,12 +20,6 @@ var (
 	trades_wss = make(map[string][]WsTrade)
 )
 
-// @title           TradingLab API
-// @version         1.0
-// @description    	Interact with TradingLab programmatically
-// @securityDefinitions.apikey BearerAuth
-// @in header
-// @name Authorization
 func main() {
 	r := SetupRoutes()
 	c := SetUpCors()
@@ -84,8 +74,6 @@ func SetupRoutes() (router *mux.Router) {
 	   /get_subtrades
 		 /get_results*/
 
-	router.PathPrefix("/docs").Handler(httpSwagger.WrapHandler)
-
 	files := http.FileServer(http.Dir("templates/public"))
 	s := http.StripPrefix("/static/", files)
 	router.PathPrefix("/static/").Handler(s)
@@ -93,17 +81,8 @@ func SetupRoutes() (router *mux.Router) {
 	return
 }
 
-var Origins = []string{
-	"http://127.0.0.1",
-	"http://localhost:9000",
-	"https://tradinglab.xyz",
-	"https://www.tradinglab.xyz",
-	"https://staging.tradinglab.xyz",
-}
-
 func SetUpCors() (c *cors.Cors) {
 	return cors.New(cors.Options{
-		AllowedOrigins:   Origins,
 		AllowedHeaders:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT"},
 		AllowCredentials: true,
