@@ -81,3 +81,9 @@ go test -v -parallel 1 -coverprofile=coverage.html && go tool cover -html=covera
 
 # Migrate
 Use `Makefile` to migrate up or down the database
+
+# Docs
+
+```bash
+swag init -ot go,yaml
+```

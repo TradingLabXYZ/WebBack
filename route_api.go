@@ -9,6 +9,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// ListTrades godoc
+// @Summary Get a list trades' codes
+// @Description Retrive a list containing the codes of each trades available CIAO
+// @Produce json
+// @Router /list_trades [get]
+// @Success 200 {object} []string
 func ListTrades(w http.ResponseWriter, r *http.Request) {
 	session, err := GetSession(r, "header")
 	if err != nil {
