@@ -18,6 +18,13 @@ var (
 	DbUrl      string
 	Db         sqlx.DB
 	trades_wss = make(map[string][]WsTrade)
+	Origins    = []string{
+		"http://127.0.0.1",
+		"http://localhost:9000",
+		"https://tradinglab.xyz",
+		"https://www.tradinglab.xyz",
+		"https://staging.tradinglab.xyz",
+	}
 )
 
 func main() {
@@ -57,13 +64,13 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/generate_api_token", GenerateApiToken).Methods("GET")
 
 	// Web & API
+	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
+	router.HandleFunc("/get_pair_ratio/{firstPairCoinId}/{secondPairCoinId}", SelectPairRatio).Methods("GET")
 	router.HandleFunc("/insert_trade", CreateTrade).Methods("POST")
 	router.HandleFunc("/delete_trade/{tradecode}", DeleteTrade).Methods("GET")
 	router.HandleFunc("/insert_subtrade/{tradecode}", CreateSubtrade).Methods("GET")
 	router.HandleFunc("/update_subtrade", UpdateSubtrade).Methods("POST")
 	router.HandleFunc("/delete_subtrade/{subtradecode}", DeleteSubtrade).Methods("GET")
-	router.HandleFunc("/get_pairs", SelectPairs).Methods("GET")
-	router.HandleFunc("/get_pair_ratio/{firstPairCoinId}/{secondPairCoinId}", SelectPairRatio).Methods("GET")
 
 	// API
 	router.HandleFunc("/list_trades", ListTrades).Methods("GET")
