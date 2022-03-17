@@ -283,6 +283,19 @@ func GenerateApiToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, err = Db.Exec(`
+			DELETE FROM sessions
+			WHERE userwallet = $1 AND origin = 'api';`,
+		user.Wallet)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"customMsg":  "Failed generating API token, cannot delete acutal sessions",
+			"userWallet": user.Wallet,
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	apiSession, err := user.InsertSession("api")
 	if err != nil {
 		log.WithFields(log.Fields{
