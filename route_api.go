@@ -104,5 +104,23 @@ func GetSnapshot(w http.ResponseWriter, r *http.Request) {
 
 	snapshot := user.GetSnapshot()
 
-	json.NewEncoder(w).Encode(snapshot)
+	export_snapshot := struct {
+		UserDetails       UserDetails
+		Trades            []Trade
+		CountTrades       int
+		TotalReturnUsd    string
+		TotalReturnBtc    string
+		Roi               float64
+		TotalPortfolioUsd string
+	}{
+		snapshot.UserDetails,
+		snapshot.Trades,
+		snapshot.CountTrades,
+		snapshot.TotalReturnUsd,
+		snapshot.TotalReturnBtc,
+		snapshot.Roi,
+		snapshot.TotalPortfolioUsd,
+	}
+
+	json.NewEncoder(w).Encode(export_snapshot)
 }
