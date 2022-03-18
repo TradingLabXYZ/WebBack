@@ -107,12 +107,6 @@ func SelectConnections(w http.ResponseWriter, r *http.Request) {
 
 	// No checking errors because no loggedin user can access
 	session, _ := GetSession(r, "header")
-	if session.Origin != "web" {
-		log.Error("Failed selection relations, origin not web")
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
 	observer, _ := SelectUser("wallet", session.UserWallet)
 
 	user_connection := Connection{
