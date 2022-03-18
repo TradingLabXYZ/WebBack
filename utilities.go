@@ -3,9 +3,11 @@ package main
 import (
 	"crypto/rand"
 	"crypto/sha1"
+	"encoding/json"
 	"errors"
 	"fmt"
 	mathrand "math/rand"
+	"net/http"
 	"sync"
 	"time"
 
@@ -253,4 +255,56 @@ func (observed *User) CheckVisibility(snapshot *TradesSnapshot) {
 			}
 		}
 	}
+}
+
+func GenerateApiToken(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.WithFields(log.Fields{
+			"customMsg": "Failed generating API token, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if session.Origin != "web" {
+		log.Error("Failed generating API token, origin not web")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	user, err := SelectUser("wallet", session.UserWallet)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"customMsg":  "Failed generating API token, wrong user",
+			"userWallet": session.UserWallet,
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	_, err = Db.Exec(`
+			DELETE FROM sessions
+			WHERE userwallet = $1 AND origin = 'api';`,
+		user.Wallet)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"customMsg":  "Failed generating API token, cannot delete acutal sessions",
+			"userWallet": user.Wallet,
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	apiSession, err := user.InsertSession("api")
+	if err != nil {
+		log.WithFields(log.Fields{
+			"customMsg":  "Failed generating API token, wrong session",
+			"userWallet": apiSession.UserWallet,
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	json.NewEncoder(w).Encode(apiSession.Code)
 }

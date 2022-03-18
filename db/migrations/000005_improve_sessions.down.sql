@@ -1,0 +1,3 @@
+BEGIN;
+ ALTER TABLE sessions DROP COLUMN origin;
+COMMIT;

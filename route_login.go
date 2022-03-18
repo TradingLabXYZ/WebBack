@@ -39,7 +39,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	session, err := user.InsertSession()
+	session, err := user.InsertSession("web")
 	if err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusForbidden)

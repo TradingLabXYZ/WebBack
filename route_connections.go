@@ -20,6 +20,12 @@ func UpdateFollower(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if session.Origin != "web" {
+		log.Error("Failed updating follower, origin not web")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	string_status := mux.Vars(r)["status"]
 	status, err := strconv.ParseBool(string_status)
 	if err != nil {
@@ -52,6 +58,12 @@ func UpdateSubscriber(w http.ResponseWriter, r *http.Request) {
 			"customMsg": "Failed updating subscriber, wrong header",
 		}).Error(err)
 		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if session.Origin != "web" {
+		log.Error("Failed updating subscriber, origin not web")
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -95,6 +107,12 @@ func SelectConnections(w http.ResponseWriter, r *http.Request) {
 
 	// No checking errors because no loggedin user can access
 	session, _ := GetSession(r, "header")
+	if session.Origin != "web" {
+		log.Error("Failed selection relations, origin not web")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	observer, _ := SelectUser("wallet", session.UserWallet)
 
 	user_connection := Connection{

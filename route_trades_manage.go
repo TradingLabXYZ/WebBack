@@ -61,7 +61,7 @@ func CreateTrade(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(new_trade.Code))
 }
 
 func (new_trade *NewTrade) InsertTrade() (err error) {
