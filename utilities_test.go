@@ -575,5 +575,4 @@ func TestGenerateApiToken(t *testing.T) {
 
 	// <tear-down code>
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
-	Db.Exec(`DELETE FROM sessions WHERE 1 = 1;`)
 }
