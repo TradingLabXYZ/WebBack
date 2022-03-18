@@ -24,6 +24,12 @@ func InsertProfilePicture(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if session.Origin != "web" {
+		log.Error("Failed inserting profile picture, origin not web")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	file, handler, err := r.FormFile("file")
 	if handler == nil {
 		log.WithFields(log.Fields{
@@ -142,6 +148,14 @@ func UpdateUserSettings(w http.ResponseWriter, r *http.Request) {
 			"customMsg": "Failed getting settings, wrong header",
 		}).Error(err)
 		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if session.Origin != "web" {
+		log.WithFields(log.Fields{
+			"urlPath": r.URL.Path,
+		}).Error("Failed getting settings, origin not web")
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -279,6 +293,12 @@ func UpdateUserPrivacy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if session.Origin != "web" {
+		log.Error("Failed updating privacy, origin not web")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	privacy := struct {
 		Privacy string `json:"Privacy"`
 	}{}
@@ -333,6 +353,12 @@ func UpdateUserVisibility(w http.ResponseWriter, r *http.Request) {
 			"customMsg": "Failed updating visibility, wrong header",
 		}).Error(err)
 		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if session.Origin != "web" {
+		log.Error("Failed updating visibility, origin not web")
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 

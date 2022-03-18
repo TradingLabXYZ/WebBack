@@ -11,24 +11,26 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (user *User) InsertSession() (session Session, err error) {
+func (user *User) InsertSession(origin string) (session Session, err error) {
 	uuid, err := CreateUUID()
 	if err != nil {
 		return
 	}
 
 	session_sql := `
-		INSERT INTO sessions (code, userwallet, createdat)
-		VALUES ($1, $2, $3)
-		RETURNING code, userwallet, createdat;`
+		INSERT INTO sessions (code, userwallet, origin, createdat)
+		VALUES ($1, $2, $3, $4)
+		RETURNING code, userwallet, origin, createdat;`
 
 	err = Db.QueryRow(
 		session_sql,
 		uuid,
 		user.Wallet,
+		origin,
 		time.Now()).Scan(
 		&session.Code,
 		&session.UserWallet,
+		&session.Origin,
 		&session.CreatedAt,
 	)
 	if err != nil {
@@ -94,10 +96,12 @@ func (session *Session) ExtractFromCookie(r *http.Request) (err error) {
 func (session *Session) Select() (err error) {
 	err = Db.QueryRow(`
 			SELECT
-				userwallet
+				userwallet,
+				origin
 			FROM sessions
 			WHERE code = $1;`, session.Code).Scan(
 		&session.UserWallet,
+		&session.Origin,
 	)
 	return
 }

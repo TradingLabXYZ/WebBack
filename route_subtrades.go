@@ -107,7 +107,7 @@ func CreateSubtrade(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(subtrade_code))
 }
 
 func UpdateSubtrade(w http.ResponseWriter, r *http.Request) {

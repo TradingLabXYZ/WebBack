@@ -38,6 +38,7 @@ type WsTrade struct {
 type Session struct {
 	Code       string
 	UserWallet string
+	Origin     string
 	CreatedAt  time.Time
 }
 
