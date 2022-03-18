@@ -128,7 +128,7 @@ func TestStartTradesWs(t *testing.T) {
 		s := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer s.Close()
 		u := strings.TrimPrefix(s.URL, "http://")
-		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/undefined"}
+		u_new := url.URL{Scheme: "ws", Host: u, Path: "get_trades/0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A/randonSessionId"}
 		header := http.Header{}
 		header.Set("Origin", "http://127.0.0.1")
 		ws, _, _ := websocket.DefaultDialer.Dial(u_new.String(), header)
