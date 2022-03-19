@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/jinzhu/copier"
@@ -486,6 +488,91 @@ func TestCheckVisibility(t *testing.T) {
 			t.Fatal("Failed subtradesall is empty")
 		}
 	})
+	// <tear-down code>
+	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
+}
+
+func TestGenerateApiToken(t *testing.T) {
+	// <setup code>
+	Db.Exec(
+		`INSERT INTO users (wallet, username, privacy, createdat, updatedat) VALUES 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'userd', 'all', current_timestamp, current_timestamp);`)
+	Db.Exec(
+		`INSERT INTO visibilities (wallet, totalcounttrades, totalportfolio,
+			totalreturn, totalroi, tradeqtyavailable, tradevalue, tradereturn,
+			traderoi, subtradesall, subtradereasons, subtradequantity, subtradeavgprice, subtradetotal)
+		VALUES (
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', TRUE, TRUE, TRUE, TRUE,
+			TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);`)
+
+	// <test code>
+	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/generate_api_token", nil)
+		req.Header.Set("Authorization", "Bearer sessionId=")
+		w := httptest.NewRecorder()
+		GenerateApiToken(w, req)
+		res := w.Result()
+		if res.StatusCode != 401 {
+			t.Fatal("Failed test generate APi token, wrong header")
+		}
+	})
+
+	t.Run(fmt.Sprintf("Test wrong origin"), func(t *testing.T) {
+		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
+		session, _ := user.InsertSession("api")
+		req := httptest.NewRequest("GET", "/generate_api_token", nil)
+		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
+		w := httptest.NewRecorder()
+		GenerateApiToken(w, req)
+		res := w.Result()
+		if res.StatusCode != 400 {
+			t.Fatal("Failed test generate APi token, wrong origin")
+		}
+	})
+	t.Run(fmt.Sprintf("Test deleting previous session"), func(t *testing.T) {
+		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
+		session, _ := user.InsertSession("web")
+		_, _ = user.InsertSession("api")
+		_, _ = user.InsertSession("api")
+		req := httptest.NewRequest("GET", "/generate_api_token", nil)
+		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
+		w := httptest.NewRecorder()
+		GenerateApiToken(w, req)
+		var count_row int
+		_ = Db.QueryRow(`
+					SELECT
+						COUNT(*)
+					FROM sessions
+					WHERE userwallet = $1
+					AND origin = 'api';`, "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A").Scan(&count_row)
+		if count_row != 1 {
+			t.Fatal("Failed test generate APi token, deleting previous row")
+		}
+	})
+	t.Run(fmt.Sprintf("Succesfully create session"), func(t *testing.T) {
+		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
+		session, _ := user.InsertSession("web")
+		_, _ = user.InsertSession("api")
+		_, _ = user.InsertSession("api")
+		req := httptest.NewRequest("GET", "/generate_api_token", nil)
+		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
+		w := httptest.NewRecorder()
+		GenerateApiToken(w, req)
+		session_received, _ := ioutil.ReadAll(w.Body)
+		session_received_s := string(session_received)
+		var session_code string
+		_ = Db.QueryRow(`
+					SELECT
+						code
+					FROM sessions
+					WHERE userwallet = $1
+					AND origin = 'api';`, "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A").Scan(&session_code)
+
+		if session_received_s != session_code {
+			t.Fatal("Failed test generate APi token, successfully create session")
+		}
+	})
+
 	// <tear-down code>
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 }

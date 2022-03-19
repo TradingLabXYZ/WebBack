@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/rand"
 	"crypto/sha1"
-	"encoding/json"
 	"errors"
 	"fmt"
 	mathrand "math/rand"
@@ -306,5 +305,5 @@ func GenerateApiToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(apiSession.Code)
+	w.Write([]byte(apiSession.Code))
 }
