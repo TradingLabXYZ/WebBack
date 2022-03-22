@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -38,7 +37,6 @@ func StartTradesWs(w http.ResponseWriter, r *http.Request) {
 	session := Session{}
 	observer := User{}
 	session.Code = session_id
-	fmt.Println("SESSION CODE", session)
 	err = session.Select()
 	if err == nil {
 		observer, err = SelectUser("wallet", session.UserWallet)
