@@ -209,7 +209,7 @@ func (trade Trade) SelectTradeSubtrades() (subtrades []Subtrade) {
 				total
 			FROM subtrades
 			WHERE tradecode = $1
-			ORDER BY 5;`
+			ORDER BY 5 DESC;`
 
 	subtrades_rows, err := Db.Query(
 		subtrades_sql,
