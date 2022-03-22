@@ -41,11 +41,13 @@ func (db_listener *DbListener) Listen() {
 func DistpachSnapshots(user_wallet string) {
 	observed, _ := SelectUser("wallet", user_wallet)
 	snapshot := observed.GetSnapshot()
+	observed.CheckVisibility(&snapshot)
 	for _, q := range trades_wss[observed.Wallet] {
 		user_connection := Connection{
 			Observer: q.Observer,
 			Observed: observed,
 		}
+
 		user_connection.CheckConnection()
 		user_connection.CheckPrivacy()
 		snapshot.IsFollower = user_connection.IsFollower
