@@ -81,6 +81,7 @@ go test -v -parallel 1 -coverprofile=coverage.html && go tool cover -html=covera
 
 # Migrate
 Use `Makefile` to migrate up or down the database
+To clean migration, after making sure everything is correct, fix the table "schema_migrations" in the database.
 
 # Docs
 
