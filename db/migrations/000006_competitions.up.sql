@@ -9,8 +9,9 @@ BEGIN;
 COMMIT;
 BEGIN;
   CREATE TABLE IF NOT EXISTS submissions (
+    updatedat TIMESTAMP NOT NULL,
     competitionname TEXT NOT NULL,
-    userwallet VARCHAR(42) NOT NULL,
+    userwallet VARCHAR(42) NOT NULL UNIQUE,
     payload JSON NOT NULL,
     CONSTRAINT users_wallet_fkey FOREIGN KEY (userwallet)
       REFERENCES users (wallet) ON DELETE CASCADE,
