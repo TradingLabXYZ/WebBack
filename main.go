@@ -78,10 +78,9 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/get_snapshot", GetSnapshot).Methods("GET")
 
 	// PLUS
-	router.HandleFunc("/get_prediction/{competition}", SelectPrediction).Methods("GET")
 	router.HandleFunc("/insert_prediction/{competition}/{prediction}", InsertPrediction).Methods("GET")
-	router.HandleFunc("/update_prediction", UpdatePrediction).Methods("GET")
-	router.HandleFunc("/delete_prediction", DeletePrediction).Methods("GET")
+	router.HandleFunc("/get_prediction/{competition}", SelectPrediction).Methods("GET")
+	router.HandleFunc("/delete_prediction/{competition}", DeletePrediction).Methods("GET")
 	router.HandleFunc("/get_count_partecipants", GetCountPartecipants).Methods("GET")
 	router.HandleFunc("/get_partecipants", GetPartecipants).Methods("GET")
 

@@ -70,7 +70,7 @@ func SelectPrediction(w http.ResponseWriter, r *http.Request) {
 	competitionname := mux.Vars(r)["competition"]
 
 	var prediction string
-	err = Db.QueryRow(`
+	_ = Db.QueryRow(`
 			SELECT payload#>>'{prediction}'
 			FROM submissions
 			WHERE competitionname = $1
@@ -78,18 +78,43 @@ func SelectPrediction(w http.ResponseWriter, r *http.Request) {
 		competitionname,
 		session.UserWallet).Scan(&prediction)
 	if err != nil {
-		log.Error(err)
+		log.Warn(err)
 		return
 	}
 
 	json.NewEncoder(w).Encode(prediction)
 }
 
-func UpdatePrediction(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-}
-
 func DeletePrediction(w http.ResponseWriter, r *http.Request) {
+	session, err := GetSession(r, "header")
+	if err != nil {
+		log.WithFields(log.Fields{
+			"customMsg": "Failed deleting prediction, wrong header",
+		}).Error(err)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if session.Origin != "web" {
+		log.Error("Failed deleting prediction, origin not web")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	competitionname := mux.Vars(r)["competition"]
+
+	statement := `
+		DELETE FROM submissions
+		WHERE userwallet = $1
+		AND competitionname = $2;`
+	_, err = Db.Exec(
+		statement,
+		session.UserWallet,
+		competitionname)
+	if err != nil {
+		log.Error(err)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
