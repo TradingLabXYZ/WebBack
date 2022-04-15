@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -136,5 +137,73 @@ func GetCountPartecipants(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetPartecipants(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode("TEMP")
+	competitionname := mux.Vars(r)["competition"]
+
+	type Prediction struct {
+		CreatedAt      string
+		Username       string
+		Wallet         string
+		ProfilePicture string
+		Prediction     string
+		BtcPrice       string
+		DeltaPerc      float32
+		AbsDeltaPrice  string
+	}
+
+	predictions := []Prediction{}
+
+	prediction_query := `
+		WITH
+			last_btc_price AS (
+				SELECT
+					price
+				FROM lastprices
+				WHERE coinid = 1)
+		SELECT
+			u.updatedat,
+			u.username,
+			CASE WHEN u.profilepicture IS NULL THEN '' ELSE u.profilepicture END AS profilepicture,
+			LEFT(s.userwallet, 3) || '...' || RIGHT(s.userwallet, 3) AS userwallet,
+			TO_CHAR(ROUND((s.payload#>>'{prediction}')::NUMERIC, 2), '999,999,999') AS prediction,
+			TO_CHAR(l.price, '999,999,999') || '$' AS btc_price,
+			ROUND(((s.payload#>>'{prediction}')::NUMERIC / l.price - 1) * 100, 2) AS deltaprice,
+			ABS((s.payload#>>'{prediction}')::NUMERIC / l.price - 1) AS absdeltaprice
+		FROM submissions s
+		LEFT JOIN users u ON(s.userwallet = u.wallet)
+		LEFT JOIN last_btc_price l ON(1 = 1)
+		WHERE competitionname = $1
+		ORDER BY 8;`
+
+	predictions_rows, err := Db.Query(
+		prediction_query,
+		competitionname)
+	defer predictions_rows.Close()
+	if err != nil {
+		log.WithFields(log.Fields{
+			"competitionName": competitionname,
+			"custom_msg":      "Failed running prediction_sql",
+		}).Error(err)
+	}
+	for predictions_rows.Next() {
+		prediction := Prediction{}
+		if err = predictions_rows.Scan(
+			&prediction.CreatedAt,
+			&prediction.Username,
+			&prediction.ProfilePicture,
+			&prediction.Wallet,
+			&prediction.Prediction,
+			&prediction.BtcPrice,
+			&prediction.DeltaPerc,
+			&prediction.AbsDeltaPrice,
+		); err != nil {
+			fmt.Println(err)
+			log.WithFields(log.Fields{
+				"competitionName": competitionname,
+				"custom_msg":      "Failed parsing prediction_sql",
+			}).Error(err)
+		}
+		predictions = append(predictions, prediction)
+	}
+
+	json.NewEncoder(w).Encode(predictions)
 }

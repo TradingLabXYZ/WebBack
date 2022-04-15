@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http/httptest"
@@ -328,6 +329,85 @@ func TestGetCountPartecipants(t *testing.T) {
 		partecipants_s := string(partecipants)
 		if !strings.Contains(partecipants_s, "2") {
 			t.Fatal("Failed successfully counting partecipants")
+		}
+	})
+	// <tear-down code>
+	Db.Exec(`DELETE FROM competitions WHERE 1 = 1;`)
+	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
+}
+
+func TestGetPartecipants(t *testing.T) {
+	// <setup code>
+	Db.Exec(
+		`INSERT INTO users (wallet, username, privacy, createdat, updatedat) VALUES 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'usera', 'all', current_timestamp, current_timestamp),
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', 'userb', 'all', current_timestamp, current_timestamp);`)
+	Db.Exec(
+		`INSERT INTO visibilities (wallet, totalcounttrades, totalportfolio,
+			totalreturn, totalroi, tradeqtyavailable, tradevalue, tradereturn,
+			traderoi, subtradesall, subtradereasons, subtradequantity, subtradeavgprice, subtradetotal)
+		VALUES
+			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', TRUE, TRUE, TRUE, TRUE,
+			TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE),
+			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', TRUE, TRUE, TRUE, TRUE,
+			TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);`)
+	Db.Exec(`
+		INSERT INTO coins (
+			coinid, name, symbol, slug)
+		VALUES
+			(1, 'Bitcoin', 'BTC', 'Bitcoin');`)
+	Db.Exec(`
+		INSERT INTO lastprices (
+			updatedat, coinid, price)
+		VALUES
+			(current_timestamp, 1, 45000);`)
+	Db.Exec(
+		`INSERT INTO competitions (
+			name, submissionendedat, submissionstartedat,
+			competitionstartedat, competitionendedat)
+		VALUES (
+			'first_competition', current_timestamp,
+			current_timestamp, current_timestamp, current_timestamp);`)
+	Db.Exec(
+		`INSERT INTO submissions (
+			competitionname, userwallet, payload, updatedat)
+		VALUES
+			('first_competition', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A',
+			'{"prediction": 46000}', current_timestamp),
+			('first_competition', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B',
+			'{"prediction": 47000}', current_timestamp);`)
+
+	t.Run(fmt.Sprintf("Test successfully get partipants"), func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/get_partecipants", nil)
+		req.Header.Set("Authorization", "Bearer sessionId=")
+		vars := map[string]string{
+			"competition": "first_competition",
+		}
+		req = mux.SetURLVars(req, vars)
+		w := httptest.NewRecorder()
+		GetPartecipants(w, req)
+		partecipants, _ := ioutil.ReadAll(w.Body)
+		type Prediction struct {
+			CreatedAt      string
+			Username       string
+			Wallet         string
+			ProfilePicture string
+			Prediction     string
+			BtcPrice       string
+			DeltaPerc      float32
+			AbsDeltaPrice  string
+		}
+
+		predictions := []Prediction{}
+		_ = json.Unmarshal(partecipants, &predictions)
+		if predictions[0].Username != "usera" {
+			t.Fatal("Failed successfully get partecipants")
+		}
+		if predictions[0].DeltaPerc != 2.22 {
+			t.Fatal("Failed successfully get partecipants")
+		}
+		if predictions[1].DeltaPerc != 4.44 {
+			t.Fatal("Failed successfully get partecipants")
 		}
 	})
 	// <tear-down code>
