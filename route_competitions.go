@@ -119,7 +119,20 @@ func DeletePrediction(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetCountPartecipants(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode("25")
+	competitionname := mux.Vars(r)["competition"]
+
+	var count int
+	err := Db.QueryRow(`
+			SELECT COUNT(*)
+			FROM submissions
+			WHERE competitionname = $1;`,
+		competitionname).Scan(&count)
+	if err != nil {
+		log.Warn(err)
+		return
+	}
+
+	json.NewEncoder(w).Encode(count)
 }
 
 func GetPartecipants(w http.ResponseWriter, r *http.Request) {

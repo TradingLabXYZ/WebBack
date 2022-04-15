@@ -81,7 +81,7 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/insert_prediction/{competition}/{prediction}", InsertPrediction).Methods("GET")
 	router.HandleFunc("/get_prediction/{competition}", SelectPrediction).Methods("GET")
 	router.HandleFunc("/delete_prediction/{competition}", DeletePrediction).Methods("GET")
-	router.HandleFunc("/get_count_partecipants", GetCountPartecipants).Methods("GET")
+	router.HandleFunc("/get_count_partecipants/{competition}", GetCountPartecipants).Methods("GET")
 	router.HandleFunc("/get_partecipants", GetPartecipants).Methods("GET")
 
 	files := http.FileServer(http.Dir("templates/public"))
