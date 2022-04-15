@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -196,7 +195,6 @@ func GetPartecipants(w http.ResponseWriter, r *http.Request) {
 			&prediction.DeltaPerc,
 			&prediction.AbsDeltaPrice,
 		); err != nil {
-			fmt.Println(err)
 			log.WithFields(log.Fields{
 				"competitionName": competitionname,
 				"custom_msg":      "Failed parsing prediction_sql",
