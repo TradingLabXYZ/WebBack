@@ -1,0 +1,4 @@
+BEGIN;
+  DROP TABLE IF EXISTS competitions;
+  DROP TABLE IF EXISTS submissions;
+COMMIT;
