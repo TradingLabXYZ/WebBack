@@ -77,6 +77,13 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/list_subtrades/{tradecode}", ListSubtrades).Methods("GET")
 	router.HandleFunc("/get_snapshot", GetSnapshot).Methods("GET")
 
+	// PLUS
+	router.HandleFunc("/insert_prediction/{competition}/{prediction}", InsertPrediction).Methods("GET")
+	router.HandleFunc("/get_prediction/{competition}", SelectPrediction).Methods("GET")
+	router.HandleFunc("/delete_prediction/{competition}", DeletePrediction).Methods("GET")
+	router.HandleFunc("/get_count_partecipants/{competition}", GetCountPartecipants).Methods("GET")
+	router.HandleFunc("/get_partecipants/{competition}", GetPartecipants).Methods("GET")
+
 	files := http.FileServer(http.Dir("templates/public"))
 	s := http.StripPrefix("/static/", files)
 	router.PathPrefix("/static/").Handler(s)
