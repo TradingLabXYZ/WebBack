@@ -48,6 +48,14 @@ func InsertPrediction(w http.ResponseWriter, r *http.Request) {
 		log.Error(err)
 		return
 	}
+
+	log.Trace(
+		"PREDICTION\n",
+		session.UserWallet,
+		"\n",
+		prediction,
+	)
+
 	w.WriteHeader(http.StatusOK)
 }
 
