@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -13,6 +14,12 @@ import (
 
 func TestInsertPrediction(t *testing.T) {
 	// <setup code>
+	params := []byte(`{
+		"Competition": "first_competition",
+		"Source": "test",
+		"Prediction": 1999
+	}`)
+
 	Db.Exec(
 		`INSERT INTO users (wallet, username, privacy, createdat, updatedat) VALUES 
 		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'userd', 'all', current_timestamp, current_timestamp);`)
@@ -33,13 +40,8 @@ func TestInsertPrediction(t *testing.T) {
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
-		req := httptest.NewRequest("GET", "/insert_prediction", nil)
+		req := httptest.NewRequest("POST", "/insert_prediction", bytes.NewBuffer(params))
 		req.Header.Set("Authorization", "Bearer sessionId=")
-		vars := map[string]string{
-			"competition": "first_competition",
-			"prediction":  "123.33",
-		}
-		req = mux.SetURLVars(req, vars)
 		w := httptest.NewRecorder()
 		InsertPrediction(w, req)
 		res := w.Result()
@@ -51,13 +53,8 @@ func TestInsertPrediction(t *testing.T) {
 	t.Run(fmt.Sprintf("Test origin not web"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
 		session, _ := user.InsertSession("api")
-		req := httptest.NewRequest("GET", "/insert_prediction", nil)
+		req := httptest.NewRequest("POST", "/insert_prediction", bytes.NewBuffer(params))
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
-		vars := map[string]string{
-			"competition": "first_competition",
-			"prediction":  "123.33",
-		}
-		req = mux.SetURLVars(req, vars)
 		w := httptest.NewRecorder()
 		InsertPrediction(w, req)
 		res := w.Result()
@@ -69,16 +66,10 @@ func TestInsertPrediction(t *testing.T) {
 	t.Run(fmt.Sprintf("Test successfully insert prediction"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
 		session, _ := user.InsertSession("web")
-		req := httptest.NewRequest("GET", "/insert_prediction", nil)
+		req := httptest.NewRequest("POST", "/insert_prediction", bytes.NewBuffer(params))
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
-		vars := map[string]string{
-			"competition": "first_competition",
-			"prediction":  "123.33",
-		}
-		req = mux.SetURLVars(req, vars)
 		w := httptest.NewRecorder()
 		InsertPrediction(w, req)
-
 		var prediction string
 		_ = Db.QueryRow(`
 			SELECT payload
@@ -86,32 +77,33 @@ func TestInsertPrediction(t *testing.T) {
 			WHERE userwallet = $1;`,
 			"0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A").Scan(&prediction)
 
-		if !strings.Contains(prediction, "123.33") {
+		if !strings.Contains(prediction, "1999") {
 			t.Fatal("Failed successfully inserting prediction")
 		}
 	})
 
 	t.Run(fmt.Sprintf("Test successfully update prediction"), func(t *testing.T) {
+		new_params := []byte(`{
+			"Competition": "first_competition",
+			"Source": "test",
+			"Prediction": 1111
+		}`)
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
 		session, _ := user.InsertSession("web")
-		req := httptest.NewRequest("GET", "/insert_prediction", nil)
+		req := httptest.NewRequest("POST", "/insert_prediction", bytes.NewBuffer(new_params))
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
-		vars := map[string]string{
-			"competition": "first_competition",
-			"prediction":  "144.44",
-		}
-		req = mux.SetURLVars(req, vars)
 		w := httptest.NewRecorder()
 		InsertPrediction(w, req)
-
 		var prediction string
 		_ = Db.QueryRow(`
 			SELECT payload
 			FROM submissions
-			WHERE userwallet = $1;`,
+			WHERE userwallet = $1
+			ORDER BY updatedat DESC
+			LIMIT 1;`,
 			"0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A").Scan(&prediction)
 
-		if !strings.Contains(prediction, "144.44") {
+		if !strings.Contains(prediction, "1111") {
 			t.Fatal("Failed successfully updating prediction")
 		}
 	})
@@ -145,7 +137,7 @@ func TestSelectPrediction(t *testing.T) {
 			competitionname, userwallet, payload, updatedat)
 		VALUES (
 			'first_competition', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A',
-			'{"prediction": 144.99}', current_timestamp);`)
+			'{"Prediction": 144.99}', current_timestamp);`)
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
@@ -198,6 +190,7 @@ func TestSelectPrediction(t *testing.T) {
 			t.Fatal("Failed successfully selecting prediction")
 		}
 	})
+
 	// <tear-down code>
 	Db.Exec(`DELETE FROM competitions WHERE 1 = 1;`)
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
@@ -373,9 +366,9 @@ func TestGetPartecipants(t *testing.T) {
 			competitionname, userwallet, payload, updatedat)
 		VALUES
 			('first_competition', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A',
-			'{"prediction": 46000}', current_timestamp),
+			'{"Prediction": 46000}', current_timestamp),
 			('first_competition', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B',
-			'{"prediction": 47000}', current_timestamp);`)
+			'{"Prediction": 47000}', current_timestamp);`)
 
 	t.Run(fmt.Sprintf("Test successfully get partipants"), func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/get_partecipants", nil)
