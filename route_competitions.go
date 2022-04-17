@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -9,6 +10,7 @@ import (
 )
 
 func InsertPrediction(w http.ResponseWriter, r *http.Request) {
+
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -24,27 +26,36 @@ func InsertPrediction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	competitionname := mux.Vars(r)["competition"]
-	prediction := mux.Vars(r)["prediction"]
-	s_prediction := map[string]string{"prediction": prediction}
+	payload := struct {
+		Competition string      `json:"Competition"`
+		Prediction  json.Number `json:"Prediction"`
+		Source      string      `json:"Source"`
+	}{}
 
-	s_payload, err := json.Marshal(s_prediction)
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&payload)
 	if err != nil {
+		log.WithFields(log.Fields{
+			"sessionCode": session.Code,
+			"customMsg":   "Failed decoding new trade payload",
+		}).Error(err)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
+	s_payload, err := json.Marshal(payload)
+
 	statement := `
-		INSERT INTO submissions (
-			updatedat, competitionname, userwallet, payload)
-		VALUES (current_timestamp, $1, $2, $3)
-		ON CONFLICT (userwallet) DO UPDATE
-		SET updatedat = now(), payload = EXCLUDED.payload;`
+			INSERT INTO submissions (
+				updatedat, competitionname, userwallet, payload)
+			VALUES (current_timestamp, $1, $2, $3);`
 	_, err = Db.Exec(
 		statement,
-		competitionname,
+		payload.Competition,
 		session.UserWallet,
 		s_payload)
 	if err != nil {
+		fmt.Println(err)
 		log.Error(err)
 		return
 	}
@@ -53,7 +64,7 @@ func InsertPrediction(w http.ResponseWriter, r *http.Request) {
 		"PREDICTION\n",
 		session.UserWallet,
 		"\n",
-		prediction,
+		payload,
 	)
 
 	w.WriteHeader(http.StatusOK)
@@ -79,10 +90,12 @@ func SelectPrediction(w http.ResponseWriter, r *http.Request) {
 
 	var prediction string
 	_ = Db.QueryRow(`
-			SELECT payload#>>'{prediction}'
+			SELECT payload#>>'{Prediction}'
 			FROM submissions
 			WHERE competitionname = $1
-			AND userwallet = $2;`,
+			AND userwallet = $2
+			ORDER BY updatedat DESC
+			LIMIT 1;`,
 		competitionname,
 		session.UserWallet).Scan(&prediction)
 	if err != nil {
@@ -131,7 +144,7 @@ func GetCountPartecipants(w http.ResponseWriter, r *http.Request) {
 
 	var count int
 	err := Db.QueryRow(`
-			SELECT COUNT(*)
+			SELECT COUNT(DISTINCT userwallet)
 			FROM submissions
 			WHERE competitionname = $1;`,
 		competitionname).Scan(&count)
@@ -165,20 +178,33 @@ func GetPartecipants(w http.ResponseWriter, r *http.Request) {
 				SELECT
 					price
 				FROM lastprices
-				WHERE coinid = 1)
+				WHERE coinid = 1),
+			all_submissions AS (
+				SELECT
+					s.updatedat,
+					u.username,
+					CASE WHEN u.profilepicture IS NULL THEN '' ELSE u.profilepicture END AS profilepicture,
+					LEFT(s.userwallet, 3) || '...' || RIGHT(s.userwallet, 3) AS userwallet,
+					TO_CHAR(ROUND((s.payload#>>'{Prediction}')::NUMERIC, 2), '999,999,999') AS prediction,
+					TO_CHAR(l.price, '999,999,999') || '$' AS btc_price,
+					ROUND(((s.payload#>>'{Prediction}')::NUMERIC / l.price - 1) * 100, 2) AS deltaprice,
+					ABS((s.payload#>>'{Prediction}')::NUMERIC / l.price - 1) AS absdeltaprice,
+					ROW_NUMBER() OVER (PARTITION BY userwallet ORDER BY s.updatedat DESC) AS row_number
+				FROM submissions s
+				LEFT JOIN users u ON(s.userwallet = u.wallet)
+				LEFT JOIN last_btc_price l ON(1 = 1)
+				WHERE competitionname = $1)
 		SELECT
-			u.updatedat,
-			u.username,
-			CASE WHEN u.profilepicture IS NULL THEN '' ELSE u.profilepicture END AS profilepicture,
-			LEFT(s.userwallet, 3) || '...' || RIGHT(s.userwallet, 3) AS userwallet,
-			TO_CHAR(ROUND((s.payload#>>'{prediction}')::NUMERIC, 2), '999,999,999') AS prediction,
-			TO_CHAR(l.price, '999,999,999') || '$' AS btc_price,
-			ROUND(((s.payload#>>'{prediction}')::NUMERIC / l.price - 1) * 100, 2) AS deltaprice,
-			ABS((s.payload#>>'{prediction}')::NUMERIC / l.price - 1) AS absdeltaprice
-		FROM submissions s
-		LEFT JOIN users u ON(s.userwallet = u.wallet)
-		LEFT JOIN last_btc_price l ON(1 = 1)
-		WHERE competitionname = $1
+			updatedat,
+			username,
+			profilepicture,
+			userwallet,
+			prediction,
+			btc_price,
+			deltaprice,
+			absdeltaprice
+		FROM all_submissions
+		WHERE row_number = 1
 		ORDER BY 8;`
 
 	predictions_rows, err := Db.Query(
@@ -186,6 +212,7 @@ func GetPartecipants(w http.ResponseWriter, r *http.Request) {
 		competitionname)
 	defer predictions_rows.Close()
 	if err != nil {
+		fmt.Println(err)
 		log.WithFields(log.Fields{
 			"competitionName": competitionname,
 			"custom_msg":      "Failed running prediction_sql",
