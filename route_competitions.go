@@ -27,7 +27,9 @@ func InsertPrediction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	payload := struct {
-		Competition string `json:"Competition"`
+		Competition string      `json:"Competition"`
+		Prediction  json.Number `json:"Prediction"`
+		Source      string      `json:"Source"`
 	}{}
 
 	decoder := json.NewDecoder(r.Body)
@@ -43,28 +45,27 @@ func InsertPrediction(w http.ResponseWriter, r *http.Request) {
 
 	s_payload, err := json.Marshal(payload)
 
-	fmt.Println("SONO QUI", string(s_payload))
-
-	/*	statement := `
+	statement := `
 			INSERT INTO submissions (
 				updatedat, competitionname, userwallet, payload)
 			VALUES (current_timestamp, $1, $2, $3);`
-		_, err = Db.Exec(
-			statement,
-			payload.Competition,
-			session.UserWallet,
-			s_payload)
-		if err != nil {
-			log.Error(err)
-			return
-		}
+	_, err = Db.Exec(
+		statement,
+		payload.Competition,
+		session.UserWallet,
+		s_payload)
+	if err != nil {
+		fmt.Println(err)
+		log.Error(err)
+		return
+	}
 
-		log.Trace(
-			"PREDICTION\n",
-			session.UserWallet,
-			"\n",
-			payload,
-		) */
+	log.Trace(
+		"PREDICTION\n",
+		session.UserWallet,
+		"\n",
+		payload,
+	)
 
 	w.WriteHeader(http.StatusOK)
 }
