@@ -27,17 +27,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := SelectUser("wallet", user_wallet.Wallet)
-	if user == (User{}) {
+	if !IsWalletInSessions(wallet) {
 		InsertUser(wallet)
 		InsertVisibility(wallet)
-		user, err = SelectUser("wallet", user_wallet.Wallet)
-		if err != nil {
-			log.Error(err)
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
 	}
+
+	user, err := SelectUser("wallet", wallet)
 
 	session, err := user.InsertSession("web")
 	if err != nil {

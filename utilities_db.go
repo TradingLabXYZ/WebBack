@@ -106,6 +106,18 @@ func (session *Session) Select() (err error) {
 	return
 }
 
+func IsWalletInSessions(wallet string) (exists bool) {
+	err := Db.QueryRow(`
+			SELECT
+				true
+			FROM sessions
+			WHERE userwallet = $1;`, wallet).Scan(&exists)
+	if err != nil {
+		return false
+	}
+	return exists
+}
+
 func InsertUser(wallet string) {
 	default_profile_picture := os.Getenv("CDN_PATH") + "/profile_pictures/default_picture.png"
 	statement := `
