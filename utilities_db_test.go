@@ -123,3 +123,38 @@ func TestInsertVisibility(t *testing.T) {
 	// <tear-down code>
 	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
 }
+
+func TestIsWalletInSessions(t *testing.T) {
+	// <setup code>
+	Db.Exec(
+		`INSERT INTO users (wallet, username, privacy, createdat, updatedat) VALUES 
+		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', 'userd', 'all', current_timestamp, current_timestamp);`)
+	Db.Exec(
+		`INSERT INTO visibilities (wallet, totalcounttrades, totalportfolio,
+			totalreturn, totalroi, tradeqtyavailable, tradevalue, tradereturn,
+			traderoi, subtradesall, subtradereasons, subtradequantity, subtradeavgprice, subtradetotal)
+		VALUES (
+			'0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', TRUE, TRUE, TRUE, TRUE,
+			TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);`)
+	Db.Exec(
+		`INSERT INTO sessions (code, userwallet, createdat, origin) VALUES 
+		('ABCDEFG', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', current_timestamp, 'origin');`)
+
+	// <test code>
+	t.Run(fmt.Sprintf("Test return false when wallet not exists"), func(t *testing.T) {
+		isWalletPresent := IsWalletInSessions("0xAHHDHDH")
+		if isWalletPresent {
+			t.Fatal("Failed returning false when user not exist")
+		}
+	})
+
+	t.Run(fmt.Sprintf("Test return true when wallet not exists"), func(t *testing.T) {
+		isWalletPresent := IsWalletInSessions("0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A")
+		if !isWalletPresent {
+			t.Fatal("Failed returning false when user not exist")
+		}
+	})
+
+	// <tear-down code>
+	Db.Exec(`DELETE FROM users WHERE 1 = 1;`)
+}
