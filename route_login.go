@@ -3,21 +3,37 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
+	"time"
 
-	validator "github.com/go-playground/validator/v10"
+	"github.com/go-playground/validator"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
 
 func Login(w http.ResponseWriter, r *http.Request) {
 	wallet := mux.Vars(r)["wallet"]
+	timezone := mux.Vars(r)["timezone"]
+
+	clean_timezone := strings.ReplaceAll(timezone, "_", "/")
+	timeLoc, err := time.LoadLocation(clean_timezone)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"wallet":     wallet,
+			"custom_msg": "Attemped accessing with invalid timezone",
+		}).Warn(err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	_ = timeLoc
 
 	user_wallet := UserWallet{
 		Wallet: wallet,
 	}
 
 	validate := validator.New()
-	err := validate.Struct(user_wallet)
+	err = validate.Struct(user_wallet)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"wallet":     wallet,

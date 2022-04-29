@@ -49,7 +49,7 @@ func SetupRoutes() (router *mux.Router) {
 	router = mux.NewRouter()
 
 	// Web
-	router.HandleFunc("/login/{wallet}", Login).Methods("GET")
+	router.HandleFunc("/login/{wallet}/{timezone}", Login).Methods("GET")
 	router.HandleFunc("/get_trades/{wallet}/{sessionid}", StartTradesWs)
 	router.HandleFunc("/get_explore/{offset}", SelectExplore).Methods("GET")
 	router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")
@@ -68,7 +68,7 @@ func SetupRoutes() (router *mux.Router) {
 	router.HandleFunc("/get_pair_ratio/{firstPairCoinId}/{secondPairCoinId}", SelectPairRatio).Methods("GET")
 	router.HandleFunc("/insert_trade", CreateTrade).Methods("POST")
 	router.HandleFunc("/delete_trade/{tradecode}", DeleteTrade).Methods("GET")
-	router.HandleFunc("/insert_subtrade/{tradecode}", CreateSubtrade).Methods("GET")
+	router.HandleFunc("/insert_subtrade/{tradecode}/{timezone}", CreateSubtrade).Methods("GET")
 	router.HandleFunc("/update_subtrade", UpdateSubtrade).Methods("POST")
 	router.HandleFunc("/delete_subtrade/{subtradecode}", DeleteSubtrade).Methods("GET")
 
