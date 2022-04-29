@@ -39,6 +39,7 @@ type Session struct {
 	Code       string
 	UserWallet string
 	Origin     string
+	Timezone   string
 	CreatedAt  time.Time
 }
 

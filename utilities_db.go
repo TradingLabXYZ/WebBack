@@ -11,15 +11,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func (user *User) InsertSession(origin string) (session Session, err error) {
+func (user *User) InsertSession(origin string, timezone string) (session Session, err error) {
 	uuid, err := CreateUUID()
 	if err != nil {
 		return
 	}
 
 	session_sql := `
-		INSERT INTO sessions (code, userwallet, origin, createdat)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO sessions (code, userwallet, origin, timezone, createdat)
+		VALUES ($1, $2, $3, $4, $5)
 		RETURNING code, userwallet, origin, createdat;`
 
 	err = Db.QueryRow(
@@ -27,6 +27,7 @@ func (user *User) InsertSession(origin string) (session Session, err error) {
 		uuid,
 		user.Wallet,
 		origin,
+		timezone,
 		time.Now()).Scan(
 		&session.Code,
 		&session.UserWallet,
@@ -97,11 +98,13 @@ func (session *Session) Select() (err error) {
 	err = Db.QueryRow(`
 			SELECT
 				userwallet,
-				origin
+				origin,
+				timezone
 			FROM sessions
 			WHERE code = $1;`, session.Code).Scan(
 		&session.UserWallet,
 		&session.Origin,
+		&session.Timezone,
 	)
 	return
 }

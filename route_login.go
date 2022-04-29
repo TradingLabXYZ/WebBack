@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-playground/validator"
+	validator "github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 )
@@ -16,7 +16,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	timezone := mux.Vars(r)["timezone"]
 
 	clean_timezone := strings.ReplaceAll(timezone, "_", "/")
-	timeLoc, err := time.LoadLocation(clean_timezone)
+	_, err := time.LoadLocation(clean_timezone)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"wallet":     wallet,
@@ -25,8 +25,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	_ = timeLoc
 
 	user_wallet := UserWallet{
 		Wallet: wallet,
@@ -50,7 +48,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	user, err := SelectUser("wallet", wallet)
 
-	session, err := user.InsertSession("web")
+	session, err := user.InsertSession("web", clean_timezone)
 	if err != nil {
 		log.Error(err)
 		w.WriteHeader(http.StatusForbidden)

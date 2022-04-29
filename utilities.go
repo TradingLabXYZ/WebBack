@@ -295,7 +295,7 @@ func GenerateApiToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiSession, err := user.InsertSession("api")
+	apiSession, err := user.InsertSession("api", session.Timezone)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"customMsg":  "Failed generating API token, wrong session",

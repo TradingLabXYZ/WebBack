@@ -28,7 +28,7 @@ func TestCreateSession(t *testing.T) {
 	// <test code>
 	t.Run(fmt.Sprintf("Test not existing user code"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B"}
-		_, err := user.InsertSession("web")
+		_, err := user.InsertSession("web", "Europe_Berlin")
 		if err == nil {
 			t.Fatal("Failed test not existing user code")
 		}
@@ -36,7 +36,7 @@ func TestCreateSession(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test successfully creation of session"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session, _ := user.InsertSession("web")
+		session, _ := user.InsertSession("web", "Europe_Berlin")
 		if session.UserWallet == "" {
 			t.Fatal("Failed successfully create session")
 		}
