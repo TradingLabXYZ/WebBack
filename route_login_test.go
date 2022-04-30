@@ -26,7 +26,8 @@ func TestLogin(t *testing.T) {
 	t.Run(fmt.Sprintf("Test login invalid eth wallet"), func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/login", nil)
 		vars := map[string]string{
-			"wallet": "ABC",
+			"wallet":   "ABC",
+			"timezone": "Europe_Berlin",
 		}
 		req = mux.SetURLVars(req, vars)
 		req.Header.Set("Authorization", "Bearer sessionId=")
@@ -37,10 +38,26 @@ func TestLogin(t *testing.T) {
 			t.Fatal("Failed login invalid eth wallet")
 		}
 	})
+	t.Run(fmt.Sprintf("Test login invalid timezone"), func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/login", nil)
+		vars := map[string]string{
+			"wallet":   "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
+			"timezone": "EuropeXXXBerlin",
+		}
+		req = mux.SetURLVars(req, vars)
+		req.Header.Set("Authorization", "Bearer sessionId=")
+		w := httptest.NewRecorder()
+		Login(w, req)
+		res := w.Result()
+		if res.StatusCode != 400 {
+			t.Fatal("Failed login invalid timezone")
+		}
+	})
 	t.Run(fmt.Sprintf("Test login new wallet address"), func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/login", nil)
 		vars := map[string]string{
-			"wallet": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
+			"wallet":   "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
+			"timezone": "Europe_Berlin",
 		}
 		req = mux.SetURLVars(req, vars)
 		req.Header.Set("Authorization", "Bearer sessionId=")
@@ -66,7 +83,8 @@ func TestLogin(t *testing.T) {
 	t.Run(fmt.Sprintf("Test login existing user"), func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/login", nil)
 		vars := map[string]string{
-			"wallet": "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
+			"wallet":   "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B",
+			"timezone": "Europe_Berlin",
 		}
 		req = mux.SetURLVars(req, vars)
 		req.Header.Set("Authorization", "Bearer sessionId=")

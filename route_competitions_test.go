@@ -52,7 +52,7 @@ func TestInsertPrediction(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test origin not web"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session, _ := user.InsertSession("api")
+		session, _ := user.InsertSession("api", "Europe_Berlin")
 		req := httptest.NewRequest("POST", "/insert_prediction", bytes.NewBuffer(params))
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		w := httptest.NewRecorder()
@@ -65,7 +65,7 @@ func TestInsertPrediction(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test successfully insert prediction"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session, _ := user.InsertSession("web")
+		session, _ := user.InsertSession("web", "Europe_Berlin")
 		req := httptest.NewRequest("POST", "/insert_prediction", bytes.NewBuffer(params))
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		w := httptest.NewRecorder()
@@ -89,7 +89,7 @@ func TestInsertPrediction(t *testing.T) {
 			"Prediction": 1111
 		}`)
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session, _ := user.InsertSession("web")
+		session, _ := user.InsertSession("web", "Europe_Berlin")
 		req := httptest.NewRequest("POST", "/insert_prediction", bytes.NewBuffer(new_params))
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		w := httptest.NewRecorder()
@@ -157,7 +157,7 @@ func TestSelectPrediction(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test origin not web"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session, _ := user.InsertSession("api")
+		session, _ := user.InsertSession("api", "Europe_Berlin")
 		req := httptest.NewRequest("GET", "/select_prediction", nil)
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		vars := map[string]string{
@@ -174,7 +174,7 @@ func TestSelectPrediction(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test successfully select prediction"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session, _ := user.InsertSession("web")
+		session, _ := user.InsertSession("web", "Europe_Berlin")
 		req := httptest.NewRequest("GET", "/select_prediction", nil)
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		vars := map[string]string{
@@ -240,7 +240,7 @@ func TestDeletePrediction(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test origin not web"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session, _ := user.InsertSession("api")
+		session, _ := user.InsertSession("api", "Europe_Berlin")
 		req := httptest.NewRequest("GET", "/deleting_prediction", nil)
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		vars := map[string]string{
@@ -257,7 +257,7 @@ func TestDeletePrediction(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test successfully delete prediction"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session, _ := user.InsertSession("web")
+		session, _ := user.InsertSession("web", "Europe_Berlin")
 		req := httptest.NewRequest("GET", "/delete_prediction", nil)
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		vars := map[string]string{

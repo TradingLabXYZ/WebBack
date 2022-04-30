@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   userwallet VARCHAR(42) NOT NULL,
   createdat TIMESTAMP NOT NULL,
   origin TEXT NOT NULL,
+  timezone TEXT NOT NULL,
   CONSTRAINT users_userwallet_fkey FOREIGN KEY (userwallet)
     REFERENCES users (wallet) ON DELETE CASCADE
 );
