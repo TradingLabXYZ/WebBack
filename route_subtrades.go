@@ -64,6 +64,7 @@ func (new_trade *NewTrade) InsertSubTrades() (err error) {
 }
 
 func CreateSubtrade(w http.ResponseWriter, r *http.Request) {
+
 	session, err := GetSession(r, "header")
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -83,6 +84,9 @@ func CreateSubtrade(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user_timezone, _ := time.LoadLocation(session.Timezone)
+	now := time.Now().In(user_timezone)
+
 	subtrade_sql := `
 		INSERT INTO subtrades (
 			code, tradecode, userwallet, 
@@ -90,14 +94,15 @@ func CreateSubtrade(w http.ResponseWriter, r *http.Request) {
 			quantity, avgprice, total, updatedat)
 		VALUES (
 			SUBSTR(MD5(RANDOM()::TEXT), 0, 12), $1, $2,
-			current_timestamp, 'BUY', '', 0.0001, 0.0001,
-			0.0001, current_timestamp)
+			$3, 'BUY', '', 0.0001, 0.0001,
+			0.0001, $3)
 		RETURNING code;`
 	var subtrade_code string
 	err = Db.QueryRow(
 		subtrade_sql,
 		tradecode,
 		session.UserWallet,
+		now,
 	).Scan(&subtrade_code)
 	if err != nil || subtrade_code == "" {
 		log.WithFields(log.Fields{

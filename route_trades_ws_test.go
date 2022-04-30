@@ -146,7 +146,7 @@ func TestStartTradesWs(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test access PRIVATE user not logged in"), func(t *testing.T) {
 		user_a := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session_a, _ := user_a.InsertSession("web")
+		session_a, _ := user_a.InsertSession("web", "Europe_Berlin")
 		s := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer s.Close()
 		u := strings.TrimPrefix(s.URL, "http://")
@@ -192,7 +192,7 @@ func TestStartTradesWs(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test receive snapshot after change"), func(t *testing.T) {
 		user_a := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B"}
-		session_a, _ := user_a.InsertSession("web")
+		session_a, _ := user_a.InsertSession("web", "Europe_Berlin")
 		go InstanciateActivityMonitor()
 		s := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer s.Close()
@@ -315,7 +315,7 @@ func TestStartTradesWsIntegration(t *testing.T) {
 
 		// test 3
 		user_c := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C"}
-		session_c, _ := user_c.InsertSession("web")
+		session_c, _ := user_c.InsertSession("web", "Europe_Berlin")
 		server_c := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer server_c.Close()
 		url_c := strings.TrimPrefix(server_c.URL, "http://")
@@ -327,7 +327,7 @@ func TestStartTradesWsIntegration(t *testing.T) {
 
 		// test 4
 		user_d := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D"}
-		session_d, _ := user_d.InsertSession("web")
+		session_d, _ := user_d.InsertSession("web", "Europe_Berlin")
 		server_d := httptest.NewServer(http.HandlerFunc(StartTradesWs))
 		defer server_d.Close()
 		url_d := strings.TrimPrefix(server_d.URL, "http://")

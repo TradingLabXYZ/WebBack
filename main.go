@@ -49,7 +49,7 @@ func SetupRoutes() (router *mux.Router) {
 	router = mux.NewRouter()
 
 	// Web
-	router.HandleFunc("/login/{wallet}", Login).Methods("GET")
+	router.HandleFunc("/login/{wallet}/{timezone}", Login).Methods("GET")
 	router.HandleFunc("/get_trades/{wallet}/{sessionid}", StartTradesWs)
 	router.HandleFunc("/get_explore/{offset}", SelectExplore).Methods("GET")
 	router.HandleFunc("/user_settings", UpdateUserSettings).Methods("POST")

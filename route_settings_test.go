@@ -35,7 +35,7 @@ func TestInsertProfilePicture(t *testing.T) {
 			'all', current_timestamp, current_timestamp);`)
 
 	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
-	session, _ := user.InsertSession("web")
+	session, _ := user.InsertSession("web", "Europe_Berlin")
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
@@ -186,7 +186,7 @@ func TestUpdateUserSettings(t *testing.T) {
 			'thisistwitter', 'thisisdiscord', 'thisisgithub',
 			current_timestamp, current_timestamp);`)
 	user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"}
-	session, _ := user.InsertSession("web")
+	session, _ := user.InsertSession("web", "Europe_Berlin")
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
@@ -220,7 +220,7 @@ func TestUpdateUserSettings(t *testing.T) {
 			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9D', 'ququqj', 'all',
 			'twitterhdhd', current_timestamp, current_timestamp);`)
 		user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9D"}
-		session, _ := user.InsertSession("web")
+		session, _ := user.InsertSession("web", "Europe_Berlin")
 		params := []byte(`{
 			"Username": "jsjsjsj"
 		}`)
@@ -243,7 +243,7 @@ func TestUpdateUserSettings(t *testing.T) {
 			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9C', 'xlxlxlx', 'all',
 			'twitteraaa', current_timestamp, current_timestamp);`)
 		user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9C"}
-		session, _ := user.InsertSession("web")
+		session, _ := user.InsertSession("web", "Europe_Berlin")
 		params := []byte(`{
 			"Twitter": "thisistwitter"
 		}`)
@@ -266,7 +266,7 @@ func TestUpdateUserSettings(t *testing.T) {
 			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9Q', 'jdhshd', 'all',
 			'discordssss', current_timestamp, current_timestamp);`)
 		user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9Q"}
-		session, _ := user.InsertSession("web")
+		session, _ := user.InsertSession("web", "Europe_Berlin")
 		params := []byte(`{
 			"Discord": "thisisdiscord"
 		}`)
@@ -289,7 +289,7 @@ func TestUpdateUserSettings(t *testing.T) {
 			'0xAb5801a7D398351b8bE11C439e05C5B3259aeC9Z', 'pqoskjd', 'all',
 			'githubllll', current_timestamp, current_timestamp);`)
 		user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9Z"}
-		session, _ := user.InsertSession("web")
+		session, _ := user.InsertSession("web", "Europe_Berlin")
 		params := []byte(`{
 			"Github": "thisisgithub"
 		}`)
@@ -354,7 +354,7 @@ func TestUpdateUserPrivacy(t *testing.T) {
 			'all', 'thisistwitter', current_timestamp, current_timestamp);`)
 
 	user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"}
-	session, _ := user.InsertSession("web")
+	session, _ := user.InsertSession("web", "Europe_Berlin")
 	_ = session
 
 	// <test code>
@@ -440,7 +440,7 @@ func TestUpdateUserVisibility(t *testing.T) {
 			TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);`)
 
 	user := User{Wallet: "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B"}
-	session, _ := user.InsertSession("web")
+	session, _ := user.InsertSession("web", "Europe_Berlin")
 	_ = session
 
 	// <test code>
