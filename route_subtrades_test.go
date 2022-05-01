@@ -147,7 +147,7 @@ func TestCreateSubTrade(t *testing.T) {
 			current_timestamp, 1000, 1001);`)
 
 	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
-	session, _ := user.InsertSession("web", "Europe_Berlin")
+	session, _ := user.InsertSession("web", "Europe|Berlin")
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
@@ -231,7 +231,7 @@ func TestUpdateSubTrade(t *testing.T) {
 			current_timestamp, 1, 1, 1, 'TESTART');`)
 
 	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
-	session, _ := user.InsertSession("web", "Europe_Berlin")
+	session, _ := user.InsertSession("web", "Europe|Berlin")
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
@@ -339,7 +339,7 @@ func TestDeleteSubTrade(t *testing.T) {
 			current_timestamp, 1, 1, 1, 'TESTART');`)
 
 	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86X"}
-	session, _ := user.InsertSession("web", "Europe_Berlin")
+	session, _ := user.InsertSession("web", "Europe|Berlin")
 
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {

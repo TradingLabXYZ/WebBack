@@ -25,7 +25,7 @@ func TestUpdateFollower(t *testing.T) {
 		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);`)
 
 	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-	session, _ := user.InsertSession("web", "Europe_Berlin")
+	session, _ := user.InsertSession("web", "Europe|Berlin")
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/follow", nil)
@@ -120,7 +120,7 @@ func TestUpdateSubscribers(t *testing.T) {
 		('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86B', TRUE, TRUE, TRUE, TRUE, TRUE, TRUE, TRUE ,TRUE, TRUE, TRUE, TRUE, TRUE, TRUE);`)
 
 	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-	session, _ := user.InsertSession("web", "Europe_Berlin")
+	session, _ := user.InsertSession("web", "Europe|Berlin")
 	// <test code>
 	t.Run(fmt.Sprintf("Test wrong header"), func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/subscribe", nil)
@@ -223,7 +223,7 @@ func TestSelectConnection(t *testing.T) {
 			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86D', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', current_timestamp),
 			('0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A', '0x29D7d1dd5B6f9C864d9db560D72a247c178aE86C', current_timestamp);`)
 	user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-	session, _ := user.InsertSession("web", "Europe_Berlin")
+	session, _ := user.InsertSession("web", "Europe|Berlin")
 	_ = session
 
 	// <test code>

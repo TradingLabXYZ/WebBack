@@ -61,7 +61,7 @@ func TestListTrades(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test origin not api"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session, _ := user.InsertSession("web", "Europe_Berlin")
+		session, _ := user.InsertSession("web", "Europe|Berlin")
 		req := httptest.NewRequest("GET", "/list_trades", nil)
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		w := httptest.NewRecorder()
@@ -74,7 +74,7 @@ func TestListTrades(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test successfully receive trade codes"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session, _ := user.InsertSession("api", "Europe_Berlin")
+		session, _ := user.InsertSession("api", "Europe|Berlin")
 		req := httptest.NewRequest("GET", "/list_trades", nil)
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		w := httptest.NewRecorder()
@@ -140,7 +140,7 @@ func TestListSubtrades(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test origin not api"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session, _ := user.InsertSession("web", "Europe_Berlin")
+		session, _ := user.InsertSession("web", "Europe|Berlin")
 		req := httptest.NewRequest("GET", "/list_subtrades", nil)
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		vars := map[string]string{
@@ -157,7 +157,7 @@ func TestListSubtrades(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test successfully receive subtrade codes"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session, _ := user.InsertSession("api", "Europe_Berlin")
+		session, _ := user.InsertSession("api", "Europe|Berlin")
 		req := httptest.NewRequest("GET", "/list_subtrades", nil)
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		vars := map[string]string{
@@ -227,7 +227,7 @@ func TestApiGetSnapshot(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test origin not api"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session, _ := user.InsertSession("web", "Europe_Berlin")
+		session, _ := user.InsertSession("web", "Europe|Berlin")
 		req := httptest.NewRequest("GET", "/get_snapshot", nil)
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		w := httptest.NewRecorder()
@@ -240,7 +240,7 @@ func TestApiGetSnapshot(t *testing.T) {
 
 	t.Run(fmt.Sprintf("Test successfully get snapshot"), func(t *testing.T) {
 		user := User{Wallet: "0x29D7d1dd5B6f9C864d9db560D72a247c178aE86A"}
-		session, _ := user.InsertSession("api", "Europe_Berlin")
+		session, _ := user.InsertSession("api", "Europe|Berlin")
 		req := httptest.NewRequest("GET", "/get_snapshot", nil)
 		req.Header.Set("Authorization", "Bearer sessionId="+session.Code)
 		w := httptest.NewRecorder()

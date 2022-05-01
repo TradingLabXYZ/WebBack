@@ -15,7 +15,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	wallet := mux.Vars(r)["wallet"]
 	timezone := mux.Vars(r)["timezone"]
 
-	clean_timezone := strings.ReplaceAll(timezone, "_", "/")
+	clean_timezone := strings.ReplaceAll(timezone, "|", "/")
 	_, err := time.LoadLocation(clean_timezone)
 	if err != nil {
 		log.WithFields(log.Fields{
