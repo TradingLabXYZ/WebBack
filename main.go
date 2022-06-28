@@ -100,15 +100,7 @@ func SetUpCors() (c *cors.Cors) {
 }
 
 func SetUpDb() (db *sqlx.DB) {
-	env := os.Getenv("TL_APP_ENV")
-	var DB_NAME string
-	if env == "production" {
-		DB_NAME = "webappconnectionpool"
-	} else if env == "staging" {
-		DB_NAME = "stagingwebappconnectionpool"
-	} else if env == "test" {
-		DB_NAME = "testwebapp"
-	}
+	DB_NAME := "webapp"
 
 	DbUrl = fmt.Sprintf(
 		"postgres://%s:%s@%s:%s/%s",
